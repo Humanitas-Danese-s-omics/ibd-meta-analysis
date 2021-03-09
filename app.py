@@ -773,4 +773,4 @@ def print_summary(umap_dataset, gene_species, contrast, tissue, expression_datas
 	return summary_children
 
 if __name__ == "__main__":
-	app.run_server(debug=True, host = "10.39.173.120", port = "8050")
+	app.run_server()
