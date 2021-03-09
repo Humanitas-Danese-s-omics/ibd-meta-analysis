@@ -73,6 +73,7 @@ VALID_USERNAME_PASSWORD_PAIRS = {
 
 #layout
 app = dash.Dash(__name__, title="IBD meta-analisys Danese omics")
+server = app.server
 auth = dash_auth.BasicAuth(
     app,
     VALID_USERNAME_PASSWORD_PAIRS
