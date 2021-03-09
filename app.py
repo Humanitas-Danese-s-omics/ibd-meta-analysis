@@ -83,11 +83,11 @@ app.layout = html.Div([
 					#header
 					html.Div([
 						#logo
-						html.Img(src="http://www.lucamassimino.com/images/ibd/logo.png", alt="logo", style={"width": "70%", "height": "70%"}, title="Tamma means talking drum in West Africa, where it’s also known as dundun. It is a small drum, played with a curved stick and having a membrane stretched over one end or both ends of a narrow-waisted wooden frame by cords whose tension can be manually altered to vary the drum's tonality as it is played."),
+						html.Img(src="assets/logo.png", alt="logo", style={"width": "70%", "height": "70%"}, title="Tamma means talking drum in West Africa, where it’s also known as dundun. It is a small drum, played with a curved stick and having a membrane stretched over one end or both ends of a narrow-waisted wooden frame by cords whose tension can be manually altered to vary the drum's tonality as it is played."),
 					], style={"width": "100%", "display": "inline-block"}),
 					
 					#graphical abstract
-					html.Div([html.Img(src="http://www.lucamassimino.com/images/ibd/menu.png", alt="menu", style={"width": "100%", "height": "100%"})
+					html.Div([html.Img(src="assets/menu.png", alt="menu", style={"width": "100%", "height": "100%"})
 					], style = {"width": "100%", "display": "inline-block"}),
 
 					#general options dropdowns
@@ -243,7 +243,7 @@ app.layout = html.Div([
 					], style={"width": "40%", "height": 440, "display": "inline-block"}),
 
 					#graphical abstract
-					html.Div([html.Hr(), html.Img(src="http://www.lucamassimino.com/images/ibd/workflow.png", alt="graphical_abstract", style={"width": "100%", "height": "100%"})
+					html.Div([html.Hr(), html.Img(src="assets/workflow.png", alt="graphical_abstract", style={"width": "100%", "height": "100%"})
 					], style = {"width": "100%", "display": "inline-block"}),
 
 					#statistics
