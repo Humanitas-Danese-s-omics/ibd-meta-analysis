@@ -440,7 +440,7 @@ def plot_umaps(umap_dataset, metadata, gene_species, contrast, zoom_metadata, zo
 			#plot
 			umap_metadata_fig = px.scatter(umap_df, x="UMAP1", y="UMAP2", color = label_to_value[metadata], hover_data={"UMAP1": False, "UMAP2": False, "Sample": True, "Group": True, "Tissue": True, "Source": True, "Library strategy": True}, color_discrete_sequence = colors)
 			umap_metadata_fig.update_layout(legend_title_text=metadata.capitalize().replace("_", " "), title = {"text": metadata.capitalize(), "xanchor": "center", "x": 0.70, "y": 0.9, "font_size": 14}, margin=dict(l=0, r=0, t=70, b=80), font_family="Arial", legend_yanchor="top", legend_y=1.1, legend_xanchor="left", legend_x=-0.65, legend_itemsizing = "constant")
-			hover_template = "UMAP1: %{x}<br>UMAP2: %{y}<br>Sample: %{customdata[0]}<br>Group: %{customdata[1]}<br>Tissue: %{customdata[2]}<br>Source: %{customdata[3]}<br>Library strategy: %{customdata[4]}<extra></extra>"
+			hover_template = "Sample: %{customdata[0]}<br>Group: %{customdata[1]}<br>Tissue: %{customdata[2]}<br>Source: %{customdata[3]}<br>Library strategy: %{customdata[4]}<extra></extra>"
 			umap_metadata_fig.update_traces(marker_size=4, hovertemplate = hover_template)
 
 			#add "visible" key to all the traces if not present; these will be used by umap expression and boxplots
@@ -484,7 +484,7 @@ def plot_umaps(umap_dataset, metadata, gene_species, contrast, zoom_metadata, zo
 				for dot in trace["customdata"]:
 					#stores samples to keep after filtering (umap metadata legend click)
 					if trace["visible"] != "legendonly":
-						samples_to_keep.append(dot[0])					
+						samples_to_keep.append(dot[0])
 					#populate data
 					metadata_data["Sample"].append(dot[0])
 					metadata_data["Group"].append(dot[1])
@@ -514,9 +514,11 @@ def plot_umaps(umap_dataset, metadata, gene_species, contrast, zoom_metadata, zo
 				expression_or_abundance = " abundance"
 			
 			counts = pd.read_csv("http://www.lucamassimino.com/ibd/counts/{}/{}.tsv".format(expression_dataset, gene_species), sep = "\t")
+			counts = counts.rename(columns={"sample": "Sample"})
 
 			#add counts to umap df
-			umap_df["counts"] = counts["counts"]
+			umap_df = umap_df.merge(counts, how="left", on="Sample")
+			#umap_df["counts"] = counts["counts"]
 			umap_df = umap_df.dropna(subset=["counts"])
 			
 			#filter samples that are not visible
@@ -594,8 +596,9 @@ def plot_boxplots(expression_dataset, gene, metadata_field, umap_legend_click, b
 		counts = pd.read_csv("http://www.lucamassimino.com/ibd/counts/{}/{}.tsv".format(expression_dataset, gene), sep = "\t")
 		#open metadata and select only the desired column
 		metadata_df = pd.read_csv("http://www.lucamassimino.com/ibd/umap_{}.tsv".format(expression_dataset), sep = "\t")
-		#compute log2 and replace inf with 0
-		metadata_df["Log2 counts"] = np.log2(counts["counts"])
+		#merge and compute log2 and replace inf with 0
+		metadata_df = metadata_df.merge(counts, how="left", on="sample")
+		metadata_df["Log2 counts"] = np.log2(metadata_df["counts"])
 		metadata_df["Log2 counts"].replace(to_replace = -np.inf, value = 0, inplace=True)
 		#sort by metadata and clean it
 		metadata = metadata_df.sort_values(by=[metadata_field])
