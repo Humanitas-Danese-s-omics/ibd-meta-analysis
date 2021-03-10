@@ -420,7 +420,7 @@ def plot_umaps(umap_dataset, metadata, gene_species, contrast, zoom_metadata, zo
 
 			#keep the old zoom if you are changing some parameters while zooming in but do not keep old zoom if visualizing the contrast
 			keep_old_zoom = False
-			if umap_metadata_fig is not None and "range" in umap_metadata_fig["layout"]["xaxis"].keys() and contrast_switch is False:
+			if umap_metadata_fig is not None and umap_metadata_fig["layout"]["xaxis"]["autorange"] is False:
 				zoom_data_x = umap_metadata_fig["layout"]["xaxis"]["range"]
 				zoom_data_y = umap_metadata_fig["layout"]["yaxis"]["range"]
 				keep_old_zoom = True
@@ -450,8 +450,10 @@ def plot_umaps(umap_dataset, metadata, gene_species, contrast, zoom_metadata, zo
 			
 			#apply old zoom if present
 			if keep_old_zoom:
-				umap_metadata_fig["layout"]["xaxis"]["range"] = zoom_data_x 
+				umap_metadata_fig["layout"]["xaxis"]["range"] = zoom_data_x
+				umap_metadata_fig["layout"]["xaxis"]["autorange"] = False
 				umap_metadata_fig["layout"]["yaxis"]["range"] = zoom_data_y
+				umap_metadata_fig["layout"]["yaxis"]["autorange"] = False
 
 		#if you are not changing umap dataset or metadata, parse the old figure instead of downloading the old tsv file
 		if trigger_id not in ["umap_dataset_dropdown.value", "metadata_dropdown.value"]:
@@ -500,7 +502,7 @@ def plot_umaps(umap_dataset, metadata, gene_species, contrast, zoom_metadata, zo
 		if trigger_id in ["gene_species_dropdown.value", "umap_dataset_dropdown.value", "contrast_only_switch.on", "umap_metadata.restyleData", "contrast_dropdown.value"] or umap_expression_fig is None:
 			
 			keep_old_zoom = False
-			if umap_expression_fig is not None and "range" in umap_expression_fig["layout"]["xaxis"].keys() and contrast_switch is False:
+			if umap_expression_fig is not None and umap_expression_fig["layout"]["xaxis"]["autorange"] is False:
 				zoom_data_x = umap_metadata_fig["layout"]["xaxis"]["range"]
 				zoom_data_y = umap_metadata_fig["layout"]["yaxis"]["range"]
 				keep_old_zoom = True
@@ -532,8 +534,10 @@ def plot_umaps(umap_dataset, metadata, gene_species, contrast, zoom_metadata, zo
 
 			#apply old zoom if present
 			if keep_old_zoom:
-				umap_expression_fig["layout"]["xaxis"]["range"] = zoom_data_x 
+				umap_expression_fig["layout"]["xaxis"]["range"] = zoom_data_x
+				umap_expression_fig["layout"]["xaxis"]["autorange"] = False
 				umap_expression_fig["layout"]["yaxis"]["range"] = zoom_data_y
+				umap_expression_fig["layout"]["yaxis"]["autorange"] = False
 	
 	#zoom events
 	elif trigger_id in ["umap_metadata.relayoutData", "umap_expression.relayoutData"]:
@@ -612,7 +616,7 @@ def plot_boxplots(expression_dataset, gene, metadata_field, umap_legend_click, b
 			hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library strategy: " + filtered_metadata["library_strategy"]
 			box_fig.add_trace(go.Box(y=filtered_metadata["Log2 counts"], name = metadata, marker_color = colors[i], boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text"))
 			i += 1
-		box_fig.update_traces(marker_size=2, showlegend=False)
+		box_fig.update_traces(marker_size=4, showlegend=False)
 		box_fig.update_layout(title = {"text": gene.replace("_", " ").replace("[", "").replace("]", "") + " / " + metadata_field_label, "xanchor": "center", "x": 0.5, "y": 0.9, "font_size": 14}, legend_title_text = metadata_field_label, yaxis_title = "Log2 normalized counts", margin=dict(l=57, r=20, t=80, b=0), font_family="Arial", height = 400)
 	
 	#syncronyze legend status with umap metadata
@@ -713,17 +717,23 @@ def plot_MA_plot(dataset, contrast, fdr, gene, show_gene, old_ma_plot_figure):
 	Output("selected_gene_ma_plot_statistics", "children"),
 	Output("selected_gene_ma_plot_statistics", "hidden"),
 	Input("gene_stats_switch", "on"),
-	Input("ma_plot_graph", "figure")
+	Input("ma_plot_graph", "figure"),
+	State("expression_dataset_dropdown", "value")
 )
-def show_gene_statistics(switch_info, ma_plot_data):
+def show_gene_statistics(switch_info, ma_plot_data, expression_dataset):
+	if expression_dataset == "human":
+		gene_or_species_label = "Gene: "
+	else:
+		gene_or_species_label = "Species: "
+	
 	children = []
 	if switch_info:
 		hidden_status = False
-		gene = ma_plot_data["data"][2]["customdata"][0][0]
+		gene_or_species = ma_plot_data["data"][2]["customdata"][0][0]
 		average_expression = ma_plot_data["data"][2]["x"][0]
 		log2_fold_change = ma_plot_data["data"][2]["y"][0]
 		padj = ma_plot_data["data"][2]["customdata"][0][1]
-		children.append(html.Div(["Gene: ", gene]))
+		children.append(html.Div([gene_or_species_label, gene_or_species]))
 		children.append(html.Div(["Log2 avg expr: ", str(round(average_expression, 1))]))
 		children.append(html.Div(["Log2 FC: ", str(round(log2_fold_change, 1))]))
 		if padj is not None:
