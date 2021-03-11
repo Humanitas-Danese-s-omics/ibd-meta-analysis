@@ -224,26 +224,35 @@ app.layout = html.Div([
 						)
 					], style={"width": "52%", "height": 400, "display": "inline-block"}),
 
+					#go plot
 					html.Div([
-						dcc.Loading(
-							id = "loading_go_plot",
-							children = dcc.Graph(id="go_plot_graph", config = {"showEditInChartStudio": True, "plotlyServerURL": "https://chart-studio.plotly.com"}),
-							type = "dot",
-							color = "#ADDD8E"
-						)
-					], style={"width": "60%", "height": 440, "display": "inline-block"}),
+						html.Div([
+							html.Div([], style={"width": "50%", "display": "inline-block"}),
+							html.Div([
+									html.Br(),
+									dcc.Input(id="go_plot_filter_input", type="search", placeholder="Type here to filter GO gene sets", size="30", debounce=True),
+							], style={"width": "50%", "display": "inline-block", "font-size": "12px"}),
+							dcc.Loading(
+								id = "loading_go_plot",
+								children = dcc.Graph(id="go_plot_graph", config = {"showEditInChartStudio": True, "plotlyServerURL": "https://chart-studio.plotly.com"}),
+								type = "dot",
+								color = "#ADDD8E"
+							)
+						], style={"width": "60%", "height": 660}),
 
-					html.Div([
-						dcc.Loading(
-							id = "loading_heatmap",
-							children = dcc.Graph(id="heatmap_graph", config = {"showEditInChartStudio": True, "plotlyServerURL": "https://chart-studio.plotly.com"}),
-							type = "dot",
-							color = "#ADDD8E"
-						)
-					], style={"width": "40%", "height": 440, "display": "inline-block"}),
+						#heatmap
+						html.Div([
+							dcc.Loading(
+								id = "loading_heatmap",
+								children = dcc.Graph(id="heatmap_graph", config = {"showEditInChartStudio": True, "plotlyServerURL": "https://chart-studio.plotly.com"}),
+								type = "dot",
+								color = "#ADDD8E"
+							)
+						], style={"width": "40%", "height": 660}),
+					], style={"width": "100%", "height": 660, "display": "flex"}),
 
 					#graphical abstract
-					html.Div([html.Hr(), html.Img(src="assets/workflow.png", alt="graphical_abstract", style={"width": "100%", "height": "100%"})
+					html.Div([html.Hr(), html.Img(src="http://www.lucamassimino.com/images/ibd/workflow.png", alt="graphical_abstract", style={"width": "100%", "height": "100%"}, title="FASTQ reads from 3,853 RNA-Seq data from different tissues, namely ileum, colon, rectum, mesenteric adipose tissue, peripheral blood, and stools, were mined from NCBI GEO/SRA and passed the initial quality filter. All files were mapped to the human reference genome and initial gene quantification was performed. Since these data came from 26 different studies made in different laboratories, we counteract the presumptive bias through a batch correction in accordance with source and tissue of origin. Once the gene counts were adjusted, samples were divided into groups in accordance with the tissue of origin and patient condition prior to differential expression analysis and gene ontology functional enrichment. Finally, the reads failing to map to the human genome were subjected to metatranscriptomics profiling by taxonomic classification using exact k-mer matching either archaeal, bacterial, eukaryotic, or viral genes.")
 					], style = {"width": "100%", "display": "inline-block"}),
 
 					#statistics
@@ -817,6 +826,73 @@ def print_summary(umap_dataset, gene_species, contrast, tissue, expression_datas
 	summary_children[1] = summary_string
 
 	return summary_children
+
+#go_plot callback
+@app.callback(
+	Output("go_plot_graph", "figure"),
+	Input("contrast_dropdown", "value"),
+	Input("go_plot_filter_input", "value")
+)
+def plot_go_plot(contrast, search_value):
+	print(search_value)
+	
+	#open df
+	go_df = pd.read_csv("http://www.lucamassimino.com/ibd/go/{}.merged_go.tsv".format(contrast), sep = "\t")
+	#filter out useless columns and rename the one to keep
+	go_df = go_df[["DGE", "Process~name", "P-value", "percentage%"]]
+	go_df = go_df.rename(columns={"Process~name": "Process", "percentage%": "Enrichment", "P-value": "GO p-value"})
+	#remove duplicate GO categories for up and down
+	go_df.drop_duplicates(subset ="Process", keep = False, inplace = True)
+	if search_value is not None:
+		search_query = re.split(r"[\s\-/,_]+", search_value)
+		search_query = [x.lower() for x in search_query]
+
+	#filter df by keyword
+	processes_to_keep = []
+	for process in go_df["Process"]:
+		#got some keywords
+		if search_value is not None or search_value == "":
+			#force lowecase
+			process_lower = process.lower()
+			#check each quesy
+			for x in search_query:
+				if x in process_lower:
+					processes_to_keep.append(process)
+					break
+		#no keyword
+		else:
+			processes_to_keep = go_df["Process"]
+	#filtering
+	go_df = go_df[go_df["Process"].isin(processes_to_keep)] 
+	
+	#crop too long process name
+	processes = []
+	for process in go_df["Process"]:
+		if len(process) > 80:
+			process = process[0:79] + " ..."
+		processes.append(process)
+	go_df["Process"] = processes
+
+	#take top 10 up and down
+	go_df_up = go_df[go_df["DGE"] == "up"]
+	go_df_down = go_df[go_df["DGE"] == "down"]
+	filtered_df = None
+	for df in [go_df_up, go_df_down]:
+		df = df.sort_values(by=["GO p-value"])
+		df = df.head(10)
+		if filtered_df is None:
+			filtered_df = df
+		else:
+			filtered_df = pd.concat([filtered_df, df])
+	#capitalize up and down
+	filtered_df["DGE"] = [x.capitalize() for x in filtered_df["DGE"]]
+
+	#plot
+	go_plot_fig = px.scatter(filtered_df, x = "DGE", y = "Process", size = "Enrichment", color = "GO p-value", color_continuous_scale="reds")
+	go_plot_fig.update_traces(marker_opacity = 1)
+	go_plot_fig.update_layout(coloraxis_cmin = 0.05, coloraxis_cmax = 0, coloraxis_cauto = False, xaxis_title = None, yaxis_title = None, height = 500, margin=dict(l=0, r=0, t=50, b=0), title={"text": contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl") + " / DGE FDR 1e-10", "xanchor": "center", "x": 0.775, "y": 0.95, "font_size": 14}, font_family="Arial")
+
+	return go_plot_fig
 
 if __name__ == "__main__":
 	app.run_server()
