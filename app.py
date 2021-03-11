@@ -381,191 +381,223 @@ def filter_contrasts(dataset, tissue):
 	#dropdowns
 	Input("umap_dataset_dropdown", "value"),
 	Input("metadata_dropdown", "value"),
+	Input("expression_dataset_dropdown", "value"),
 	Input("gene_species_dropdown", "value"),
 	Input("contrast_dropdown", "value"),
 	#zoom
 	Input("umap_metadata", "relayoutData"),
 	Input("umap_expression", "relayoutData"),
-	#contrast only
+	#contrast only and legend click
 	Input("contrast_only_switch", "on"),
 	Input("umap_metadata", "restyleData"),
 	#states
-	State("expression_dataset_dropdown", "value"),
 	State("umap_metadata", "figure"),
 	State("umap_expression", "figure")
 )
-def plot_umaps(umap_dataset, metadata, gene_species, contrast, zoom_metadata, zoom_expression, contrast_switch, metadata_legend_click, expression_dataset, umap_metadata_fig, umap_expression_fig):
+def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contrast, zoom_metadata, zoom_expression, contrast_switch, metadata_legend_click, umap_metadata_fig, umap_expression_fig):
 	#define contexts
 	ctx = dash.callback_context
 	trigger_id = ctx.triggered[0]["prop_id"]
 
-	#do nothing is switch is set to false
-	if trigger_id == "contrast_only_switch.on" and contrast_switch is False:
-		raise PreventUpdate
+	#changing metadata with something else then "condition" will switch off the switch; clicking umap metadata legend will have the same result
+	if trigger_id == "metadata_dropdown.value" and contrast_switch is True and metadata != "condition" or trigger_id == "umap_metadata.restyleData":
+		contrast_switch = False
 
-	#change in one of the dropdown settings or click on the legend
-	triggers = ["umap_dataset_dropdown.value", "metadata_dropdown.value", "gene_species_dropdown.value", "contrast_only_switch.on", "umap_metadata.restyleData", "contrast_dropdown.value"]
-	if trigger_id in triggers or umap_metadata_fig is None or umap_expression_fig is None:
+	#function for zoom synchronization
+	def synchronize_zoom(umap_to_update, reference_umap):
+		umap_to_update["layout"]["xaxis"]["range"] = reference_umap["layout"]["xaxis"]["range"]
+		umap_to_update["layout"]["yaxis"]["range"] = reference_umap["layout"]["yaxis"]["range"]
+		umap_to_update["layout"]["xaxis"]["autorange"] = reference_umap["layout"]["xaxis"]["autorange"]
+		umap_to_update["layout"]["yaxis"]["autorange"] = reference_umap["layout"]["yaxis"]["autorange"]
 
-		#changing metadata with something else then "condition" will switch off the switch; clicking umap metadata legend will have the same result
-		if trigger_id == "metadata_dropdown.value" and contrast_switch is True and metadata != "condition" or trigger_id == "umap_metadata.restyleData":
-			contrast_switch = False
+		return umap_to_update
 
-		#metadata or dataset change
-		if trigger_id in ["umap_dataset_dropdown.value", "metadata_dropdown.value", "contrast_only_switch.on"] or umap_metadata_fig is None:
+	##### UMAP METADATA #####
+
+	#function for creating umap_metadata_fig from tsv file
+	def plot_umap_metadata(dataset, selected_metadata):
+		#open tsv
+		umap_df = pd.read_csv("http://www.lucamassimino.com/ibd/umap_{}.tsv".format(dataset), sep = "\t")
 		
-			#changing the switch will always result in selecting condition in metadata dropdown
-			if metadata != "condition" and umap_metadata_fig is not None and contrast_switch is True:
-				metadata = "condition"
+		#prepare df
+		umap_df = umap_df.sort_values(by=[selected_metadata])
+		umap_df[selected_metadata] = [i.replace("_", " ") for i in umap_df[selected_metadata]]
+		label_to_value = {"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy", "condition": "Condition"}
+		umap_df = umap_df.rename(columns=label_to_value)
 
-			#keep the old zoom if you are changing some parameters while zooming in but do not keep old zoom if visualizing the contrast
-			keep_old_zoom = False
-			if umap_metadata_fig is not None and umap_metadata_fig["layout"]["xaxis"]["autorange"] is False:
-				zoom_data_x = umap_metadata_fig["layout"]["xaxis"]["range"]
-				zoom_data_y = umap_metadata_fig["layout"]["yaxis"]["range"]
-				keep_old_zoom = True
+		#plot
+		umap_metadata_fig = px.scatter(umap_df, x="UMAP1", y="UMAP2", color = label_to_value[selected_metadata], hover_data={"UMAP1": False, "UMAP2": False, "Sample": True, "Group": True, "Tissue": True, "Source": True, "Library strategy": True}, color_discrete_sequence = colors)
+		#update layout
+		umap_metadata_fig.update_layout(legend_title_text=selected_metadata.capitalize().replace("_", " "), title = {"text": selected_metadata.capitalize(), "xanchor": "center", "x": 0.70, "y": 0.9, "font_size": 14}, margin=dict(l=0, r=0, t=70, b=80), font_family="Arial", legend_yanchor="top", legend_y=1.1, legend_xanchor="left", legend_x=-0.65, legend_itemsizing = "constant")
+		hover_template = "Sample: %{customdata[0]}<br>Group: %{customdata[1]}<br>Tissue: %{customdata[2]}<br>Source: %{customdata[3]}<br>Library strategy: %{customdata[4]}<extra></extra>"
+		#update traces
+		umap_metadata_fig.update_traces(marker_size=4, hovertemplate = hover_template)
+		
+		return umap_metadata_fig, umap_df
 
-			#open tsv
-			umap_df = pd.read_csv("http://www.lucamassimino.com/ibd/umap_{}.tsv".format(umap_dataset), sep = "\t")
-
-			#prepare df
-			umap_df = umap_df.sort_values(by=[metadata])
-			umap_df[metadata] = [i.replace("_", " ") for i in umap_df[metadata]]
-			label_to_value = {"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy", "condition": "Condition"}
-			umap_df = umap_df.rename(columns=label_to_value)
-
-			#by default do not filter by sample 
-			samples_to_keep = umap_df["Sample"].tolist()
-			
-			#plot
-			umap_metadata_fig = px.scatter(umap_df, x="UMAP1", y="UMAP2", color = label_to_value[metadata], hover_data={"UMAP1": False, "UMAP2": False, "Sample": True, "Group": True, "Tissue": True, "Source": True, "Library strategy": True}, color_discrete_sequence = colors)
-			umap_metadata_fig.update_layout(legend_title_text=metadata.capitalize().replace("_", " "), title = {"text": metadata.capitalize(), "xanchor": "center", "x": 0.70, "y": 0.9, "font_size": 14}, margin=dict(l=0, r=0, t=70, b=80), font_family="Arial", legend_yanchor="top", legend_y=1.1, legend_xanchor="left", legend_x=-0.65, legend_itemsizing = "constant")
-			hover_template = "Sample: %{customdata[0]}<br>Group: %{customdata[1]}<br>Tissue: %{customdata[2]}<br>Source: %{customdata[3]}<br>Library strategy: %{customdata[4]}<extra></extra>"
-			umap_metadata_fig.update_traces(marker_size=4, hovertemplate = hover_template)
-
-			#add "visible" key to all the traces if not present; these will be used by umap expression and boxplots
-			for trace in umap_metadata_fig["data"]:
-				if trace["visible"] is None:
-					trace["visible"] = True
-			
-			#apply old zoom if present
-			if keep_old_zoom:
-				umap_metadata_fig["layout"]["xaxis"]["range"] = zoom_data_x
-				umap_metadata_fig["layout"]["xaxis"]["autorange"] = False
-				umap_metadata_fig["layout"]["yaxis"]["range"] = zoom_data_y
-				umap_metadata_fig["layout"]["yaxis"]["autorange"] = False
-
-		#if you are not changing umap dataset or metadata, parse the old figure instead of downloading the old tsv file
-		if trigger_id not in ["umap_dataset_dropdown.value", "metadata_dropdown.value"]:
-			
-			#find condition and filter visibility in umap metadata legend if contrast switch is true
-			if contrast_switch is True:
-				condition_1 = contrast.split("-vs-")[0].replace("_", " ")
-				condition_2 = contrast.split("-vs-")[1].replace("_", " ")
-				#setup "visible" only for the two conditions in contrast
-				for trace in umap_metadata_fig["data"]:
-					if trace["name"] in [condition_1, condition_2]:
-						trace["visible"] = True
-					else:
-						trace["visible"] = "legendonly"
-			
-			#parse umap metadata data
-			metadata_data = {}
-			metadata_data["Sample"] = []
-			metadata_data["Group"] = []
-			metadata_data["Tissue"] = []
-			metadata_data["Source"] = []
-			metadata_data["Library strategy"] = []
-			metadata_data["UMAP1"] = []
-			metadata_data["UMAP2"] = []
-			samples_to_keep = []
-			#parse metadata figure data 
-			for trace in umap_metadata_fig["data"]:
-				for dot in trace["customdata"]:
-					#stores samples to keep after filtering (umap metadata legend click)
-					if trace["visible"] != "legendonly":
-						samples_to_keep.append(dot[0])
-					#populate data
-					metadata_data["Sample"].append(dot[0])
-					metadata_data["Group"].append(dot[1])
-					metadata_data["Tissue"].append(dot[2])
-					metadata_data["Source"].append(dot[3])
-					metadata_data["Library strategy"].append(dot[4])
-				#data outside "customdata"
-				metadata_data["UMAP1"].extend(trace["x"])
-				metadata_data["UMAP2"].extend(trace["y"])
-			
-			#create a df from parsed data
-			umap_df = pd.DataFrame(metadata_data)
-
-		#umap expression
-		if trigger_id in ["gene_species_dropdown.value", "umap_dataset_dropdown.value", "contrast_only_switch.on", "umap_metadata.restyleData", "contrast_dropdown.value"] or umap_expression_fig is None:
-			
-			keep_old_zoom = False
-			if umap_expression_fig is not None and umap_expression_fig["layout"]["xaxis"]["autorange"] is False:
-				zoom_data_x = umap_metadata_fig["layout"]["xaxis"]["range"]
-				zoom_data_y = umap_metadata_fig["layout"]["yaxis"]["range"]
-				keep_old_zoom = True
-
-			#label for graph title
-			if expression_dataset == "human":
-				expression_or_abundance = " expression"
-			else:
-				expression_or_abundance = " abundance"
-			
-			counts = pd.read_csv("http://www.lucamassimino.com/ibd/counts/{}/{}.tsv".format(expression_dataset, gene_species), sep = "\t")
-			counts = counts.rename(columns={"sample": "Sample"})
-
-			#add counts to umap df
-			umap_df = umap_df.merge(counts, how="left", on="Sample")
-			#umap_df["counts"] = counts["counts"]
-			umap_df = umap_df.dropna(subset=["counts"])
-			
-			#filter samples that are not visible
-			umap_df = umap_df[umap_df["Sample"].isin(samples_to_keep)]
-			
-			#add log2 counts column to df
-			umap_df["Log2 average expression"] = np.log2(umap_df["counts"])
-			umap_df["Log2 average expression"].replace(to_replace = -np.inf, value = 0, inplace=True)
-			
-			#plot
-			umap_expression_fig = px.scatter(umap_df, x="UMAP1", y="UMAP2", color = "Log2 average expression", hover_data={"UMAP1": False, "UMAP2": False, "Sample": True, "Group": True, "Tissue": True, "Source": True, "Library strategy": True}, color_continuous_scale="reds")
-			umap_expression_fig.update_layout(title = {"text": gene_species.replace("_", " ").replace("[", "").replace("]", "") + expression_or_abundance, "xanchor": "center", "x": 0.5, "y": 0.9, "font_size": 14}, margin=dict(l=0, r=20, t=80, b=80), coloraxis_colorbar_title_side = "right", font_family="Arial", hoverlabel_bgcolor = "lightgrey")
-			hover_template = "Sample: %{customdata[0]}<br>Group: %{customdata[1]}<br>Tissue: %{customdata[2]}<br>Source: %{customdata[3]}<br>Library strategy: %{customdata[4]}<br>Log2 average expression: %{marker.color}<extra></extra>"
-			umap_expression_fig.update_traces(marker_size=4, hovertemplate = hover_template)
-
-			#apply old zoom if present
-			if keep_old_zoom:
-				umap_expression_fig["layout"]["xaxis"]["range"] = zoom_data_x
-				umap_expression_fig["layout"]["xaxis"]["autorange"] = False
-				umap_expression_fig["layout"]["yaxis"]["range"] = zoom_data_y
-				umap_expression_fig["layout"]["yaxis"]["autorange"] = False
+	#function to create a dataframe from umap_metadata_fig
+	def parse_old_metadata_fig_to_get_its_df(umap_metadata_fig):
+		#parse umap metadata data
+		metadata_data = {}
+		metadata_data["Sample"] = []
+		metadata_data["Group"] = []
+		metadata_data["Tissue"] = []
+		metadata_data["Source"] = []
+		metadata_data["Library strategy"] = []
+		metadata_data["UMAP1"] = []
+		metadata_data["UMAP2"] = []
+		#parse metadata figure data 
+		for trace in umap_metadata_fig["data"]:
+			for dot in trace["customdata"]:				
+				#populate data
+				metadata_data["Sample"].append(dot[0])
+				metadata_data["Group"].append(dot[1])
+				metadata_data["Tissue"].append(dot[2])
+				metadata_data["Source"].append(dot[3])
+				metadata_data["Library strategy"].append(dot[4])
+			#data outside "customdata"
+			metadata_data["UMAP1"].extend(trace["x"])
+			metadata_data["UMAP2"].extend(trace["y"])
+		
+		#create a df from parsed data
+		umap_df = pd.DataFrame(metadata_data)
 	
-	#zoom events
-	elif trigger_id in ["umap_metadata.relayoutData", "umap_expression.relayoutData"]:
-		#function for zoom synchronization
-		def synchronize_zoom(umap_to_update, zoom_data):
-			#zoom in
-			if "xaxis.range[0]" in zoom_data.keys():
-				zoom_data_x = [zoom_data["xaxis.range[0]"], zoom_data["xaxis.range[1]"]]
-				umap_to_update["layout"]["xaxis"]["range"] = zoom_data_x
-				umap_to_update["layout"]["xaxis"]["autorange"] = False
-			if "yaxis.range[0]" in zoom_data.keys():
-				zoom_data_y = [zoom_data["yaxis.range[0]"], zoom_data["yaxis.range[1]"]]
-				umap_to_update["layout"]["yaxis"]["range"] = zoom_data_y
-				umap_to_update["layout"]["yaxis"]["autorange"] = False
-			#reset zoom
-			if "xaxis.autorange" in zoom_data.keys() or "autosize" in zoom_data.keys():
-				umap_to_update["layout"]["xaxis"]["autorange"] = True
-				umap_to_update["layout"]["yaxis"]["autorange"] = True
-		
-			return umap_to_update
+		return umap_df
 
-		#run function
-		if trigger_id == "umap_metadata.relayoutData":
-			synchronize_zoom(umap_expression_fig, zoom_metadata)
-		elif trigger_id == "umap_expression.relayoutData":
-			synchronize_zoom(umap_metadata_fig, zoom_expression)
+	#change dataset or metadata: create a new figure from tsv
+	if trigger_id in ["umap_dataset_dropdown.value", "metadata_dropdown.value"] or umap_metadata_fig is None:
+		
+		#preserve old zoom
+		keep_old_zoom = False
+		if umap_metadata_fig is not None:
+			xaxis_range = umap_metadata_fig["layout"]["xaxis"]["range"]
+			yaxis_range = umap_metadata_fig["layout"]["yaxis"]["range"]
+			keep_old_zoom = True
+
+		#create figure from tsv
+		umap_metadata_fig, umap_df = plot_umap_metadata(umap_dataset, metadata)
+
+		#add "visible" key to all the traces if not present; these will be used by umap expression and boxplots
+		for trace in umap_metadata_fig["data"]:
+			if trace["visible"] is None:
+				trace["visible"] = True
+		
+		#apply old zoom if present
+		if keep_old_zoom:
+			umap_metadata_fig["layout"]["xaxis"]["range"] = xaxis_range
+			umap_metadata_fig["layout"]["yaxis"]["range"] = yaxis_range
+			umap_metadata_fig["layout"]["xaxis"]["autorange"] = False
+			umap_metadata_fig["layout"]["yaxis"]["autorange"] = False
+	
+	#change umap expression means just to update the zoom
+	elif trigger_id == "umap_expression.relayoutData":
+		umap_metadata_fig = synchronize_zoom(umap_metadata_fig, umap_expression_fig)
+
+	#click on contrast_only_switch. True = On, False = Off
+	elif trigger_id == "contrast_only_switch.on":
+		#true means to select only sample in contrast
+		if contrast_switch is True:
+			#if metadfata is not "condition", umap_metadata_fig must be created from tsv by selecting condition as metadata
+			if metadata != "condition":
+				metadata = "condition"
+				umap_metadata_fig, umap_df = plot_umap_metadata(umap_dataset, metadata)
+			#if metadata is "condition" then just parse the figure to recreate the df
+			else:
+				umap_df = parse_old_metadata_fig_to_get_its_df(umap_metadata_fig)
+
+			#find condition and filter visibility in umap metadata legend
+			condition_1 = contrast.split("-vs-")[0].replace("_", " ")
+			condition_2 = contrast.split("-vs-")[1].replace("_", " ")
+			#setup "visible" only for the two conditions in contrast
+			for trace in umap_metadata_fig["data"]:
+				if trace["name"] in [condition_1, condition_2]:
+					trace["visible"] = True
+				else:
+					trace["visible"] = "legendonly"
+
+		#false means do not change anything
+		elif contrast_switch is False:
+			raise PreventUpdate
+
+	#if you don't have to change umap_metadata_fig, just parse the old fig to get its dataframe
+	else:
+		umap_df = parse_old_metadata_fig_to_get_its_df(umap_metadata_fig)
+
+	##### UMAP EXPRESSION #####
+
+	#function for creating umap_expression_fig from tsv file
+	def plot_umap_expression(dataset, gene_species, samples_to_keep, umap_df):
+		#label for graph title
+		if dataset == "human":
+			expression_or_abundance = " expression"
+		else:
+			expression_or_abundance = " abundance"
+		
+		counts = pd.read_csv("http://www.lucamassimino.com/ibd/counts/{}/{}.tsv".format(dataset, gene_species), sep = "\t")
+		counts = counts.rename(columns={"sample": "Sample"})
+
+		#add counts to umap df
+		umap_df = umap_df.merge(counts, how="left", on="Sample")
+		umap_df = umap_df.dropna(subset=["counts"])
+		
+		#filter samples that are not visible
+		umap_df = umap_df[umap_df["Sample"].isin(samples_to_keep)]
+		
+		#add log2 counts column to df
+		umap_df["Log2 average expression"] = np.log2(umap_df["counts"])
+		umap_df["Log2 average expression"].replace(to_replace = -np.inf, value = 0, inplace=True)
+		
+		#plot
+		umap_expression_fig = px.scatter(umap_df, x="UMAP1", y="UMAP2", color = "Log2 average expression", hover_data={"UMAP1": False, "UMAP2": False, "Sample": True, "Group": True, "Tissue": True, "Source": True, "Library strategy": True}, color_continuous_scale="reds")
+		umap_expression_fig.update_layout(title = {"text": gene_species.replace("_", " ").replace("[", "").replace("]", "") + expression_or_abundance, "xanchor": "center", "x": 0.5, "y": 0.9, "font_size": 14}, margin=dict(l=0, r=20, t=80, b=80), coloraxis_colorbar_title_side = "right", font_family="Arial", hoverlabel_bgcolor = "lightgrey")
+		hover_template = "Sample: %{customdata[0]}<br>Group: %{customdata[1]}<br>Tissue: %{customdata[2]}<br>Source: %{customdata[3]}<br>Library strategy: %{customdata[4]}<br>Log2 average expression: %{marker.color}<extra></extra>"
+		umap_expression_fig.update_traces(marker_size=4, hovertemplate = hover_template)
+
+		return umap_expression_fig
+
+	#function to get samples to keep from visibility status in umap_metadata_fig
+	def get_samples_to_keep(umap_metadata_fig):
+		samples_to_keep = []
+		#parse metadata figure data 
+		for trace in umap_metadata_fig["data"]:
+			if trace["visible"] != "legendonly":
+				for dot in trace["customdata"]:
+					#stores samples to keep after filtering
+					samples_to_keep.append(dot[0])
+		return samples_to_keep
+
+	#change umap dataset, expression dataset or gene/species: create a new figure from tsv
+	if trigger_id in ["umap_dataset_dropdown.value", "expression_dataset_dropdown.value", "gene_species_dropdown.value", "metadata_dropdown.value"] or umap_expression_fig is None:
+		
+		#preserve old zoom
+		keep_old_zoom = False
+		if umap_expression_fig is not None:
+			xaxis_range = umap_expression_fig["layout"]["xaxis"]["range"]
+			yaxis_range = umap_expression_fig["layout"]["yaxis"]["range"]
+			keep_old_zoom = True
+
+		samples_to_keep = get_samples_to_keep(umap_metadata_fig)
+		#create figure
+		umap_expression_fig = plot_umap_expression(expression_dataset, gene_species, samples_to_keep, umap_df)
+
+		#apply old zoom if present
+		if keep_old_zoom:
+			umap_expression_fig["layout"]["xaxis"]["range"] = xaxis_range
+			umap_expression_fig["layout"]["yaxis"]["range"] = yaxis_range
+			umap_expression_fig["layout"]["xaxis"]["autorange"] = False
+			umap_expression_fig["layout"]["yaxis"]["autorange"] = False
+	
+	#changes in umap metadata zoom and its legend
+	elif trigger_id in ["umap_metadata.relayoutData", "umap_metadata.restyleData", "contrast_only_switch.on"]:
+		
+		#select samples to filter
+		if trigger_id in ["umap_metadata.restyleData", "contrast_only_switch.on"]:
+			samples_to_keep = get_samples_to_keep(umap_metadata_fig)
+			#get new filtered umap_expression_fig
+			umap_expression_fig = plot_umap_expression(expression_dataset, gene_species, samples_to_keep, umap_df)
+		
+		#update zoom from metadata
+		umap_expression_fig = synchronize_zoom(umap_expression_fig, umap_metadata_fig)
 
 	return umap_metadata_fig, umap_expression_fig, metadata, contrast_switch
 
