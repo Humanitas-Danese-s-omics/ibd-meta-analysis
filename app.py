@@ -834,8 +834,6 @@ def print_summary(umap_dataset, gene_species, contrast, tissue, expression_datas
 	Input("go_plot_filter_input", "value")
 )
 def plot_go_plot(contrast, search_value):
-	print(search_value)
-	
 	#open df
 	go_df = pd.read_csv("http://www.lucamassimino.com/ibd/go/{}.merged_go.tsv".format(contrast), sep = "\t")
 	#filter out useless columns and rename the one to keep
@@ -844,6 +842,8 @@ def plot_go_plot(contrast, search_value):
 	#remove duplicate GO categories for up and down
 	go_df.drop_duplicates(subset ="Process", keep = False, inplace = True)
 	if search_value is not None:
+		if search_value.endswith(" "):
+			search_value = search_value.rstrip()
 		search_query = re.split(r"[\s\-/,_]+", search_value)
 		search_query = [x.lower() for x in search_query]
 
@@ -873,24 +873,55 @@ def plot_go_plot(contrast, search_value):
 		processes.append(process)
 	go_df["Process"] = processes
 
-	#take top 10 up and down
+	#divide up and down GO categories
 	go_df_up = go_df[go_df["DGE"] == "up"]
+	go_df_up["DGE"] = [x.capitalize() for x in go_df_up["DGE"]]
 	go_df_down = go_df[go_df["DGE"] == "down"]
-	filtered_df = None
-	for df in [go_df_up, go_df_down]:
+	go_df_down["DGE"] = [x.capitalize() for x in go_df_down["DGE"]]
+	
+	#function to select GO categories
+	def select_go_categories(df):
+		#sort by pvalue
 		df = df.sort_values(by=["GO p-value"])
+		#take top ten
 		df = df.head(10)
-		if filtered_df is None:
-			filtered_df = df
-		else:
-			filtered_df = pd.concat([filtered_df, df])
-	#capitalize up and down
-	filtered_df["DGE"] = [x.capitalize() for x in filtered_df["DGE"]]
+		#sort by enrichment
+		df = df.sort_values(by=["Enrichment"])
 
-	#plot
-	go_plot_fig = px.scatter(filtered_df, x = "DGE", y = "Process", size = "Enrichment", color = "GO p-value", color_continuous_scale="reds")
-	go_plot_fig.update_traces(marker_opacity = 1)
-	go_plot_fig.update_layout(coloraxis_cmin = 0.05, coloraxis_cmax = 0, coloraxis_cauto = False, xaxis_title = None, yaxis_title = None, height = 500, margin=dict(l=0, r=0, t=50, b=0), title={"text": contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl") + " / DGE FDR 1e-10", "xanchor": "center", "x": 0.775, "y": 0.95, "font_size": 14}, font_family="Arial")
+		return df
+
+	#apply function
+	go_df_up = select_go_categories(go_df_up)
+	go_df_down = select_go_categories(go_df_down)
+
+	#create figure
+	go_plot_fig = go.Figure()
+
+	#function for hover text
+	def create_hover_text(df):
+		hover_text = []
+		for index, row in df.iterrows():
+			hover_text.append(('DGE: {dge}<br>' + 'Process: {process}<br>' + 'Enrichment: {enrichment}<br>' + 'GO p-value: {pvalue}').format(dge=row["DGE"], process=row['Process'], enrichment=row['Enrichment'], pvalue=row['GO p-value']))
+
+		return hover_text
+	
+	all_enrichments = go_df_up["Enrichment"].append(go_df_down["Enrichment"], ignore_index=True)
+	sizeref = 2. * max(all_enrichments)/(7 ** 2)
+
+	#up trace
+	hover_text = create_hover_text(go_df_up)
+	go_plot_fig.add_trace(go.Scatter(x=go_df_up["DGE"], y=go_df_up["Process"], marker_size=go_df_up["Enrichment"], marker_opacity = 1, marker_color = go_df_up["GO p-value"], marker_colorscale=["#D7301F", "#FCBBA1"], marker_showscale=False, marker_sizeref = sizeref, marker_cmax=0.05, marker_cmin=0, mode="markers", hovertext = hover_text, hoverinfo = "text"))
+	#down trace
+	hover_text = create_hover_text(go_df_down)
+	go_plot_fig.add_trace(go.Scatter(x=go_df_down["DGE"], y=go_df_down["Process"], marker_size=go_df_down["Enrichment"], marker_opacity = 1, marker_color = go_df_down["GO p-value"], marker_colorscale=["#045A8D", "#C6DBEF"], marker_showscale=False, marker_sizeref = sizeref, marker_cmax=0.05, marker_cmin=0, mode="markers", hovertext = hover_text, hoverinfo = "text"))
+	#colorbar trace
+	go_plot_fig.add_trace(go.Scatter(x = [None], y = [None], marker_showscale=True, marker_color = [0], marker_colorscale=["#737373", "#D9D9D9"], marker_cmax=0.05, marker_cmin=0, marker_colorbar = dict(title="GO p-value", thicknessmode="pixels", thickness=20, lenmode="pixels", len=200, yanchor="top", y=1)))
+	#size_legend_trace
+	legend_sizes = [25, 50, 75, 100]
+	go_plot_fig.add_trace(go.Scatter(x = [1], y = legend_sizes, marker_size = legend_sizes, marker_sizeref = sizeref, visible = "legendonly"))
+
+	#figure layout
+	go_plot_fig.update_layout(title={"text": contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl") + " / DGE FDR 1e-10", "xanchor": "center", "x": 0.775, "y": 0.95, "font_size": 14}, font_family="Arial", height = 600, xaxis_title = None, yaxis_title = None, showlegend=False)
 
 	return go_plot_fig
 
