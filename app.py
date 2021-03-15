@@ -904,24 +904,34 @@ def plot_go_plot(contrast, search_value):
 			hover_text.append(('DGE: {dge}<br>' + 'Process: {process}<br>' + 'Enrichment: {enrichment}<br>' + 'GO p-value: {pvalue}').format(dge=row["DGE"], process=row['Process'], enrichment=row['Enrichment'], pvalue=row['GO p-value']))
 
 		return hover_text
-	
+
+	#find out max enrichment for this dataset	
 	all_enrichments = go_df_up["Enrichment"].append(go_df_down["Enrichment"], ignore_index=True)
 	sizeref = 2. * max(all_enrichments)/(7 ** 2)
 
+	#create subplots
+	go_plot_fig = make_subplots(rows=2, cols=2, specs=[[{"rowspan": 2}, {}], [None, {}]], column_widths=[0.8, 0.2], subplot_titles=(None, "GO p-value", "Enrichment"))
+
 	#up trace
 	hover_text = create_hover_text(go_df_up)
-	go_plot_fig.add_trace(go.Scatter(x=go_df_up["DGE"], y=go_df_up["Process"], marker_size=go_df_up["Enrichment"], marker_opacity = 1, marker_color = go_df_up["GO p-value"], marker_colorscale=["#D7301F", "#FCBBA1"], marker_showscale=False, marker_sizeref = sizeref, marker_cmax=0.05, marker_cmin=0, mode="markers", hovertext = hover_text, hoverinfo = "text"))
+	go_plot_fig.add_trace(go.Scatter(x=go_df_up["DGE"], y=go_df_up["Process"], marker_size=go_df_up["Enrichment"], marker_opacity = 1, marker_color = go_df_up["GO p-value"], marker_colorscale=["#D7301F", "#FCBBA1"], marker_showscale=False, marker_sizeref = sizeref, marker_cmax=0.05, marker_cmin=0, mode="markers", hovertext = hover_text, hoverinfo = "text"), row = 1, col = 1)
 	#down trace
 	hover_text = create_hover_text(go_df_down)
-	go_plot_fig.add_trace(go.Scatter(x=go_df_down["DGE"], y=go_df_down["Process"], marker_size=go_df_down["Enrichment"], marker_opacity = 1, marker_color = go_df_down["GO p-value"], marker_colorscale=["#045A8D", "#C6DBEF"], marker_showscale=False, marker_sizeref = sizeref, marker_cmax=0.05, marker_cmin=0, mode="markers", hovertext = hover_text, hoverinfo = "text"))
+	go_plot_fig.add_trace(go.Scatter(x=go_df_down["DGE"], y=go_df_down["Process"], marker_size=go_df_down["Enrichment"], marker_opacity = 1, marker_color = go_df_down["GO p-value"], marker_colorscale=["#045A8D", "#C6DBEF"], marker_showscale=False, marker_sizeref = sizeref, marker_cmax=0.05, marker_cmin=0, mode="markers", hovertext = hover_text, hoverinfo = "text"), row = 1, col = 1)
+
 	#colorbar trace
-	go_plot_fig.add_trace(go.Scatter(x = [None], y = [None], marker_showscale=True, marker_color = [0], marker_colorscale=["#737373", "#D9D9D9"], marker_cmax=0.05, marker_cmin=0, marker_colorbar = dict(title="GO p-value", thicknessmode="pixels", thickness=20, lenmode="pixels", len=200, yanchor="top", y=1)))
+	go_plot_fig.add_trace(go.Scatter(x = [None], y = [None], marker_showscale=True, marker_color = [0], marker_colorscale=["#737373", "#D9D9D9"], marker_cmax=0.05, marker_cmin=0, marker_colorbar = dict(thicknessmode="pixels", thickness=20, lenmode="pixels", len=200, yanchor="top", y=1, x=0.8)), row = 1, col = 2)
+
 	#size_legend_trace
-	legend_sizes = [25, 50, 75, 100]
-	go_plot_fig.add_trace(go.Scatter(x = [1], y = legend_sizes, marker_size = legend_sizes, marker_sizeref = sizeref, visible = "legendonly"))
+	legend_sizes = [round(min(all_enrichments)), round(np.average([max(all_enrichments), min(all_enrichments)])), round(max(all_enrichments))]
+	go_plot_fig.add_trace(go.Scatter(x = [1, 1, 1], y = [10, 40, 70], marker_size = legend_sizes, marker_sizeref = sizeref, marker_color = "#737373", mode="markers+text", text=["min", "mid", "max"], hoverinfo="text", hovertext=legend_sizes, textposition="top center"), row = 2, col = 2)
 
 	#figure layout
-	go_plot_fig.update_layout(title={"text": contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl") + " / DGE FDR 1e-10", "xanchor": "center", "x": 0.775, "y": 0.95, "font_size": 14}, font_family="Arial", height = 600, xaxis_title = None, yaxis_title = None, showlegend=False)
+	go_plot_fig.update_layout(title={"text": contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl") + " / DGE FDR 1e-10", "xanchor": "center", "x": 0.775, "y": 0.95, "font_size": 14}, font_family="Arial", height = 600, xaxis_title = None, yaxis_title = None, showlegend=False, xaxis2_visible=False, yaxis2_visible=False, xaxis2_fixedrange=True, yaxis2_fixedrange=True, xaxis3_visible=False, yaxis3_visible=False, xaxis3_fixedrange=True, yaxis3_fixedrange=True, yaxis3_range=[0, 100])
+
+	#legend title dimension
+	go_plot_fig["layout"]["annotations"][0]["font"]["size"] = 12
+	go_plot_fig["layout"]["annotations"][1]["font"]["size"] = 12
 
 	return go_plot_fig
 
