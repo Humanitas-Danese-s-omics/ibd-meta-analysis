@@ -927,7 +927,7 @@ def plot_go_plot(contrast, search_value):
 	go_plot_fig.add_trace(go.Scatter(x = [1, 1, 1], y = [10, 40, 70], marker_size = legend_sizes, marker_sizeref = sizeref, marker_color = "#737373", mode="markers+text", text=["min", "mid", "max"], hoverinfo="text", hovertext=legend_sizes, textposition="top center"), row = 2, col = 2)
 
 	#figure layout
-	go_plot_fig.update_layout(title={"text": contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl") + " / DGE FDR 1e-10", "xanchor": "center", "x": 0.775, "y": 0.95, "font_size": 14}, font_family="Arial", height = 600, xaxis_title = None, yaxis_title = None, showlegend=False, xaxis2_visible=False, yaxis2_visible=False, xaxis2_fixedrange=True, yaxis2_fixedrange=True, xaxis3_visible=False, yaxis3_visible=False, xaxis3_fixedrange=True, yaxis3_fixedrange=True, yaxis3_range=[0, 100])
+	go_plot_fig.update_layout(title={"text": contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl") + " / DGE FDR 1e-10", "xanchor": "center", "x": 0.775, "y": 0.95, "font_size": 14}, font_family="Arial", height = 600, xaxis_title = None, yaxis_title = None, showlegend=False, xaxis2_visible=False, yaxis2_visible=False, xaxis2_fixedrange=True, yaxis2_fixedrange=True, xaxis3_visible=False, yaxis3_visible=False, xaxis3_fixedrange=True, yaxis3_fixedrange=True, yaxis3_range=[0, 100], margin=dict(l=0, r=0, t=80, b=0))
 
 	#legend title dimension
 	go_plot_fig["layout"]["annotations"][0]["font"]["size"] = 12
