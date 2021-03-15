@@ -8,6 +8,7 @@ import dash_auth
 import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
+from plotly.subplots import make_subplots
 import pandas as pd
 import numpy as np
 import re
