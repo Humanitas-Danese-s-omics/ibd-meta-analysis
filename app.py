@@ -706,7 +706,6 @@ def plot_MA_plot(dataset, contrast, fdr, gene, show_gene, old_ma_plot_figure):
 		figure_data = {}
 		figure_data["Gene"] = []
 		figure_data["padj"] = []
-		figure_data["DEG"] = []
 		figure_data["log2_baseMean"] = []
 		figure_data["log2FoldChange"] = []
 
@@ -716,44 +715,48 @@ def plot_MA_plot(dataset, contrast, fdr, gene, show_gene, old_ma_plot_figure):
 			for dot in old_ma_plot_figure["data"][trace]["customdata"]:
 				figure_data["Gene"].append(dot[0])
 				figure_data["padj"].append(dot[1])
-				figure_data["DEG"].append(dot[2])
 		
 		table = pd.DataFrame(figure_data)
 
 	#find DEGs
-	table["DEG"] = table["padj"] < fdr
-	table["DEG"] = table["DEG"].astype(str)
+	table.loc[(table["padj"] < fdr) & (table["log2FoldChange"] > 0), "DEG"] = "Up"
+	table.loc[(table["padj"] < fdr) & (table["log2FoldChange"] < 0), "DEG"] = "Down"
+	table.loc[table["DEG"].isnull(), "DEG"] = "no_DEG"
+
 	#count DEGs
-	up = table[(table.DEG == "True") & (table.log2FoldChange > 0)]
+	up = table[table["DEG"] == "Up"]
 	up = len(up["Gene"])
-	down = table[(table.DEG == "True") & (table.log2FoldChange < 0)]
+	down = table[table["DEG"] == "Down"]
 	down = len(down["Gene"])
 
 	#find selected gene
 	if show_gene is True:
-		table.loc[table.Gene == gene, "DEG"] = "selected_gene"
+		table.loc[table["Gene"] == gene, "DEG"] = "selected_gene"
 		table["selected_gene"] = ""
-		table.loc[table.Gene == gene, "selected_gene"] = gene
+		table.loc[table["Gene"] == gene, "selected_gene"] = gene
 	else:
 		table["selected_gene"] = ""
 
-	colors = ["#636363", "#DE2D26", "#ADDD8E"]
+	colors = ["#636363", "#D7301F", "#045A8D", "#ADDD8E"]
 	
 	if dataset != "human":
 		table = table.rename(columns={"Gene": "Species"})
 
-	ma_plot_fig = px.scatter(table, x="log2_baseMean", y="log2FoldChange", hover_data={gene_or_species: True, "log2_baseMean": True, "log2FoldChange": True, "padj": True, "DEG": False, "selected_gene": False}, color="DEG", color_discrete_sequence=colors, category_orders = {"DEG": ["False", "True", "selected_gene"]}, text = "selected_gene", labels={"log2FoldChange": "Log2 fold change", "log2_baseMean": "Log2 average expression"}, height = 400)
+	#plot
+	ma_plot_fig = px.scatter(table, x="log2_baseMean", y="log2FoldChange", hover_data={gene_or_species: True, "log2_baseMean": True, "log2FoldChange": True, "padj": True, "DEG": False, "selected_gene": False}, color="DEG", color_discrete_sequence=colors, category_orders = {"DEG": ["no_DEG", "Up", "Down", "selected_gene"]}, text = "selected_gene", labels={"log2FoldChange": "Log2 fold change", "log2_baseMean": "Log2 average expression"}, height = 400)
 
 	#label of selected genes and hover template
 	hover_template = "Log2 average expression: %{x}<br>Log2 fold change: %{y}<br>Gene: %{customdata[0]}<br>Padj: %{customdata[1]}<extra></extra>"
 	ma_plot_fig.update_traces(textposition="top center", textfont_size=14, textfont_color = "#ADDD8E", marker_size=5, marker_symbol = 2, hovertemplate = hover_template)
+	#marker selected gene have increased size
+	ma_plot_fig["data"][3]["marker"]["size"] = 8
 	#title and no legend
 	ma_plot_fig.update_layout(showlegend=False, title={"text": contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl") + " / FDR " + "{:.0e}".format(fdr), "xanchor": "center", "x": 0.5, "y": 0.9, "font_size": 14}, margin=dict(l=20, r=20, t=80, b=0), font_family="Arial")
 	#line at y=0
 	ma_plot_fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=0, line=dict(color="black", width=3), xref="paper", layer="below")
 	#add annotation with number of up and down degs
 	ma_plot_fig.add_annotation(text = "⇧" + str(up), xref="paper", yref="paper", x=0.95, y=0.9, showarrow=False, font_size=14, font_color="#DE2D26")
-	ma_plot_fig.add_annotation(text = "⇩" + str(down), xref="paper", yref="paper", x=0.95, y=0.1, showarrow=False, font_size=14, font_color="#DE2D26")
+	ma_plot_fig.add_annotation(text = "⇩" + str(down), xref="paper", yref="paper", x=0.95, y=0.1, showarrow=False, font_size=14, font_color="#045A8D")
 
 	return ma_plot_fig
 
@@ -774,10 +777,10 @@ def show_gene_statistics(switch_info, ma_plot_data, expression_dataset):
 	children = []
 	if switch_info:
 		hidden_status = False
-		gene_or_species = ma_plot_data["data"][2]["customdata"][0][0]
-		average_expression = ma_plot_data["data"][2]["x"][0]
-		log2_fold_change = ma_plot_data["data"][2]["y"][0]
-		padj = ma_plot_data["data"][2]["customdata"][0][1]
+		gene_or_species = ma_plot_data["data"][3]["customdata"][0][0]
+		average_expression = ma_plot_data["data"][3]["x"][0]
+		log2_fold_change = ma_plot_data["data"][3]["y"][0]
+		padj = ma_plot_data["data"][3]["customdata"][0][1]
 		children.append(html.Div([gene_or_species_label, gene_or_species]))
 		children.append(html.Div(["Log2 avg expr: ", str(round(average_expression, 1))]))
 		children.append(html.Div(["Log2 FC: ", str(round(log2_fold_change, 1))]))
