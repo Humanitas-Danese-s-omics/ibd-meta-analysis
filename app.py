@@ -177,7 +177,7 @@ app.layout = html.Div([
 							type = "dot",
 							color = "#ADDD8E"
 						)
-					], style={"width": "55%", "height": 425, "display": "inline-block"} 
+					], style={"width": "47%", "height": 600, "display": "inline-block"} 
 					),
 
 					html.Div([
@@ -187,7 +187,7 @@ app.layout = html.Div([
 							type = "dot",
 							color = "#ADDD8E"
 						)
-					], style={"width": "45%", "height": 425, "display": "inline-block"}
+					], style={"width": "53%", "height": 600, "display": "inline-block"}
 					),
 					
 					#switches + MA-plot + boxplots
@@ -507,8 +507,8 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 	elif trigger_id == "umap_expression.relayoutData":
 		umap_metadata_fig = synchronize_zoom(umap_metadata_fig, umap_expression_fig)
 
-	#click on contrast_only_switch. True = On, False = Off
-	elif trigger_id == "contrast_only_switch.on":
+	#click on contrast_only_switch. True = On, False = Off or change in contrast
+	elif trigger_id in ["contrast_only_switch.on", "contrast_dropdown.value"]:
 		#true means to select only sample in contrast
 		if contrast_switch is True:
 			#if metadfata is not "condition", umap_metadata_fig must be created from tsv by selecting condition as metadata
@@ -566,23 +566,25 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 		
 		#plot
 		umap_expression_fig = px.scatter(umap_df, x="UMAP1", y="UMAP2", color = "Log2 average expression", hover_data={"UMAP1": False, "UMAP2": False, "Sample": True, "Group": True, "Tissue": True, "Source": True, "Library strategy": True}, color_continuous_scale="reds")
-		umap_expression_fig.update_layout(title = {"text": gene_species.replace("_", " ").replace("[", "").replace("]", "") + expression_or_abundance + " n=" + str(n_samples), "xanchor": "center", "x": 0.5, "y": 0.9, "font_size": 14}, margin=dict(l=0, r=20, t=80, b=80), coloraxis_colorbar_title_side = "right", coloraxis_colorbar_thickness=20, font_family="Arial", hoverlabel_bgcolor = "lightgrey")
+		umap_expression_fig.update_layout(title = {"text": gene_species.replace("_", " ").replace("[", "").replace("]", "") + expression_or_abundance + " n=" + str(n_samples), "xanchor": "center", "x": 0.5, "y": 0.95, "font_size": 14}, margin=dict(l=0, r=20, t=60, b=0), coloraxis_colorbar_title_side = "right", coloraxis_colorbar_thickness=20, font_family="Arial", hoverlabel_bgcolor = "lightgrey", height=520)
 		hover_template = "Sample: %{customdata[0]}<br>Group: %{customdata[1]}<br>Tissue: %{customdata[2]}<br>Source: %{customdata[3]}<br>Library strategy: %{customdata[4]}<br>Log2 average expression: %{marker.color}<extra></extra>"
 		umap_expression_fig.update_traces(marker_size=4, hovertemplate = hover_template)
 
 		#update layout umap metadata
+		umap_metadata_fig["layout"]["height"] = 600
 		umap_metadata_fig["layout"]["title"]["text"] = selected_metadata.capitalize() + " n=" + str(n_samples)
 		umap_metadata_fig["layout"]["title"]["xanchor"] = "center"
-		umap_metadata_fig["layout"]["title"]["x"] = 0.7
-		umap_metadata_fig["layout"]["title"]["y"] = 0.9
+		umap_metadata_fig["layout"]["title"]["x"] = 0.6
+		umap_metadata_fig["layout"]["title"]["y"] = 0.95
 		umap_metadata_fig["layout"]["title"]["font"]["size"] = 14
 		umap_metadata_fig["layout"]["legend"]["title"]["text"] = selected_metadata.capitalize().replace("_", " ")
+		umap_metadata_fig["layout"]["legend"]["orientation"] = "h"
+		umap_metadata_fig["layout"]["legend"]["xanchor"] = "center"
+		umap_metadata_fig["layout"]["legend"]["x"] = 0.5
 		umap_metadata_fig["layout"]["legend"]["yanchor"] = "top"
-		umap_metadata_fig["layout"]["legend"]["y"] = 1.1
-		umap_metadata_fig["layout"]["legend"]["xanchor"] = "left"
-		umap_metadata_fig["layout"]["legend"]["x"] = -0.65
+		umap_metadata_fig["layout"]["legend"]["y"] = -0.2
 		umap_metadata_fig["layout"]["legend"]["itemsizing"] = "constant"
-		umap_metadata_fig["layout"]["margin"] = dict(l=0, r=0, t=70, b=80)
+		umap_metadata_fig["layout"]["margin"] = dict(l=0, r=0, t=60, b=0)
 		umap_metadata_fig["layout"]["font"]["family"] = "Arial"
 
 		return umap_expression_fig, umap_metadata_fig
@@ -620,10 +622,10 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 			umap_expression_fig["layout"]["yaxis"]["autorange"] = False
 	
 	#changes in umap metadata zoom and its legend
-	elif trigger_id in ["umap_metadata.relayoutData", "umap_metadata.restyleData", "contrast_only_switch.on"]:
+	elif trigger_id in ["umap_metadata.relayoutData", "umap_metadata.restyleData", "contrast_only_switch.on", "contrast_dropdown.value"]:
 		
 		#select samples to filter
-		if trigger_id in ["umap_metadata.restyleData", "contrast_only_switch.on"]:
+		if trigger_id in ["umap_metadata.restyleData", "contrast_only_switch.on", "contrast_dropdown.value"]:
 			samples_to_keep = get_samples_to_keep(umap_metadata_fig)
 			#get new filtered umap_expression_fig
 			umap_expression_fig, umap_metadata_fig = plot_umap_expression(expression_dataset, gene_species, samples_to_keep, umap_df, metadata, umap_metadata_fig)
@@ -770,7 +772,8 @@ def plot_MA_plot(dataset, contrast, fdr, gene, show_gene, old_ma_plot_figure):
 	hover_template = "Log2 average expression: %{x}<br>Log2 fold change: %{y}<br>Gene: %{customdata[0]}<br>Padj: %{customdata[1]}<extra></extra>"
 	ma_plot_fig.update_traces(textposition="top center", textfont_size=14, textfont_color = "#ADDD8E", marker_size=5, marker_symbol = 2, hovertemplate = hover_template)
 	#marker selected gene have increased size
-	ma_plot_fig["data"][3]["marker"]["size"] = 8
+	if show_gene:
+		ma_plot_fig["data"][3]["marker"]["size"] = 8
 	#title and no legend
 	ma_plot_fig.update_layout(showlegend=False, title={"text": contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl") + " / FDR " + "{:.0e}".format(fdr), "xanchor": "center", "x": 0.5, "y": 0.9, "font_size": 14}, margin=dict(l=20, r=20, t=80, b=0), font_family="Arial")
 	#line at y=0
@@ -883,14 +886,23 @@ def plot_go_plot(contrast, search_value):
 			process_lower = process.lower()
 			#check each quesy
 			for x in search_query:
-				if x in process_lower:
-					processes_to_keep.append(process)
-					break
+				#if it is a GO id, search for GO id
+				if x.startswith("go:"):
+					go_id = process_lower.split("~")[0]
+					if x == go_id:
+						if process not in processes_to_keep:
+							processes_to_keep.append(process)
+				#else, just search in the name og the GO category
+				else:
+					if x in process_lower.split("~")[1]:
+						processes_to_keep.append(process)
+						if process not in processes_to_keep:
+							processes_to_keep.append(process)
 		#no keyword
 		else:
 			processes_to_keep = go_df["Process"]
 	#filtering
-	go_df = go_df[go_df["Process"].isin(processes_to_keep)] 
+	go_df = go_df[go_df["Process"].isin(processes_to_keep)]
 	
 	#crop too long process name
 	processes = []
@@ -911,7 +923,7 @@ def plot_go_plot(contrast, search_value):
 		#sort by pvalue
 		df = df.sort_values(by=["GO p-value"])
 		#take top ten
-		df = df.head(12)
+		df = df.head(13)
 		#sort by enrichment
 		df = df.sort_values(by=["Enrichment"])
 
