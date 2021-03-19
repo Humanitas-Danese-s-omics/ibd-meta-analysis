@@ -84,7 +84,8 @@ app.layout = html.Div([
 					#header
 					html.Div([
 						#logo
-						html.Img(src="assets/logo.png", alt="logo", style={"width": "70%", "height": "70%"}, title="Tamma means talking drum in West Africa, where it’s also known as dundun. It is a small drum, played with a curved stick and having a membrane stretched over one end or both ends of a narrow-waisted wooden frame by cords whose tension can be manually altered to vary the drum's tonality as it is played."),
+						html.Img(src="assets/logo.png", alt="logo", style={"width": "70%", "height": "70%"}, title="Tamma means talking drum in West Africa, where it’s also known as dundun. It is a small drum, played with a curved stick and having a membrane stretched over one end or both ends of a narrow-waisted wooden frame by cords whose tension can be manually altered to vary the drum's tonality as it is played. This image has been designed using resources from Flaticon.com."
+						),
 					], style={"width": "100%", "display": "inline-block"}),
 					
 					#graphical abstract
@@ -175,9 +176,9 @@ app.layout = html.Div([
 							id = "loading_umap_metadata",
 							children = dcc.Graph(id="umap_metadata", config={"doubleClick": "autosize", "showEditInChartStudio": True, "plotlyServerURL": "https://chart-studio.plotly.com"}),
 							type = "dot",
-							color = "#ADDD8E"
+							color = "#33A02C"
 						)
-					], style={"width": "47%", "height": 600, "display": "inline-block"} 
+					], style={"width": "46%", "height": 600, "display": "inline-block"} 
 					),
 
 					html.Div([
@@ -185,7 +186,7 @@ app.layout = html.Div([
 							id = "loading_umap_expression",
 							children = dcc.Graph(id="umap_expression", config={"doubleClick": "autosize", "showEditInChartStudio": True, "plotlyServerURL": "https://chart-studio.plotly.com"}),
 							type = "dot",
-							color = "#ADDD8E"
+							color = "#33A02C"
 						)
 					], style={"width": "53%", "height": 600, "display": "inline-block"}
 					),
@@ -196,15 +197,15 @@ app.layout = html.Div([
 							#switches
 							html.Div([
 								html.Br(), html.Br(), html.Br(), html.Br(),
-								daq.BooleanSwitch(id = "contrast_only_switch", on = False, color = "#ADDD8E", label = "Comparison only"),
+								daq.BooleanSwitch(id = "contrast_only_switch", on = False, color = "#33A02C", label = "Comparison only"),
 								html.Br(),
-								daq.BooleanSwitch(id = "gene_stats_switch", on = True, color = "#ADDD8E", label = "Show gene stats"),
+								daq.BooleanSwitch(id = "gene_stats_switch", on = True, color = "#33A02C", label = "Show gene stats"),
 								html.Br(),
 								dcc.Loading(
 									id = "loading_statistics",
 									children = html.Div(id = "selected_gene_ma_plot_statistics", children = [], hidden = False, style = {"font-size": "12px"}),
 									type = "dot",
-									color = "#ADDD8E"
+									color = "#33A02C"
 								)
 							], style={"width": "22%", "height": "100%", "display": "inline-block", "vertical-align": "top"}),
 
@@ -214,7 +215,7 @@ app.layout = html.Div([
 									id = "loading_ma_plot",
 									children = dcc.Graph(id="ma_plot_graph", config = {"showEditInChartStudio": True, "plotlyServerURL": "https://chart-studio.plotly.com"}),
 									type = "dot",
-									color = "#ADDD8E"
+									color = "#33A02C"
 								)
 							], style={"width": "78%", "height": "100%", "display": "inline-block"}),
 						
@@ -226,7 +227,7 @@ app.layout = html.Div([
 								id = "loading_boxplots",
 								children = dcc.Graph(id="boxplots_graph", config = {"showEditInChartStudio": True, "plotlyServerURL": "https://chart-studio.plotly.com"}),
 								type = "dot",
-								color = "#ADDD8E"
+								color = "#33A02C"
 							)
 						], style={"width": "100%", "height": "50%", "display": "inline-block"})
 					
@@ -252,14 +253,14 @@ app.layout = html.Div([
 								id = "loading_go_plot",
 								children = dcc.Graph(id="go_plot_graph", config = {"showEditInChartStudio": True, "plotlyServerURL": "https://chart-studio.plotly.com"}),
 								type = "dot",
-								color = "#ADDD8E"
+								color = "#33A02C"
 							)
 						],style={"width": "95%", "height": "92%", "display": "inline-block"}),
 					
 					], style={"width": "60%", "height": 800, "display": "inline-block"}),
 
 					#graphical abstract
-					html.Div([html.Hr(), html.Img(src="assets/workflow.png", alt="graphical_abstract", style={"width": "100%", "height": "100%"}, title="FASTQ reads from 3,853 RNA-Seq data from different tissues, namely ileum, colon, rectum, mesenteric adipose tissue, peripheral blood, and stools, were mined from NCBI GEO/SRA and passed the initial quality filter. All files were mapped to the human reference genome and initial gene quantification was performed. Since these data came from 26 different studies made in different laboratories, we counteract the presumptive bias through a batch correction in accordance with source and tissue of origin. Once the gene counts were adjusted, samples were divided into groups in accordance with the tissue of origin and patient condition prior to differential expression analysis and gene ontology functional enrichment. Finally, the reads failing to map to the human genome were subjected to metatranscriptomics profiling by taxonomic classification using exact k-mer matching either archaeal, bacterial, eukaryotic, or viral genes.")
+					html.Div([html.Hr(), html.Img(src="assets/workflow.png", alt="graphical_abstract", style={"width": "100%", "height": "100%"}, title="FASTQ reads from 3,853 RNA-Seq data from different tissues, namely ileum, colon, rectum, mesenteric adipose tissue, peripheral blood, and stools, were mined from NCBI GEO/SRA and passed the initial quality filter. All files were mapped to the human reference genome and initial gene quantification was performed. Since these data came from 26 different studies made in different laboratories, we counteract the presumptive bias through a batch correction in accordance with source and tissue of origin. Once the gene counts were adjusted, samples were divided into groups in accordance with the tissue of origin and patient condition prior to differential expression analysis and gene ontology functional enrichment. Finally, the reads failing to map to the human genome were subjected to metatranscriptomics profiling by taxonomic classification using exact k-mer matching either archaeal, bacterial, eukaryotic, or viral genes. This image has been designed using resources from Flaticon.com")
 					], style={"width": "100%", "display": "inline-block"}),
 
 					#statistics
@@ -483,7 +484,7 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 		
 		#preserve old zoom
 		keep_old_zoom = False
-		if umap_metadata_fig is not None:
+		if umap_metadata_fig is not None and trigger_id != "umap_dataset_dropdown.value":
 			xaxis_range = umap_metadata_fig["layout"]["xaxis"]["range"]
 			yaxis_range = umap_metadata_fig["layout"]["yaxis"]["range"]
 			keep_old_zoom = True
@@ -605,7 +606,7 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 		
 		#preserve old zoom
 		keep_old_zoom = False
-		if umap_expression_fig is not None:
+		if umap_expression_fig is not None and trigger_id != "umap_dataset_dropdown.value":
 			xaxis_range = umap_expression_fig["layout"]["xaxis"]["range"]
 			yaxis_range = umap_expression_fig["layout"]["yaxis"]["range"]
 			keep_old_zoom = True
@@ -760,27 +761,31 @@ def plot_MA_plot(dataset, contrast, fdr, gene, show_gene, old_ma_plot_figure):
 	else:
 		table["selected_gene"] = ""
 
-	colors = ["#636363", "#D7301F", "#045A8D", "#ADDD8E"]
+	colors = ["#636363", "#D7301F", "#045A8D", "#D9D9D9"]
 	
 	if dataset != "human":
 		table = table.rename(columns={"Gene": "Species"})
 
 	#plot
-	ma_plot_fig = px.scatter(table, x="log2_baseMean", y="log2FoldChange", hover_data={gene_or_species: True, "log2_baseMean": True, "log2FoldChange": True, "padj": True, "DEG": False, "selected_gene": False}, color="DEG", color_discrete_sequence=colors, category_orders = {"DEG": ["no_DEG", "Up", "Down", "selected_gene"]}, text = "selected_gene", labels={"log2FoldChange": "Log2 fold change", "log2_baseMean": "Log2 average expression"}, height = 400)
+	# text = "selected_gene",
+	ma_plot_fig = px.scatter(table, x="log2_baseMean", y="log2FoldChange", hover_data={gene_or_species: True, "log2_baseMean": True, "log2FoldChange": True, "padj": True, "DEG": False, "selected_gene": False}, color="DEG", color_discrete_sequence=colors, category_orders = {"DEG": ["no_DEG", "Up", "Down", "selected_gene"]}, labels={"log2FoldChange": "Log2 fold change", "log2_baseMean": "Log2 average expression"}, height = 400)
 
 	#label of selected genes and hover template
 	hover_template = "Log2 average expression: %{x}<br>Log2 fold change: %{y}<br>Gene: %{customdata[0]}<br>Padj: %{customdata[1]}<extra></extra>"
-	ma_plot_fig.update_traces(textposition="top center", textfont_size=14, textfont_color = "#ADDD8E", marker_size=5, marker_symbol = 2, hovertemplate = hover_template)
-	#marker selected gene have increased size
+	ma_plot_fig.update_traces(marker_size=5, marker_symbol = 2, hovertemplate = hover_template)
+	#marker selected gene have increased size and add his annotation
 	if show_gene:
-		ma_plot_fig["data"][3]["marker"]["size"] = 8
+		ma_plot_fig["data"][3]["marker"]["size"] = 9
+		ma_plot_fig["data"][3]["marker"]["line"]["color"] = "#525252"
+		ma_plot_fig["data"][3]["marker"]["line"]["width"] = 2
+		ma_plot_fig.add_annotation(x=ma_plot_fig["data"][3]["x"][0], y=ma_plot_fig["data"][3]["y"][0], xref="x", yref="y", text=ma_plot_fig["data"][3]["customdata"][0][0], showarrow=True, font=dict(family="Arial", size=14), align="center", arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="#525252", ax=20, ay=-30, bordercolor="#525252", borderwidth=2, borderpad=4, bgcolor="#D9D9D9", opacity=0.7)
 	#title and no legend
 	ma_plot_fig.update_layout(showlegend=False, title={"text": contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl") + " / FDR " + "{:.0e}".format(fdr), "xanchor": "center", "x": 0.5, "y": 0.9, "font_size": 14}, margin=dict(l=20, r=20, t=80, b=0), font_family="Arial")
 	#line at y=0
 	ma_plot_fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=0, line=dict(color="black", width=3), xref="paper", layer="below")
 	#add annotation with number of up and down degs
-	ma_plot_fig.add_annotation(text = "⇧" + str(up), xref="paper", yref="paper", x=0.95, y=0.9, showarrow=False, font_size=14, font_color="#DE2D26")
-	ma_plot_fig.add_annotation(text = "⇩" + str(down), xref="paper", yref="paper", x=0.95, y=0.1, showarrow=False, font_size=14, font_color="#045A8D")
+	ma_plot_fig.add_annotation(text = str(up) + " higher in<br>" + contrast.split("-vs-")[0].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.98, showarrow=False, font_size=14, font_color="#DE2D26")
+	ma_plot_fig.add_annotation(text = str(down) + " higher in<br>" + contrast.split("-vs-")[1].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.02, showarrow=False, font_size=14, font_color="#045A8D")
 
 	return ma_plot_fig
 
@@ -914,9 +919,7 @@ def plot_go_plot(contrast, search_value):
 
 	#divide up and down GO categories
 	go_df_up = go_df[go_df["DGE"] == "up"]
-	go_df_up["DGE"] = [x.capitalize() for x in go_df_up["DGE"]]
 	go_df_down = go_df[go_df["DGE"] == "down"]
-	go_df_down["DGE"] = [x.capitalize() for x in go_df_down["DGE"]]
 	
 	#function to select GO categories
 	def select_go_categories(df):
@@ -949,7 +952,7 @@ def plot_go_plot(contrast, search_value):
 	sizeref = 2. * max(all_enrichments)/(7 ** 2)
 
 	#create subplots
-	go_plot_fig = make_subplots(rows=2, cols=2, specs=[[{"rowspan": 2}, {}], [None, {}]], column_widths=[0.8, 0.2], subplot_titles=(None, "GO p-value", "Enrichment"))
+	go_plot_fig = make_subplots(rows=5, cols=2, specs=[[{"rowspan": 5}, {}], [None, None], [None, {"rowspan": 2}], [None, None], [None, None]], column_widths=[0.8, 0.2], subplot_titles=(None, "GO p-value", "Enrichment"))
 
 	#up trace
 	hover_text = create_hover_text(go_df_up)
@@ -959,19 +962,20 @@ def plot_go_plot(contrast, search_value):
 	go_plot_fig.add_trace(go.Scatter(x=go_df_down["DGE"], y=go_df_down["Process"], marker_size=go_df_down["Enrichment"], marker_opacity = 1, marker_color = go_df_down["GO p-value"], marker_colorscale=["#045A8D", "#C6DBEF"], marker_showscale=False, marker_sizeref = sizeref, marker_cmax=0.05, marker_cmin=0, mode="markers", hovertext = hover_text, hoverinfo = "text"), row = 1, col = 1)
 
 	#colorbar trace
-	go_plot_fig.add_trace(go.Scatter(x = [None], y = [None], marker_showscale=True, marker_color = [0], marker_colorscale=["#737373", "#D9D9D9"], marker_cmax=0.05, marker_cmin=0, marker_colorbar = dict(thicknessmode="pixels", thickness=20, lenmode="pixels", len=200, yanchor="top", y=1, x=0.8)), row = 1, col = 2)
+	go_plot_fig.add_trace(go.Scatter(x = [None], y = [None], marker_showscale=True, marker_color = [0], marker_colorscale=["#737373", "#D9D9D9"], marker_cmax=0.05, marker_cmin=0, marker_colorbar = dict(thicknessmode="pixels", thickness=20, lenmode="pixels", len=200, yanchor="top", y=0.92, x=0.8)), row = 1, col = 2)
 
 	#size_legend_trace
 	legend_sizes = [round(min(all_enrichments)), round(np.average([max(all_enrichments), min(all_enrichments)])), round(max(all_enrichments))]
-	go_plot_fig.add_trace(go.Scatter(x = [1, 1, 1], y = [10, 40, 70], marker_size = legend_sizes, marker_sizeref = sizeref, marker_color = "#737373", mode="markers+text", text=["min", "mid", "max"], hoverinfo="text", hovertext=legend_sizes, textposition="top center"), row = 2, col = 2)
+	go_plot_fig.add_trace(go.Scatter(x = [1, 1, 1], y = [10, 40, 70], marker_size = legend_sizes, marker_sizeref = sizeref, marker_color = "#737373", mode="markers+text", text=["min", "mid", "max"], hoverinfo="text", hovertext=legend_sizes, textposition="top center"), row = 3, col = 2)
 
 	#figure layout
-	go_plot_fig.update_layout(title={"text": contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl") + " / DGE FDR 1e-10", "xanchor": "center", "x": 0.775, "y": 0.95, "font_size": 14}, font_family="Arial", height = 720, xaxis_title = None, yaxis_title = None, showlegend=False, xaxis_fixedrange=True, yaxis_fixedrange=True, xaxis2_visible=False, yaxis2_visible=False, xaxis2_fixedrange=True, yaxis2_fixedrange=True, xaxis3_visible=False, yaxis3_visible=False, xaxis3_fixedrange=True, yaxis3_fixedrange=True, yaxis3_range=[0, 100], margin=dict(l=0, r=0, t=80, b=0), yaxis_autorange=True, yaxis2_autorange=True, yaxis3_autorange=False, xaxis_linecolor='rgb(255,255,255)', yaxis_linecolor='rgb(255,255,255)')
+	go_plot_fig.update_layout(title={"text": contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl") + " / DGE FDR 1e-10", "xanchor": "center", "x": 0.775, "y": 0.95, "font_size": 14}, font_family="Arial", height = 720, xaxis_title = None, yaxis_title = None, showlegend=False, xaxis_fixedrange=True, yaxis_fixedrange=True, xaxis2_visible=False, yaxis2_visible=False, xaxis2_fixedrange=True, yaxis2_fixedrange=True, xaxis3_visible=False, yaxis3_visible=False, xaxis3_fixedrange=True, yaxis3_fixedrange=True, yaxis3_range=[0, 100], margin=dict(l=0, r=0, t=40, b=0), yaxis_autorange=True, yaxis2_autorange=True, yaxis3_autorange=False, xaxis_linecolor='rgb(255,255,255)', yaxis_linecolor='rgb(255,255,255)')
 
 	#legend title dimension and position
 	go_plot_fig["layout"]["annotations"][0]["font"]["size"] = 12
+	go_plot_fig["layout"]["annotations"][0]["y"] = 0.93
 	go_plot_fig["layout"]["annotations"][1]["font"]["size"] = 12
-	go_plot_fig["layout"]["annotations"][1]["y"] = 0.33
+	go_plot_fig["layout"]["annotations"][1]["y"] = 0.54
 
 	return go_plot_fig
 
