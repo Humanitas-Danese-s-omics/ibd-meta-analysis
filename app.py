@@ -392,7 +392,7 @@ def show_go_plot_info(switch_status):
 def get_diffexp_table(button_click, dataset, contrast):
 	df = pd.read_csv("http://www.lucamassimino.com/ibd/dge/{}/{}.diffexp.tsv".format(dataset, contrast), sep="\t")
 	df = df.set_index("Gene")
-	file_name = "{}_{}.diffexp.csv".format(dataset, contrast)
+	file_name = "{}_{}.diffexp.xls".format(dataset, contrast)
 
 	return send_data_frame(df.to_csv, filename=file_name)
 
@@ -406,7 +406,7 @@ def get_diffexp_table(button_click, dataset, contrast):
 def get_go_table(button_click, contrast):
 	df = pd.read_csv("http://www.lucamassimino.com/ibd/go/{}.merged_go.tsv".format(contrast), sep="\t")
 	df = df.set_index("DGE")
-	file_name = "{}_gene_ontology.csv".format(contrast)
+	file_name = "{}_gene_ontology.xls".format(contrast)
 
 	return send_data_frame(df.to_csv, filename=file_name)
 
