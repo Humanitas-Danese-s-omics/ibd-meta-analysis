@@ -1245,4 +1245,10 @@ def plot_go_plot(contrast, search_value):
 	return go_plot_fig, config_go_plot
 
 if __name__ == "__main__":
-	app.run_server()
+	import os.path
+
+	if os.path.isfile(".vscode/settings.json"):
+		app.run_server(debug=True, host = "10.39.173.120", port = "8050")
+	else:
+		app.run_server()
+	
