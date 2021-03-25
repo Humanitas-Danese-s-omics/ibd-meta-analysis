@@ -288,10 +288,8 @@ app.layout = html.Div([
 								
 								#download button
 								html.Div([
-									html.Button(
-										dcc.Link("Download", href="", id="go_plot_download_button", target="_parent", style={"text-decoration": "none", "color": "black"}
-									), style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}),
-								], style={"width": "22%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom"}),
+									html.Button("Download", id="download_go", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}), Download(id="download_go_data"),
+								], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom", 'color': 'black'}),
 								
 								#search bar
 								html.Div([
@@ -400,13 +398,17 @@ def get_diffexp_table(button_click, dataset, contrast):
 
 #download go
 @app.callback(
-	Output("go_plot_download_button", "href"),
-	Input("contrast_dropdown", "value")
+	Output("download_go_data", "data"),
+	Input("download_go", "n_clicks"),
+	State("contrast_dropdown", "value"), 
+	prevent_initial_call=True
 )
-def get_go_link(contrast):
-	link = "http://www.lucamassimino.com/ibd/go/{}.merged_go.tsv".format(contrast)
+def get_go_table(button_click, contrast):
+	df = pd.read_csv("http://www.lucamassimino.com/ibd/go/{}.merged_go.tsv".format(contrast), sep="\t")
+	df = df.set_index("DGE")
+	file_name = "{}_gene_ontology.csv".format(contrast)
 
-	return link
+	return send_data_frame(df.to_csv, filename=file_name)
 
 ### ELEMENTS CALLBACKS ###
 
