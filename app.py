@@ -252,7 +252,7 @@ app.layout = html.Div([
 								#download button
 								html.Div([
 									html.Button(
-										dcc.Link("Download", href="", id="ma_plot_download_button", style={"text-decoration": "none", "color": "black"}
+										dcc.Link("Download", href="", id="ma_plot_download_button", target="_parent", style={"text-decoration": "none", "color": "black"}
 									), style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}),
 								], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom", 'color': 'black'}),
 								#switch
@@ -289,7 +289,7 @@ app.layout = html.Div([
 								#download button
 								html.Div([
 									html.Button(
-										dcc.Link("Download", href="", id="go_plot_download_button", style={"text-decoration": "none", "color": "black"}
+										dcc.Link("Download", href="", id="go_plot_download_button", target="_parent", style={"text-decoration": "none", "color": "black"}
 									), style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}),
 								], style={"width": "22%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom"}),
 								
