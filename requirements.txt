@@ -5,3 +5,4 @@ numpy
 dash_auth
 dash_daq
 plotly
+dash_extensions
