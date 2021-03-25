@@ -253,7 +253,12 @@ app.layout = html.Div([
 							html.Div([
 								#download button
 								html.Div([
-									html.Button("Download", id="download_diffexp", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}), Download(id="download_diffexp_data"),
+									dcc.Loading(
+										id = "loading_download_diffexp",
+										children = [html.Button("Download", id="download_diffexp", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}), Download(id="download_diffexp_data")],
+										type = "circle",
+										color = "#33A02C"
+									)
 								], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom", 'color': 'black'}),
 								#switch
 								html.Div([
@@ -288,7 +293,12 @@ app.layout = html.Div([
 								
 								#download button
 								html.Div([
-									html.Button("Download", id="download_go", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}), Download(id="download_go_data"),
+									dcc.Loading(
+										id = "loading_download_go",
+										children = [html.Button("Download", id="download_go", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}), Download(id="download_go_data")],
+										type = "circle",
+										color = "#33A02C"
+									)
 								], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom", 'color': 'black'}),
 								
 								#search bar
@@ -394,7 +404,7 @@ def get_diffexp_table(button_click, dataset, contrast):
 	df = df.set_index("Gene")
 	file_name = "{}_{}.diffexp.xls".format(dataset, contrast)
 
-	return send_data_frame(df.to_csv, filename=file_name)
+	return send_data_frame(df.to_excel, filename=file_name)
 
 #download go
 @app.callback(
@@ -408,7 +418,7 @@ def get_go_table(button_click, contrast):
 	df = df.set_index("DGE")
 	file_name = "{}_gene_ontology.xls".format(contrast)
 
-	return send_data_frame(df.to_csv, filename=file_name)
+	return send_data_frame(df.to_excel, filename=file_name)
 
 ### ELEMENTS CALLBACKS ###
 
@@ -1233,7 +1243,6 @@ def plot_go_plot(contrast, search_value):
 	config_go_plot["toImageButtonOptions"]["filename"] = "TaMMA_goplot_with_{contrast}".format(contrast = contrast)
 
 	return go_plot_fig, config_go_plot
-
 
 if __name__ == "__main__":
 	app.run_server()
