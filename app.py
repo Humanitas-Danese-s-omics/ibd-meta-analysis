@@ -73,7 +73,7 @@ VALID_USERNAME_PASSWORD_PAIRS = {
 }
 
 #layout
-app = dash.Dash(__name__, title="IBD meta-analisys Danese omics")
+app = dash.Dash(__name__, title="IBD TaMMA")
 server = app.server
 auth = dash_auth.BasicAuth(
     app,
@@ -202,7 +202,7 @@ app.layout = html.Div([
 					html.Div([
 						dcc.Loading(
 							id = "loading_umap_metadata",
-							children = dcc.Graph(id="umap_metadata", config={"doubleClick": "autosize", "modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png"}}),
+							children = dcc.Graph(id="umap_metadata", config={}),
 							type = "dot",
 							color = "#33A02C"
 						)
@@ -213,7 +213,7 @@ app.layout = html.Div([
 					html.Div([
 						dcc.Loading(
 							id = "loading_umap_expression",
-							children = dcc.Graph(id="umap_expression", config={"doubleClick": "autosize", "modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png"}}),
+							children = dcc.Graph(id="umap_expression"),
 							type = "dot",
 							color = "#33A02C"
 						)
@@ -242,7 +242,7 @@ app.layout = html.Div([
 							html.Div([
 								dcc.Loading(
 									id = "loading_boxplots",
-									children = dcc.Graph(id="boxplots_graph", config={"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png"}}),
+									children = dcc.Graph(id="boxplots_graph"),
 									type = "dot",
 									color = "#33A02C"
 								)
@@ -250,11 +250,13 @@ app.layout = html.Div([
 
 							#control switches MA-plot
 							html.Div([
+								#download button
 								html.Div([
 									html.Button(
-										html.A("Download", href="", download="", target="_blank", id="ma_plot_download_button", style={"text-decoration": "none", "color": "black"}
+										html.A("Download", href="", download="", id="ma_plot_download_button", style={"text-decoration": "none", "color": "black"}
 									), style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}),
 								], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom", 'color': 'black'}),
+								#switch
 								html.Div([
 									daq.BooleanSwitch(id = "ma_plot_info_switch", on = False, color = "#33A02C", label = "Show info")
 								], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom"}),
@@ -269,7 +271,7 @@ app.layout = html.Div([
 							html.Div([
 								dcc.Loading(
 									id = "loading_ma_plot",
-									children = dcc.Graph(id="ma_plot_graph", config={"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png"}}),
+									children = dcc.Graph(id="ma_plot_graph"),
 									type = "dot",
 									color = "#33A02C"
 								)
@@ -288,7 +290,7 @@ app.layout = html.Div([
 								#download button
 								html.Div([
 									html.Button(
-										html.A("Download", href="", download="", target="_blank", id="go_plot_download_button", style={"text-decoration": "none", "color": "black"}
+										html.A("Download", href="", download="", id="go_plot_download_button", style={"text-decoration": "none", "color": "black"}
 									), style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}),
 								], style={"width": "22%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom"}),
 								
@@ -308,9 +310,7 @@ app.layout = html.Div([
 							html.Div([
 								dcc.Loading(
 								id = "loading_go_plot",
-								children = dcc.Graph(id="go_plot_graph", 
-									config={"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png"}},
-									),
+								children = dcc.Graph(id="go_plot_graph"),
 								type = "dot",
 								color = "#33A02C", 
 								)
@@ -529,6 +529,9 @@ def filter_contrasts(dataset, tissue):
 	Output("metadata_dropdown", "value"),
 	Output("contrast_only_umap_metadata_switch", "on"),
 	Output("contrast_only_boxplots_switch", "on"),
+	#config
+	Output("umap_metadata", "config"),
+	Output("umap_expression", "config"),
 
 	#dropdowns
 	Input("umap_dataset_dropdown", "value"),
@@ -824,11 +827,19 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 		#update zoom from metadata
 		umap_expression_fig = synchronize_zoom(umap_expression_fig, umap_metadata_fig)
 
-	return umap_metadata_fig, umap_expression_fig, metadata, contrast_switch_umap, contrast_switch_boxplot
+	##### CONFIG OPTIONS ####
+	config_umap_metadata = {"doubleClick": "autosize", "modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 500, "height": 500, "scale": 25}}
+	config_umap_expression = {"doubleClick": "autosize", "modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 520, "height": 500, "scale": 25}}
+
+	config_umap_metadata["toImageButtonOptions"]["filename"] = "TaMMA_umap_{umap_metadata}_colored_by_{metadata}".format(umap_metadata = umap_dataset, metadata = metadata)
+	config_umap_expression["toImageButtonOptions"]["filename"] = "TaMMA_umap_{umap_metadata}_colored_by_{gene_species}_{expression_abundance}".format(umap_metadata = umap_dataset, gene_species = gene_species, expression_abundance = "expression" if expression_dataset == "human" else "abundance")
+
+	return umap_metadata_fig, umap_expression_fig, metadata, contrast_switch_umap, contrast_switch_boxplot, config_umap_metadata, config_umap_expression
 
 #plot boxplots callback
 @app.callback(
 	Output("boxplots_graph", "figure"),
+	Output("boxplots_graph", "config"),
 	Input("expression_dataset_dropdown", "value"),
 	Input("gene_species_dropdown", "value"),
 	Input("metadata_dropdown", "value"),
@@ -883,11 +894,15 @@ def plot_boxplots(expression_dataset, gene, metadata_field, umap_legend_click, b
 
 	#box_fig["layout"]["paper_bgcolor"] = "#BCBDDC"
 
-	return box_fig
+	config_boxplots = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 450, "height": 400, "scale": 25}}
+	config_boxplots["toImageButtonOptions"]["filename"] = "TaMMA_boxplots_with_{gene_species}_expression_colored_by_{metadata}".format(gene_species = gene, metadata = metadata)
+
+	return box_fig, config_boxplots
 
 #plot MA-plot callback
 @app.callback(
 	Output("ma_plot_graph", "figure"),
+	Output("ma_plot_graph", "config"),
 	Input("expression_dataset_dropdown", "value"),
 	Input("contrast_dropdown", "value"),
 	Input("stringency_dropdown", "value"),
@@ -1039,13 +1054,17 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 		)]
 	)
 
+	config_ma_plot = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 450, "height": 350, "scale": 25}}
+	config_ma_plot["toImageButtonOptions"]["filename"] = "TaMMA_maplot_with_{contrast}".format(contrast = contrast)
+
 	#ma_plot_fig["layout"]["paper_bgcolor"] = "#E0F3DB"
 	
-	return ma_plot_fig
+	return ma_plot_fig, config_ma_plot
 
 #plot go plot callback
 @app.callback(
 	Output("go_plot_graph", "figure"),
+	Output("go_plot_graph", "config"),
 	Input("contrast_dropdown", "value"),
 	Input("go_plot_filter_input", "value")
 )
@@ -1207,7 +1226,11 @@ def plot_go_plot(contrast, search_value):
 
 	#go_plot_fig["layout"]["paper_bgcolor"] = "#FDE0DD"
 
-	return go_plot_fig
+	config_go_plot = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 700, "height": computed_height, "scale": 20}}
+	config_go_plot["toImageButtonOptions"]["filename"] = "TaMMA_goplot_with_{contrast}".format(contrast = contrast)
+
+	return go_plot_fig, config_go_plot
+
 
 if __name__ == "__main__":
 	app.run_server()
