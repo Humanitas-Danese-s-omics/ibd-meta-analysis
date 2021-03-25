@@ -3,6 +3,7 @@ from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
 import dash_html_components as html
 from dash_extensions import Download
+from dash_extensions.snippets import send_data_frame
 import dash_daq as daq
 import dash_auth
 import plotly.express as px
@@ -252,9 +253,7 @@ app.layout = html.Div([
 							html.Div([
 								#download button
 								html.Div([
-									html.Button(
-										dcc.Link("Download", href="", id="ma_plot_download_button", target="_parent", style={"text-decoration": "none", "color": "black"}
-									), style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}), Download(id="download"),
+									html.Button("Download", id="download_diffexp", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}), Download(id="download_diffexp_data"),
 								], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom", 'color': 'black'}),
 								#switch
 								html.Div([
@@ -386,14 +385,18 @@ def show_go_plot_info(switch_status):
 
 #download diffexp
 @app.callback(
-	Output("ma_plot_download_button", "href"),
-	Input("expression_dataset_dropdown", "value"),
-	Input("contrast_dropdown", "value")
+	Output("download_diffexp_data", "data"),
+	Input("download_diffexp", "n_clicks"),
+	State("expression_dataset_dropdown", "value"),
+	State("contrast_dropdown", "value"), 
+	prevent_initial_call=True
 )
-def get_diffexp_link(dataset, contrast):
-	link = "http://www.lucamassimino.com/ibd/dge/{}/{}.diffexp.tsv".format(dataset, contrast)
+def get_diffexp_table(button_click, dataset, contrast):
+	df = read_csv("http://www.lucamassimino.com/ibd/dge/{}/{}.diffexp.tsv".format(dataset, contrast), sep="\t")
+	df = df.set_index("Gene")
+	file_name = "{}_{}.diffexp.csv".format(dataset, contrast)
 
-	return link
+	return send_data_frame(df.to_csv, filename=file_name)
 
 #download go
 @app.callback(
