@@ -2,7 +2,6 @@ import dash
 from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.exceptions import PreventUpdate
 import dash_daq as daq
 import dash_auth
 import plotly.express as px
@@ -253,7 +252,7 @@ app.layout = html.Div([
 								#download button
 								html.Div([
 									html.Button(
-										html.A("Download", href="", download="", id="ma_plot_download_button", style={"text-decoration": "none", "color": "black"}
+										dcc.Link("Download", href="", id="ma_plot_download_button", style={"text-decoration": "none", "color": "black"}
 									), style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}),
 								], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom", 'color': 'black'}),
 								#switch
@@ -290,7 +289,7 @@ app.layout = html.Div([
 								#download button
 								html.Div([
 									html.Button(
-										html.A("Download", href="", download="", id="go_plot_download_button", style={"text-decoration": "none", "color": "black"}
+										dcc.Link("Download", href="", id="go_plot_download_button", style={"text-decoration": "none", "color": "black"}
 									), style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}),
 								], style={"width": "22%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom"}),
 								
@@ -387,25 +386,23 @@ def show_go_plot_info(switch_status):
 #download diffexp
 @app.callback(
 	Output("ma_plot_download_button", "href"),
-	Output("ma_plot_download_button", "download"),
 	Input("expression_dataset_dropdown", "value"),
 	Input("contrast_dropdown", "value")
 )
 def get_diffexp_link(dataset, contrast):
 	link = "http://www.lucamassimino.com/ibd/dge/{}/{}.diffexp.tsv".format(dataset, contrast)
 
-	return link, link
+	return link
 
 #download go
 @app.callback(
 	Output("go_plot_download_button", "href"),
-	Output("go_plot_download_button", "download"),
 	Input("contrast_dropdown", "value")
 )
 def get_go_link(contrast):
 	link = "http://www.lucamassimino.com/ibd/go/{}.merged_go.tsv".format(contrast)
 
-	return link, link
+	return link
 
 ### ELEMENTS CALLBACKS ###
 
