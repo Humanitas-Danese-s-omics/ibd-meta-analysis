@@ -392,7 +392,7 @@ def show_go_plot_info(switch_status):
 	prevent_initial_call=True
 )
 def get_diffexp_table(button_click, dataset, contrast):
-	df = read_csv("http://www.lucamassimino.com/ibd/dge/{}/{}.diffexp.tsv".format(dataset, contrast), sep="\t")
+	df = pd.read_csv("http://www.lucamassimino.com/ibd/dge/{}/{}.diffexp.tsv".format(dataset, contrast), sep="\t")
 	df = df.set_index("Gene")
 	file_name = "{}_{}.diffexp.csv".format(dataset, contrast)
 
