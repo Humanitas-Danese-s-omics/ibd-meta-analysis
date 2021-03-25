@@ -52,17 +52,17 @@ labels = [label.replace("_", " ") for label in labels]
 
 snakey_fig = go.Figure(data=[go.Sankey(
 	node = dict(
-      pad = 15,
-      thickness = 20,
-      line = dict(color = "black", width = 0.5),
-      label = labels,
-      color = colors,
-	  hoverinfo = "none"
+		pad = 15,
+		thickness = 20,
+		line = dict(color = "black", width = 0.5),
+		label = labels,
+		color = colors,
+		hoverinfo = "none"
 	),
 	link = dict(
 		source = dataset_stats["source"],
 		target = dataset_stats["target"],
-		value =  dataset_stats["n"]
+		value = dataset_stats["n"]
 	)
 )])
 snakey_fig.update_layout(margin=dict(l=0, r=0, t=20, b=20))
@@ -70,16 +70,17 @@ snakey_fig.update_layout(margin=dict(l=0, r=0, t=20, b=20))
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 
 VALID_USERNAME_PASSWORD_PAIRS = {
-    "danese": "steam"
+	"danese": "steam"
 }
 
 #layout
 app = dash.Dash(__name__, title="IBD TaMMA")
 server = app.server
 auth = dash_auth.BasicAuth(
-    app,
-    VALID_USERNAME_PASSWORD_PAIRS
+	app,
+	VALID_USERNAME_PASSWORD_PAIRS
 )
+
 app.layout = html.Div([
 				html.Div([
 					#header
@@ -331,7 +332,7 @@ app.layout = html.Div([
 
 					#statistics
 					html.Div([
-						dcc.Graph(id="snakey", figure=snakey_fig)
+						dcc.Graph(id="snakey", figure=snakey_fig, config={"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 1000, "height": 400, "scale": 20, "filename": "easter_egg_TBD"}})
 					], style={"width": "100%", "display": "inline-block"})
 
 				], style={"width": 1200}),
@@ -1251,4 +1252,3 @@ if __name__ == "__main__":
 		app.run_server(debug=True, host = "10.39.173.120", port = "8050")
 	else:
 		app.run_server()
-	
