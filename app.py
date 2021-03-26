@@ -2,7 +2,6 @@ import dash
 from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
 import dash_html_components as html
-from dash_extensions import Download
 import dash_daq as daq
 import dash_auth
 import plotly.express as px
@@ -24,6 +23,16 @@ token = "3b2bc6c745bd96682a139e46ee27922df7e1dcd6"
 github_session = requests.Session()
 github_session.auth = (username, token)
 
+#function for downloading and importing in pandas df
+def download_from_github(file_url):
+	file_url = "https://raw.githubusercontent.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data/main/data/" + file_url
+	download = github_session.get(file_url).content
+	#read the downloaded content and make a pandas dataframe
+	df_downloaded_data = StringIO(download.decode('utf-8'))
+
+	return df_downloaded_data
+
+#default template
 pio.templates.default = "simple_white"
 
 colors = ["#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C", "#FDBF6F", "#FF7F00", "#CAB2D6", "#6A3D9A", "#B15928", "#8DD3C7", "#BEBADA", 
@@ -55,8 +64,10 @@ padj_options = [{"label": "0.1", "value": 0.1},
 				{"label": "1e-09", "value": 0.000000001},
 				{"label": "1e-10", "value": 0.0000000001}]
 
-dataset_stats = pd.read_csv("http://www.lucamassimino.com/ibd/stats.tsv", sep = "\t")
-labels = pd.read_csv("http://www.lucamassimino.com/ibd/labels_list.tsv", sep = "\t", header=None, names=["labels"])
+dataset_stats = download_from_github("stats.tsv")
+dataset_stats = pd.read_csv(dataset_stats, sep="\t")
+labels = download_from_github("labels_list.tsv")
+labels = pd.read_csv(labels, sep = "\t", header=None, names=["labels"])
 labels = labels["labels"].dropna().tolist()
 labels = [label.replace("_", " ") for label in labels]
 
@@ -260,7 +271,7 @@ app.layout = html.Div([
 								)
 							], style={"width": "100%", "display": "inline-block"}),
 
-							#control switches MA-plot
+							#control switch and download button MA-plot
 							html.Div([
 								#download button
 								html.Div([
@@ -272,7 +283,7 @@ app.layout = html.Div([
 											id="download_diffexp",
 											href="",
 											target="_blank",
-											children = [html.Button("Download", id="download_diffexp_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+											children = [html.Button("Download table", id="download_diffexp_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
 											)
 										]
 									)
@@ -319,7 +330,7 @@ app.layout = html.Div([
 											id="download_go",
 											href="",
 											target="_blank",
-											children = [html.Button("Download", id="download_go_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+											children = [html.Button("Download table", id="download_go_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
 											)
 										]
 									)
@@ -427,10 +438,10 @@ def show_go_plot_info(switch_status):
 def get_diffexp_table(button_click, dataset, contrast):
 
 	#download from GitHub
-	url = "https://raw.githubusercontent.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data/main/data/dge/{}/{}.diffexp.tsv".format(dataset, contrast)
-	download = github_session.get(url).content
+	url = "dge/{}/{}.diffexp.tsv".format(dataset, contrast)
 	#read the downloaded content and make a pandas dataframe
-	df = pd.read_csv(StringIO(download.decode('utf-8')), sep="\t")
+	df = download_from_github(url)
+	df = pd.read_csv(df, sep="\t")
 	#create a downloadable tsv file forced to excel by extension
 	link = df.to_csv(index=False, encoding="utf-8", sep="\t")
 	link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
@@ -448,10 +459,9 @@ def get_diffexp_table(button_click, dataset, contrast):
 def get_go_table(button_click, contrast):
 
 	#download from GitHub
-	url = "https://raw.githubusercontent.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data/main/data/go/{}.merged_go.tsv".format(contrast)
-	download = github_session.get(url).content
-	#read the downloaded content and make a pandas dataframe
-	df = pd.read_csv(StringIO(download.decode('utf-8')), sep="\t")
+	url = "go/{}.merged_go.tsv".format(contrast)
+	df = download_from_github(url)
+	df = pd.read_csv(df, sep="\t")
 	link = df.to_csv(index=False, encoding="utf-8", sep="\t")
 	link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
 	file_name = "GO_human_{}.xls".format(contrast)
@@ -498,12 +508,14 @@ def find_genes_or_species(dataset, selected_point_ma_plot, current_dropdown_opti
 	#if you change the datast, load it and change options and values
 	elif trigger_id == "expression_dataset_dropdown":
 		if dataset == "human":
-			genes = pd.read_csv("http://www.lucamassimino.com/ibd/genes_list.tsv", sep = "\t", header=None, names=["genes"])
+			genes = download_from_github("genes_list.tsv")
+			genes = pd.read_csv(genes, sep = "\t", header=None, names=["genes"])
 			genes = genes["genes"].dropna().tolist()
 			options=[{"label": i, "value": i} for i in genes]
 			value="IFNG"
 		else:
-			species = pd.read_csv("http://www.lucamassimino.com/ibd/{}_list.tsv".format(dataset), sep = "\t", header=None, names=["species"])
+			species = download_from_github("{}_list.tsv".format(dataset))
+			species = pd.read_csv(species, sep = "\t", header=None, names=["species"])
 			species = species["species"].dropna().tolist()
 			options = [{"label": i.replace("_", " ").replace("[", "").replace("]", ""), "value": i} for i in species]
 			value = species[0]
@@ -518,10 +530,12 @@ def find_genes_or_species(dataset, selected_point_ma_plot, current_dropdown_opti
 )
 def get_tissues_with_2_or_more_conditions(dataset):
 	#get all contrasts for dataset
-	contrasts = pd.read_csv("http://www.lucamassimino.com/ibd/dge_list_{}.tsv".format(dataset), sep = "\t", header=None, names=["contrast"])
+	contrasts = download_from_github("dge_list_{}.tsv".format(dataset))
+	contrasts = pd.read_csv(contrasts, sep = "\t", header=None, names=["contrast"])
 	contrasts = contrasts["contrast"].tolist()
 	#get all tissues for dataset
-	tissues = pd.read_csv("http://www.lucamassimino.com/ibd/umap_{}.tsv".format(dataset), sep = "\t")
+	tissues = download_from_github("umap_{}.tsv".format(dataset))
+	tissues = pd.read_csv(tissues, sep = "\t")
 	tissues = tissues["tissue"].unique().tolist()
 
 	#loop over tissues and contrasts
@@ -552,7 +566,8 @@ def get_tissues_with_2_or_more_conditions(dataset):
 )
 def filter_contrasts(dataset, tissue):
 	#get all contrasts for selected dataset
-	contrasts = pd.read_csv("http://www.lucamassimino.com/ibd/dge_list_{}.tsv".format(dataset), sep = "\t", header=None, names=["contrast"])
+	contrasts = download_from_github("dge_list_{}.tsv".format(dataset))
+	contrasts = pd.read_csv(contrasts, sep = "\t", header=None, names=["contrast"])
 	contrasts = contrasts["contrast"].dropna().tolist()
 
 	filtered_contrasts = []
@@ -638,7 +653,8 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 	#function for creating umap_metadata_fig from tsv file
 	def plot_umap_metadata(dataset, selected_metadata):
 		#open tsv
-		umap_df = pd.read_csv("http://www.lucamassimino.com/ibd/umap_{}.tsv".format(dataset), sep = "\t")
+		umap_df = download_from_github("umap_{}.tsv".format(dataset))
+		umap_df = pd.read_csv(umap_df, sep = "\t")
 
 		#prepare df
 		umap_df = umap_df.sort_values(by=[selected_metadata])
@@ -768,7 +784,8 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 		elif umap_dataset == "viruses":
 			transcriptome_title = "viral"
 		
-		counts = pd.read_csv("http://www.lucamassimino.com/ibd/counts/{}/{}.tsv".format(expression_dataset, gene_species), sep = "\t")
+		counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset, gene_species))
+		counts = pd.read_csv(counts, sep = "\t")
 		counts = counts.rename(columns={"sample": "Sample"})
 
 		#add counts to umap df
@@ -912,9 +929,11 @@ def plot_boxplots(expression_dataset, gene, metadata_field, umap_legend_click, b
 			boxplots_figure["data"][traces_to_change[n]]["visible"] = settings_to_apply[n]
 		box_fig = boxplots_figure
 	elif trigger_id in ["expression_dataset_dropdown.value", "gene_species_dropdown.value", "metadata_dropdown.value"]:
-		counts = pd.read_csv("http://www.lucamassimino.com/ibd/counts/{}/{}.tsv".format(expression_dataset, gene), sep = "\t")
+		counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset, gene))
+		counts = pd.read_csv(counts, sep = "\t")
 		#open metadata and select only the desired column
-		metadata_df = pd.read_csv("http://www.lucamassimino.com/ibd/umap_{}.tsv".format(expression_dataset), sep = "\t")
+		metadata_df = download_from_github("umap_{}.tsv".format(expression_dataset))
+		metadata_df = pd.read_csv(metadata_df, sep = "\t")
 		#merge and compute log2 and replace inf with 0
 		metadata_df = metadata_df.merge(counts, how="left", on="sample")
 		metadata_df["Log2 counts"] = np.log2(metadata_df["counts"])
@@ -974,7 +993,8 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 
 	#read tsv if change in dataset or contrast
 	if trigger_id in ["expression_dataset_dropdown.value", "contrast_dropdown.value"] or old_ma_plot_figure is None:
-		table = pd.read_csv("http://www.lucamassimino.com/ibd/dge/{}/{}.diffexp.tsv".format(dataset, contrast), sep = "\t")
+		table = download_from_github("dge/{}/{}.diffexp.tsv".format(dataset, contrast))
+		table = pd.read_csv(table, sep = "\t")
 		table = table.dropna(subset=["Gene"])
 		#log2 base mean
 		table["log2_baseMean"] = np.log2(table["baseMean"])
@@ -1121,7 +1141,8 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 )
 def plot_go_plot(contrast, search_value):
 	#open df
-	go_df = pd.read_csv("http://www.lucamassimino.com/ibd/go/{}.merged_go.tsv".format(contrast), sep = "\t")
+	go_df = download_from_github("go/{}.merged_go.tsv".format(contrast))
+	go_df = pd.read_csv(go_df, sep = "\t")
 	#filter out useless columns and rename the one to keep
 	go_df = go_df[["DGE", "Process~name", "P-value", "percentage%"]]
 	go_df = go_df.rename(columns={"Process~name": "Process", "percentage%": "Enrichment", "P-value": "GO p-value"})
