@@ -3,7 +3,6 @@ from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
 import dash_html_components as html
 from dash_extensions import Download
-from dash_extensions.snippets import send_data_frame
 import dash_daq as daq
 import dash_auth
 import plotly.express as px
@@ -13,6 +12,7 @@ from plotly.subplots import make_subplots
 import pandas as pd
 import numpy as np
 import re
+import urllib.parse
 
 pio.templates.default = "simple_white"
 
@@ -256,9 +256,15 @@ app.layout = html.Div([
 								html.Div([
 									dcc.Loading(
 										id = "loading_download_diffexp",
-										children = [html.Button("Download", id="download_diffexp", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}), Download(id="download_diffexp_data")],
 										type = "circle",
-										color = "#33A02C"
+										color = "#33A02C",
+										children=[html.A(
+											id="download_diffexp",
+											href="",
+											target="_blank",
+											children = [html.Button("Download", id="download_diffexp_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+											)
+										]
 									)
 								], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom", 'color': 'black'}),
 								#switch
@@ -394,18 +400,21 @@ def show_go_plot_info(switch_status):
 
 #download diffexp
 @app.callback(
-	Output("download_diffexp_data", "data"),
-	Input("download_diffexp", "n_clicks"),
-	State("expression_dataset_dropdown", "value"),
-	State("contrast_dropdown", "value"), 
-	prevent_initial_call=True
+	Output("download_diffexp", "href"),
+	Output("download_diffexp", "download"),
+	Input("download_diffexp_button", "n_clicks"),
+	Input("expression_dataset_dropdown", "value"),
+	Input("contrast_dropdown", "value"),
+	#prevent_initial_call=True
 )
 def get_diffexp_table(button_click, dataset, contrast):
 	df = pd.read_csv("http://www.lucamassimino.com/ibd/dge/{}/{}.diffexp.tsv".format(dataset, contrast), sep="\t")
-	df = df.set_index("Gene")
-	file_name = "{}_{}.diffexp.xls".format(dataset, contrast)
+	link = df.to_csv(index=True, encoding="utf-8", sep="\t")
+	
+	link = "http://www.lucamassimino.com/ibd/dge/{}/{}.diffexp.tsv".format(dataset, contrast)
+	link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
 
-	return send_data_frame(df.to_excel, filename=file_name)
+	return link
 
 #download go
 @app.callback(
