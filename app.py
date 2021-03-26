@@ -410,8 +410,6 @@ def show_go_plot_info(switch_status):
 def get_diffexp_table(button_click, dataset, contrast):
 	df = pd.read_csv("http://www.lucamassimino.com/ibd/dge/{}/{}.diffexp.tsv".format(dataset, contrast), sep="\t")
 	link = df.to_csv(index=True, encoding="utf-8", sep="\t")
-	
-	link = "http://www.lucamassimino.com/ibd/dge/{}/{}.diffexp.tsv".format(dataset, contrast)
 	link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
 
 	return link
