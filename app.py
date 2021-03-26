@@ -401,7 +401,6 @@ def show_go_plot_info(switch_status):
 #download diffexp
 @app.callback(
 	Output("download_diffexp", "href"),
-	Output("download_diffexp", "download"),
 	Input("download_diffexp_button", "n_clicks"),
 	Input("expression_dataset_dropdown", "value"),
 	Input("contrast_dropdown", "value"),
