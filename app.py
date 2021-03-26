@@ -261,6 +261,7 @@ app.layout = html.Div([
 										children=[html.A(
 											id="download_diffexp",
 											href="",
+											download="diffexp.xls",
 											target="_blank",
 											children = [html.Button("Download", id="download_diffexp_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
 											)
