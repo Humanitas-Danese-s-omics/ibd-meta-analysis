@@ -13,6 +13,16 @@ import pandas as pd
 import numpy as np
 import re
 import urllib.parse
+import requests
+from io import StringIO
+
+#GitHub username
+username = "maximinio"
+#Personal Access Token (PAO)
+token = "3b2bc6c745bd96682a139e46ee27922df7e1dcd6"
+#creates a re-usable session object with your creds in-built
+github_session = requests.Session()
+github_session.auth = (username, token)
 
 pio.templates.default = "simple_white"
 
@@ -261,13 +271,13 @@ app.layout = html.Div([
 										children=[html.A(
 											id="download_diffexp",
 											href="",
-											download="diffexp.xls",
 											target="_blank",
 											children = [html.Button("Download", id="download_diffexp_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
 											)
 										]
 									)
 								], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom", 'color': 'black'}),
+								
 								#switch
 								html.Div([
 									daq.BooleanSwitch(id = "ma_plot_info_switch", on = False, color = "#33A02C", label = "Show info")
@@ -303,9 +313,15 @@ app.layout = html.Div([
 								html.Div([
 									dcc.Loading(
 										id = "loading_download_go",
-										children = [html.Button("Download", id="download_go", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}), Download(id="download_go_data")],
 										type = "circle",
-										color = "#33A02C"
+										color = "#33A02C",
+										children=[html.A(
+											id="download_go",
+											href="",
+											target="_blank",
+											children = [html.Button("Download", id="download_go_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+											)
+										]
 									)
 								], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom", 'color': 'black'}),
 								
@@ -330,6 +346,7 @@ app.layout = html.Div([
 								color = "#33A02C", 
 								)
 							], style={"width": "100%", "display": "inline-block"})
+						
 						], style={"width": "60%", "display": "inline-block", "vertical-align": "top"})
 					], style = {"width": "100%", "height": 960, "display": "inline-block"}),
 
@@ -402,31 +419,44 @@ def show_go_plot_info(switch_status):
 #download diffexp
 @app.callback(
 	Output("download_diffexp", "href"),
+	Output("download_diffexp", "download"),
 	Input("download_diffexp_button", "n_clicks"),
 	Input("expression_dataset_dropdown", "value"),
-	Input("contrast_dropdown", "value"),
-	#prevent_initial_call=True
+	Input("contrast_dropdown", "value")
 )
 def get_diffexp_table(button_click, dataset, contrast):
-	df = pd.read_csv("http://www.lucamassimino.com/ibd/dge/{}/{}.diffexp.tsv".format(dataset, contrast), sep="\t")
-	link = df.to_csv(index=True, encoding="utf-8", sep="\t")
-	link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
 
-	return link
+	#download from GitHub
+	url = "https://raw.githubusercontent.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data/main/data/dge/{}/{}.diffexp.tsv".format(dataset, contrast)
+	download = github_session.get(url).content
+	#read the downloaded content and make a pandas dataframe
+	df = pd.read_csv(StringIO(download.decode('utf-8')), sep="\t")
+	#create a downloadable tsv file forced to excel by extension
+	link = df.to_csv(index=False, encoding="utf-8", sep="\t")
+	link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
+	file_name = "DGE_{}_{}.xls".format(dataset, contrast)
+
+	return link, file_name
 
 #download go
 @app.callback(
-	Output("download_go_data", "data"),
+	Output("download_go", "href"),
+	Output("download_go", "download"),
 	Input("download_go", "n_clicks"),
-	State("contrast_dropdown", "value"), 
-	prevent_initial_call=True
+	Input("contrast_dropdown", "value")
 )
 def get_go_table(button_click, contrast):
-	df = pd.read_csv("http://www.lucamassimino.com/ibd/go/{}.merged_go.tsv".format(contrast), sep="\t")
-	df = df.set_index("DGE")
-	file_name = "{}_gene_ontology.xls".format(contrast)
 
-	return send_data_frame(df.to_excel, filename=file_name)
+	#download from GitHub
+	url = "https://raw.githubusercontent.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data/main/data/go/{}.merged_go.tsv".format(contrast)
+	download = github_session.get(url).content
+	#read the downloaded content and make a pandas dataframe
+	df = pd.read_csv(StringIO(download.decode('utf-8')), sep="\t")
+	link = df.to_csv(index=False, encoding="utf-8", sep="\t")
+	link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
+	file_name = "GO_human_{}.xls".format(contrast)
+
+	return link, file_name
 
 ### ELEMENTS CALLBACKS ###
 
