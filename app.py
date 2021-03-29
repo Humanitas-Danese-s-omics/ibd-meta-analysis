@@ -1,9 +1,12 @@
 import dash
 from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
+from dash_core_components.Markdown import Markdown
 import dash_html_components as html
 import dash_daq as daq
 import dash_auth
+import dash_table
+from dash_table.Format import Format, Scheme
 import plotly.graph_objects as go
 import plotly.io as pio
 from plotly.subplots import make_subplots
@@ -87,7 +90,7 @@ snakey_fig = go.Figure(data=[go.Sankey(
 )])
 snakey_fig.update_layout(margin=dict(l=0, r=0, t=20, b=20))
 
-external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
+#external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 
 VALID_USERNAME_PASSWORD_PAIRS = {
 	"danese": "steam"
@@ -211,11 +214,32 @@ app.layout = html.Div([
 					html.Div([
 						html.Div([], style={"width":"2.5%", "display": "inline-block"}),
 						html.Div(children=[
-							html.Div(["Low-dimensional embedding of high-dimensional data (e.g., 55k genes in the human transcriptome)\nby Uniform Manifold Approximation and Projection (UMAP).\nClick the legend to choose which group you want to display."], style = {"white-space": "pre"}, hidden=True, id="umap_metadata_info"),
+							html.Div(children = [
+								dcc.Markdown(
+									"""
+									Low-dimensional embedding of high-dimensional data (e.g., 55k genes in the human transcriptome)  
+									by Uniform Manifold Approximation and Projection (UMAP).  
+									  
+									Click the `legend` to choose which group you want to display.  
+									Click `UMAP dataset dropdown` to change multidimensional scaling.  
+									Click `metadata dropdown` to change sample colors.  
+									Click `comparison only` to display only the samples from the two comparisons.
+									"""
+								)
+							], hidden=True, id="umap_metadata_info"),
 						], style={"width":"45%", "display": "inline-block", "font-size": "12px", }),
 						html.Div([], style={"width":"5%", "display": "inline-block"}),
 						html.Div(children=[
-							html.Div(["Low-dimensional embedding of high-dimensional data (e.g., 55k genes in the human transcriptome)\nby Uniform Manifold Approximation and Projection (UMAP)."], style = {"white-space": "pre"}, hidden=True, id="umap_expression_info"),					 
+							html.Div(children=[
+								dcc.Markdown(
+									"""
+									Low-dimensional embedding of high-dimensional data (e.g., 55k genes in the human transcriptome)  
+									by Uniform Manifold Approximation and Projection (UMAP).  
+									  
+									Click `host gene dropdown` to change the gene expression profile.
+									"""
+								)
+							], hidden=True, id="umap_expression_info"),					 
 						], style={"width":"45%", "display": "inline-block", "font-size": "12px"}),
 						html.Div([], style={"width":"2.5%", "display": "inline-block"}),
 					], style={"width":"100%", "textAlign": "center", "display": "inline-block"}),
@@ -257,7 +281,15 @@ app.layout = html.Div([
 							
 							#info text boxplots
 							html.Div([
-								html.Div(children=["Box plot showing gene expression/species abundance in the different groups."], style = {"white-space": "pre"}, hidden=True, id="info_boxplots"),
+								html.Div(children=[
+									dcc.Markdown(
+										"""
+										Box plot showing gene expression/species abundance in the different groups.  
+										  
+										Click `UMAP legend` to choose which group you want to display.  
+										Click `comparison only` to display only the samples from the two comparisons.
+										"""
+									)], hidden=True, id="info_boxplots"),
 							], style = {"width": "100%", "display": "inline-block", "font-size": "12px"}),
 
 							#boxplots 
@@ -296,7 +328,17 @@ app.layout = html.Div([
 
 							#info text MA-plot
 							html.Div([
-								html.Div(children=["Differential gene expression/species abundance visualization by MA plot, with\ngene/species dispersion in accordance with the fold changes between conditions\nand their average expression/abundance.\nClicking genes/species will display its statistics."], style = {"white-space": "pre"}, hidden=True, id="info_ma_plot"),
+								html.Div(children=[
+									dcc.Markdown(
+										"""
+										Differential gene expression/species abundance visualization by MA plot,  
+										with gene/species dispersion in accordance with the fold changes  
+										between conditions and their average expression/abundance.  
+										  
+										Click on `show gene stats` to display its statistics.  
+										Click on `gene/species` inside the plot to change statistics and decorate the plot.
+										"""
+									)], hidden=True, id="info_ma_plot"),
 							], style = {"width": "100%", "display": "inline-block", "font-size": "12px"}),
 
 							#MA-plot
@@ -312,53 +354,100 @@ app.layout = html.Div([
 
 						#go plot
 						html.Div([
-							#info and search bar
-							html.Div([
-								#switch info
-								html.Div([
-									daq.BooleanSwitch(id = "info_go_plot_switch", on = False, color = "#33A02C", label = "Show info")
-								], style={"width": "10%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom"}),
-								
-								#download button
-								html.Div([
-									dcc.Loading(
-										id = "loading_download_go",
-										type = "circle",
-										color = "#33A02C",
-										children=[html.A(
-											id="download_go",
-											href="",
-											target="_blank",
-											children = [html.Button("Download table", id="download_go_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
-											)
-										]
-									)
-								], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom", 'color': 'black'}),
-								
-								#search bar
-								html.Div([
-									dcc.Input(id="go_plot_filter_input", type="search", placeholder="Type here to filter GO gene sets", size="30", debounce=True),
-								], style={"width": "25%", "display": "inline-block", "font-size": "12px", "vertical-align": "bottom"})
+							dcc.Loading(
+							id = "loading_go_plot",
+							children = dcc.Graph(id="go_plot_graph"),
+							type = "dot",
+							color = "#33A02C", 
+							)
+						], style={"width": "60%", "display": "inline-block", "vertical-align": "top"}),
 
-							], style={"width": "100%", "display": "inline-block"}),
+						#info, download button and search bar
+						html.Div([
+							#switch info
+							html.Div([
+								daq.BooleanSwitch(id = "info_go_plot_switch", on = False, color = "#33A02C", label = "Show info")
+							], style={"width": "10%", "display": "inline-block", "textAlign": "right", "vertical-align": "bottom"}),
 							
-							#info text
-							html.Div([
-								html.Div(children=["Balloon plot showing the top 30 differentially enriched gene ontology biological processes between the two conditions."], style = {"white-space": "pre"}, hidden=True, id="info_go_plot"),
-							], style = {"width": "100%", "display": "inline-block", "font-size": "12px"}),
-
-							#go plot
+							#download button
 							html.Div([
 								dcc.Loading(
-								id = "loading_go_plot",
-								children = dcc.Graph(id="go_plot_graph"),
-								type = "dot",
-								color = "#33A02C", 
+									id = "loading_download_go",
+									type = "circle",
+									color = "#33A02C",
+									children=[html.A(
+										id="download_go",
+										href="",
+										target="_blank",
+										children = [html.Button("Download table", id="download_go_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+										)
+									]
 								)
-							], style={"width": "100%", "display": "inline-block"})
+							], style={"width": "17%", "display": "inline-block", "textAlign": "right", "vertical-align": "bottom", 'color': 'black'}),
+							
+							#search bar
+							html.Div([
+								dcc.Input(id="go_plot_filter_input", type="search", placeholder="Type here to filter GO gene sets ↕", size="30", debounce=True),
+							], style={"width": "25%", "display": "inline-block", "font-size": "12px", "vertical-align": "bottom"})
+						], style={"width": "100%", "display": "inline-block", "vertical-align": "bottom", "text-align": "right"}),
 						
-						], style={"width": "60%", "display": "inline-block", "vertical-align": "top"})
-					], style = {"width": "100%", "height": 960, "display": "inline-block"}),
+						#info text
+						html.Div([
+							html.Div(children=[
+								dcc.Markdown(
+									"""
+									Table showing all differentially enriched gene ontology biological processes categories	between the two conditions, unless filtered otherwise.  
+									  
+									Click `column name` to reorder the table.  
+									Click `GO dataset name` to see its specifics in [AmiGO 2](http://amigo.geneontology.org/amigo) web resource [(Ashburner et al. 2000)](https://pubmed.ncbi.nlm.nih.gov/10802651/)
+									"""
+								)], hidden=True, id="info_go_plot"),
+						], style = {"width": "100%", "display": "inline-block", "font-size": "12px", "vertical-align": "bottom", "text-align": "center"})
+
+					], style = {"width": "100%", "height": 1000, "display": "inline-block"}),
+
+					#go table
+					html.Div([
+						dcc.Loading(
+							id="loading_go_table",
+							type="dot",
+							color="#33A02C",
+							children=dash_table.DataTable(
+								id="go_table",
+								style_cell={
+									"whiteSpace": "normal",
+									"height": "auto",
+									"fontSize": 12, 
+									"font-family": "arial",
+									"textAlign": "center"
+								},
+								page_size=10,
+								sort_action="native",
+								style_cell_conditional=[
+									{
+										"if": {"column_id": c},
+										"textAlign": "left"
+									} for c in ["Genes", "GO biological process"]
+								],
+								style_data_conditional=[
+									{
+										"if": {
+											"column_id": "DGE",
+											"filter_query": "{{DGE}} = {}".format("up")
+										},
+										"backgroundColor": "#FCBBA1"
+									},
+									{
+										"if": {
+											"column_id": "DGE",
+											"filter_query": "{{DGE}} = {}".format("down")
+										},
+										"backgroundColor": "#D0D1E6"
+									},
+								]
+							)
+						)
+					], style={}),
 
 					#graphical abstract
 					html.Div([html.Hr(), html.Img(src="assets/workflow.png", alt="graphical_abstract", style={"width": "100%", "height": "100%"}, title="FASTQ reads from 3,853 RNA-Seq data from different tissues, namely ileum, colon, rectum, mesenteric adipose tissue, peripheral blood, and stools, were mined from NCBI GEO/SRA and passed the initial quality filter. All files were mapped to the human reference genome and initial gene quantification was performed. Since these data came from 26 different studies made in different laboratories, we counteract the presumptive bias through a batch correction in accordance with source and tissue of origin. Once the gene counts were adjusted, samples were divided into groups in accordance with the tissue of origin and patient condition prior to differential expression analysis and gene ontology functional enrichment. Finally, the reads failing to map to the human genome were subjected to metatranscriptomics profiling by taxonomic classification using exact k-mer matching either archaeal, bacterial, eukaryotic, or viral genes. This image has been designed using resources from Flaticon.com")
@@ -582,6 +671,63 @@ def filter_contrasts(dataset, tissue):
 	contrasts = [{"label": i.replace("_", " ").replace("-", " "), "value": i} for i in filtered_contrasts]
 
 	return contrasts, default_contrast_value 
+
+#go_table
+@app.callback(
+	Output("go_table", "columns"),
+	Output("go_table", "data"),
+	Input("contrast_dropdown", "value"),
+	Input("go_plot_filter_input", "value")
+)
+def get_table(contrast, search_value):
+	go_df = download_from_github("go/{}.merged_go.tsv".format(contrast))
+	go_df = pd.read_csv(go_df, sep="\t")
+	go_df = go_df[["DGE", "Genes", "Process~name", "num_of_Genes", "gene_group", "percentage%", "P-value"]]
+
+	#define search query if present
+	if search_value is not None and search_value != "":
+		if search_value.endswith(" "):
+			search_value = search_value.rstrip()
+		search_query = re.split(r"[\s\-/,_]+", search_value)
+		search_query = [x.lower() for x in search_query]
+
+		#search keyword in processes
+		processes_to_keep = []
+		for process in go_df["Process~name"]:
+			#force lowecase
+			process_lower = process.lower()
+			#check each keyword
+			for x in search_query:
+				#if it is a GO id, search for GO id
+				if x.startswith("go:"):
+					go_id = process_lower.split("~")[0]
+					if x == go_id:
+						if process not in processes_to_keep:
+							processes_to_keep.append(process)
+				#else, just search in the name og the GO category
+				else:
+					if x in process_lower.split("~")[1]:
+						processes_to_keep.append(process)
+						if process not in processes_to_keep:
+							processes_to_keep.append(process)
+
+		#filtering
+		go_df = go_df[go_df["Process~name"].isin(processes_to_keep)]
+
+	go_df["Process~name"] = ["[{}](".format(process) + str("http://amigo.geneontology.org/amigo/term/") + process.split("~")[0] + ")" for process in go_df["Process~name"]]
+	go_df = go_df.rename(columns={"Process~name": "GO biological process", "num_of_Genes": "DEGs", "gene_group": "Dataset genes", "percentage%": "Enrichment", "P-value": "Pvalue"})
+	columns = [
+		{"name": "DGE", "id":"DGE"}, 
+		{"name": "Genes", "id":"Genes"},
+		{"name": "GO biological process", "id":"GO biological process", "type": "text", "presentation": "markdown"},
+		{"name": "DEGs", "id":"DEGs"},
+		{"name": "Dataset genes", "id":"Dataset genes"},
+		{"name": "Enrichment", "id":"Enrichment", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
+		{"name": "Pvalue", "id":"Pvalue", "type": "numeric", "format": Format(precision=1, scheme=Scheme.exponent)}
+		]
+	data = go_df.to_dict("records")
+
+	return (columns, data)
 
 ### PLOTS ###
 
@@ -1097,7 +1243,7 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 		i += 1
 
 	#title and no legend
-	ma_plot_fig.update_layout(title={"text": "Differential gene expression FDR<" + "{:.0e}".format(fdr) + "<br>" + contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl"), "xref": "paper", "x": 0.5, "font_size": 14}, xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", height=359, margin=dict(t=50, b=0, l=5, r=130), showlegend = False)
+	ma_plot_fig.update_layout(title={"text": "Differential gene expression FDR<" + "{:.0e}".format(fdr) + "<br>" + contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl"), "xref": "paper", "x": 0.5, "font_size": 14}, xaxis_automargin=True, xaxis_title="Log2 average expression", yaxis_automargin=True, yaxis_title="Log2 fold change", font_family="Arial", height=359, margin=dict(t=50, b=0, l=5, r=130), showlegend = False)
 	#line at y=0
 	ma_plot_fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=0, line=dict(color="black", width=3), xref="paper", layer="below")
 	#add annotation with number of up and down degs and show selected gene text
@@ -1197,10 +1343,6 @@ def plot_go_plot(contrast, search_value):
 		#filtering
 		go_df = go_df[go_df["Process"].isin(processes_to_keep)]
 
-	#empty input will take all processes
-	elif search_value == "":
-		processes_to_keep = go_df["Process"]
-
 	#crop too long process name
 	processes = []
 	for process in go_df["Process"]:
@@ -1282,7 +1424,7 @@ def plot_go_plot(contrast, search_value):
 	go_plot_fig.add_trace(go.Scatter(x = [1, 1, 1], y = [10, 45, 80], marker_size = legend_sizes, marker_sizeref = sizeref, marker_color = "#737373", mode="markers+text", text=["min", "mid", "max"], hoverinfo="text", hovertext=legend_sizes, textposition="top center"), row = 4, col = 2)
 
 	#figure layout
-	go_plot_fig.update_layout(title={"text": "Gene ontology enrichment plot - DGE FDR<1e-10<br>" + contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl"), 
+	go_plot_fig.update_layout(title={"text": "Gene ontology enrichment plot<br>Human transcriptome DGE FDR<1e-10<br>" + contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl"), 
 									"x": 0.5, 
 									"font_size": 14}, 
 								font_family="Arial",
