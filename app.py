@@ -4,7 +4,6 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash_daq as daq
 import dash_auth
-import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
 from plotly.subplots import make_subplots
@@ -512,7 +511,7 @@ def find_genes_or_species(dataset, selected_point_ma_plot, current_dropdown_opti
 			genes = pd.read_csv(genes, sep = "\t", header=None, names=["genes"])
 			genes = genes["genes"].dropna().tolist()
 			options=[{"label": i, "value": i} for i in genes]
-			value="IFNG"
+			value="TNF"
 		else:
 			species = download_from_github("{}_list.tsv".format(dataset))
 			species = pd.read_csv(species, sep = "\t", header=None, names=["species"])
@@ -662,21 +661,32 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 		label_to_value = {"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy", "condition": "Condition"}
 		umap_df = umap_df.rename(columns=label_to_value)
 
-		#plot
-		umap_metadata_fig = px.scatter(umap_df, x="UMAP1", y="UMAP2", color = label_to_value[selected_metadata], hover_data={"UMAP1": False, "UMAP2": False, "Sample": True, "Group": True, "Tissue": True, "Source": True, "Library strategy": True}, color_discrete_sequence = colors)
+		#create figure
+		umap_metadata_fig = go.Figure()
+		i = 0
+		metadata_fields_ordered = umap_df[label_to_value[selected_metadata]].unique().tolist()
+		metadata_fields_ordered.sort()
 		hover_template = "Sample: %{customdata[0]}<br>Group: %{customdata[1]}<br>Tissue: %{customdata[2]}<br>Source: %{customdata[3]}<br>Library strategy: %{customdata[4]}<extra></extra>"
-		#update traces
-		umap_metadata_fig.update_traces(marker_size=4, hovertemplate = hover_template)
+		for metadata in metadata_fields_ordered:
+			filtered_umap_df = umap_df[umap_df[label_to_value[selected_metadata]] == metadata]
+			custom_data = filtered_umap_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library strategy"]]
+			umap_metadata_fig.add_trace(go.Scatter(x=filtered_umap_df["UMAP1"], y=filtered_umap_df["UMAP2"], marker_opacity = 1, marker_color = colors[i], marker_size = 4, customdata = custom_data, mode="markers", legendgroup = metadata, showlegend = True, hovertemplate = hover_template, name=metadata))
+			i += 1
+
+		#add titles to axis
+		umap_metadata_fig.update_layout(xaxis_title_text = "UMAP1", yaxis_title_text = "UMAP2")
 
 		return umap_metadata_fig, umap_df
 
 	#function to create a dataframe from umap_metadata_fig
-	def parse_old_metadata_fig_to_get_its_df(umap_metadata_fig):
+	def parse_old_metadata_fig_to_get_its_df(umap_metadata_fig, metadata):
+		label_to_value = {"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy", "condition": "Condition"}
+		metadata = label_to_value[metadata]
 		#parse umap metadata data
 		metadata_data = {}
 		metadata_data["Sample"] = []
 		metadata_data["Group"] = []
-		metadata_data["Tissue"] = []
+		metadata_data[metadata] = []
 		metadata_data["Source"] = []
 		metadata_data["Library strategy"] = []
 		metadata_data["UMAP1"] = []
@@ -687,7 +697,7 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 				#populate data
 				metadata_data["Sample"].append(dot[0])
 				metadata_data["Group"].append(dot[1])
-				metadata_data["Tissue"].append(dot[2])
+				metadata_data[metadata].append(dot[2])
 				metadata_data["Source"].append(dot[3])
 				metadata_data["Library strategy"].append(dot[4])
 			#data outside "customdata"
@@ -742,7 +752,7 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 				umap_metadata_fig, umap_df = plot_umap_metadata(umap_dataset, metadata)
 			#if metadata is "condition" then just parse the figure to recreate the df
 			else:
-				umap_df = parse_old_metadata_fig_to_get_its_df(umap_metadata_fig)
+				umap_df = parse_old_metadata_fig_to_get_its_df(umap_metadata_fig, metadata)
 
 			#find condition and filter visibility in umap metadata legend
 			condition_1 = contrast.split("-vs-")[0].replace("_", " ")
@@ -757,11 +767,11 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 			umap_metadata_fig["layout"]["xaxis"]["autorange"] = True
 			umap_metadata_fig["layout"]["yaxis"]["autorange"] = True
 		else:
-			umap_df = parse_old_metadata_fig_to_get_its_df(umap_metadata_fig)
+			umap_df = parse_old_metadata_fig_to_get_its_df(umap_metadata_fig, metadata)
 
 	#if you don't have to change umap_metadata_fig, just parse the old fig to get its dataframe
 	else:
-		umap_df = parse_old_metadata_fig_to_get_its_df(umap_metadata_fig)
+		umap_df = parse_old_metadata_fig_to_get_its_df(umap_metadata_fig, metadata)
 
 	##### UMAP EXPRESSION #####
 
@@ -788,6 +798,10 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 		counts = pd.read_csv(counts, sep = "\t")
 		counts = counts.rename(columns={"sample": "Sample"})
 
+		#create custom data for hover data
+		label_to_value = {"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy", "condition": "Condition"}
+		custom_data = umap_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library strategy"]]
+
 		#add counts to umap df
 		umap_df = umap_df.merge(counts, how="left", on="Sample")
 		umap_df = umap_df.dropna(subset=["counts"])
@@ -803,10 +817,11 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 		n_samples = len(umap_df["Sample"])
 
 		#plot
-		umap_expression_fig = px.scatter(umap_df, x="UMAP1", y="UMAP2", color = "Log2 expression", hover_data={"UMAP1": False, "UMAP2": False, "Sample": True, "Group": True, "Tissue": True, "Source": True, "Library strategy": True}, color_continuous_scale="reds")
-		umap_expression_fig.update_layout(title = {"text": "Sample dispersion within the " + transcriptome_title + " transcriptome multidimensional scaling<br>colored by " + gene_species.replace("_", " ").replace("[", "").replace("]", "") + expression_or_abundance + " n=" + str(n_samples), "x": 0.5, "font_size": 14}, coloraxis_colorbar_title_side = "right", coloraxis_colorbar_thickness=20, font_family="Arial", hoverlabel_bgcolor = "lightgrey", xaxis_automargin=True, yaxis_automargin=True, height = 535, margin=dict(t=60, b=0, l=10, r=60))
 		hover_template = "Sample: %{customdata[0]}<br>Group: %{customdata[1]}<br>Tissue: %{customdata[2]}<br>Source: %{customdata[3]}<br>Library strategy: %{customdata[4]}<br>Log2 expression: %{marker.color}<extra></extra>"
-		umap_expression_fig.update_traces(marker_size=4, hovertemplate = hover_template)
+		
+		umap_expression_fig = go.Figure(data=go.Scatter(x=umap_df["UMAP1"], y=umap_df["UMAP2"], marker_color=umap_df["Log2 expression"], marker_colorscale="reds", marker_showscale=True, marker_opacity=1, marker_size=4, marker_colorbar_title="Log2 expression", marker_colorbar_title_side="right", mode="markers", customdata = custom_data, hovertemplate = hover_template, showlegend = False))
+		
+		umap_expression_fig.update_layout(title = {"text": "Sample dispersion within the " + transcriptome_title + " transcriptome multidimensional scaling<br>colored by " + gene_species.replace("_", " ").replace("[", "").replace("]", "") + expression_or_abundance + " n=" + str(n_samples), "x": 0.5, "font_size": 14}, coloraxis_colorbar_thickness=20, font_family="Arial", hoverlabel_bgcolor = "lightgrey", xaxis_automargin=True, yaxis_automargin=True, height = 535, margin=dict(t=60, b=0, l=10, r=60), xaxis_title_text="UMAP1", yaxis_title_text="UMAP2")
 
 		#update layout umap metadata
 		umap_metadata_fig["layout"]["height"] = 600
@@ -965,7 +980,7 @@ def plot_boxplots(expression_dataset, gene, metadata_field, umap_legend_click, b
 	#box_fig["layout"]["paper_bgcolor"] = "#BCBDDC"
 
 	config_boxplots = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 450, "height": 400, "scale": 25}}
-	config_boxplots["toImageButtonOptions"]["filename"] = "TaMMA_boxplots_with_{gene_species}_expression_colored_by_{metadata}".format(gene_species = gene, metadata = metadata)
+	config_boxplots["toImageButtonOptions"]["filename"] = "TaMMA_boxplots_with_{gene_species}_expression_colored_by_{metadata}".format(gene_species = gene, metadata = metadata_field)
 
 	return box_fig, config_boxplots
 
@@ -1072,14 +1087,17 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 		table = table.rename(columns={"Gene": "Species"})
 
 	#plot
-	ma_plot_fig = px.scatter(table, x="log2_baseMean", y="log2FoldChange", hover_data={gene_or_species: True, "log2_baseMean": True, "log2FoldChange": True, "padj": True, "DEG": False, "selected_gene": False}, color="DEG", color_discrete_sequence=colors, category_orders = {"DEG": ["no_DEG", "Up", "Down", "selected_gene"]}, labels={"log2FoldChange": "Log2 fold change", "log2_baseMean": "Log2 average expression"})
-
-	#apply hover template
-	hover_template = "Log2 average expression: %{x}<br>Log2 fold change: %{y}<br>Gene: %{customdata[0]}<br>Padj: %{customdata[1]}<extra></extra>"
-	ma_plot_fig.update_traces(hovertemplate = hover_template, marker_size = 5, marker_symbol = 2)
+	ma_plot_fig = go.Figure()
+	i = 0
+	for deg_status in ["no_DEG", "Up", "Down", "selected_gene"]:
+		filtered_table = table[table["DEG"] == deg_status]
+		custom_data = filtered_table[[gene_or_species, "padj"]]
+		hover_template = "Log2 average expression: %{x}<br>Log2 fold change: %{y}<br>" + gene_or_species + ": %{customdata[0]}<br>Padj: %{customdata[1]}<extra></extra>"
+		ma_plot_fig.add_trace(go.Scattergl(x=filtered_table["log2_baseMean"], y=filtered_table["log2FoldChange"], marker_opacity = 1, marker_color = colors[i], marker_symbol = 2, marker_size = 5, customdata = custom_data, mode="markers", hovertemplate = hover_template))
+		i += 1
 
 	#title and no legend
-	ma_plot_fig.update_layout(showlegend=False, title={"text": "Differential gene expression FDR<" + "{:.0e}".format(fdr) + "<br>" + contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl"), "xref": "paper", "x": 0.5, "font_size": 14}, xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", height=359, margin=dict(t=50, b=0, l=5, r=120))
+	ma_plot_fig.update_layout(title={"text": "Differential gene expression FDR<" + "{:.0e}".format(fdr) + "<br>" + contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl"), "xref": "paper", "x": 0.5, "font_size": 14}, xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", height=359, margin=dict(t=50, b=0, l=5, r=130), showlegend = False)
 	#line at y=0
 	ma_plot_fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=0, line=dict(color="black", width=3), xref="paper", layer="below")
 	#add annotation with number of up and down degs and show selected gene text
@@ -1125,7 +1143,7 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 		)]
 	)
 
-	config_ma_plot = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 450, "height": 350, "scale": 25}}
+	config_ma_plot = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 450, "height": 350, "scale": 25}, "plotGlPixelRatio": 5000}
 	config_ma_plot["toImageButtonOptions"]["filename"] = "TaMMA_maplot_with_{contrast}".format(contrast = contrast)
 
 	#ma_plot_fig["layout"]["paper_bgcolor"] = "#E0F3DB"
