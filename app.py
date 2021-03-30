@@ -934,7 +934,10 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 			umap_metadata_fig["layout"]["xaxis"]["autorange"] = True
 			umap_metadata_fig["layout"]["yaxis"]["autorange"] = True
 		else:
-			umap_df = parse_old_metadata_fig_to_get_its_df(umap_metadata_fig, metadata)
+			umap_metadata_fig, umap_df = plot_umap_metadata(umap_dataset, metadata)
+			for trace in umap_metadata_fig["data"]:
+				if trace["visible"] is None:
+					trace["visible"] = True
 
 	#if you don't have to change umap_metadata_fig, just parse the old fig to get its dataframe
 	else:
@@ -986,7 +989,7 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 		#plot
 		hover_template = "Sample: %{customdata[0]}<br>Group: %{customdata[1]}<br>Tissue: %{customdata[2]}<br>Source: %{customdata[3]}<br>Library strategy: %{customdata[4]}<br>Log2 expression: %{marker.color}<extra></extra>"
 		
-		umap_expression_fig = go.Figure(data=go.Scatter(x=umap_df["UMAP1"], y=umap_df["UMAP2"], marker_color=umap_df["Log2 expression"], marker_colorscale="reds", marker_showscale=True, marker_opacity=1, marker_size=4, marker_colorbar_title="Log2 expression", marker_colorbar_title_side="right", marker_colorbar_title_font_size=14, mode="markers", customdata = custom_data, hovertemplate = hover_template, showlegend = False))
+		umap_expression_fig = go.Figure(data=go.Scatter(x=umap_df["UMAP1"], y=umap_df["UMAP2"], marker_color=umap_df["Log2 expression"], marker_colorscale="reds", marker_showscale=True, marker_opacity=1, marker_size=4, marker_colorbar_title="Log2 {}".format(expression_or_abundance), marker_colorbar_title_side="right", marker_colorbar_title_font_size=14, mode="markers", customdata = custom_data, hovertemplate = hover_template, showlegend = False))
 		
 		umap_expression_fig.update_layout(title = {"text": "Sample dispersion within the " + transcriptome_title + " transcriptome multidimensional scaling<br>colored by " + gene_species.replace("_", " ").replace("[", "").replace("]", "") + expression_or_abundance + " n=" + str(n_samples), "x": 0.5, "font_size": 14}, coloraxis_colorbar_thickness=20, font_family="Arial", hoverlabel_bgcolor = "lightgrey", xaxis_automargin=True, yaxis_automargin=True, height = 535, margin=dict(t=60, b=0, l=10, r=60), xaxis_title_text="UMAP1", yaxis_title_text="UMAP2")
 
@@ -1170,9 +1173,12 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 	if dataset == "human":
 		gene_or_species = "Gene"
 		expression_or_abundance = "gene expression"
+		xaxis_title = "Log2 average expression"
 	else:
 		gene_or_species = "Species"
 		expression_or_abundance = "species abundance"
+		xaxis_title = "Log2 average abundance"
+
 	gene = gene.replace("_", " ").replace("[", "").replace("]", "")
 
 	#read tsv if change in dataset or contrast
@@ -1266,7 +1272,7 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 		i += 1
 
 	#title and no legend
-	ma_plot_fig.update_layout(title={"text": "Differential {} FDR<".format(expression_or_abundance) + "{:.0e}".format(fdr) + "<br>" + contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl"), "xref": "paper", "x": 0.5, "font_size": 14}, xaxis_automargin=True, xaxis_title="Log2 average expression", yaxis_automargin=True, yaxis_title="Log2 fold change", font_family="Arial", height=359, margin=dict(t=50, b=0, l=5, r=130), showlegend = False)
+	ma_plot_fig.update_layout(title={"text": "Differential {} FDR<".format(expression_or_abundance) + "{:.0e}".format(fdr) + "<br>" + contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl"), "xref": "paper", "x": 0.5, "font_size": 14}, xaxis_automargin=True, xaxis_title=xaxis_title, yaxis_automargin=True, yaxis_title="Log2 fold change", font_family="Arial", height=359, margin=dict(t=50, b=0, l=5, r=130), showlegend = False)
 	#line at y=0
 	ma_plot_fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=0, line=dict(color="black", width=3), xref="paper", layer="below")
 	#add annotation with number of up and down degs and show selected gene text
@@ -1279,7 +1285,7 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 	down_genes_annotation = [dict(text = str(down) + " higher in<br>" + contrast.split("-vs-")[1].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.02, showarrow=False, font=dict(size=14, color="#045A8D", family="Arial"))]
 	show_gene_annotaton = [dict(text = "Show gene stats", align="center", xref="paper", yref="paper", x=1.34, y=1, showarrow=False, font_size=12)]
 	selected_gene_annotation = [dict(x=ma_plot_fig["data"][3]["x"][0], y=ma_plot_fig["data"][3]["y"][0], xref="x", yref="y", text=ma_plot_fig["data"][3]["customdata"][0][0], showarrow=True, font=dict(family="Arial", size=14), align="center", arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="#525252", ax=20, ay=-30, bordercolor="#525252", borderwidth=2, borderpad=4, bgcolor="#D9D9D9", opacity=0.7)]
-	gene_stats_annotation = [dict(text="Gene: " + gene + "<br>Log2 avg expr: " +  str(round(selected_gene_log2_base_mean, 1)) + "<br>Log2 FC: " +  str(round(selected_gene_log2fc, 1)) + "<br>FDR: " + selected_gene_fdr, align="center", xref="paper", yref="paper", x=1.37, y=0.5, showarrow=False, font=dict(family="Arial", size=12))]
+	gene_stats_annotation = [dict(text="Log2 avg expr: " +  str(round(selected_gene_log2_base_mean, 1)) + "<br>Log2 FC: " +  str(round(selected_gene_log2fc, 1)) + "<br>FDR: " + selected_gene_fdr, align="center", xref="paper", yref="paper", x=1.37, y=0.5, showarrow=False, font=dict(family="Arial", size=12))]
 
 	#buttons
 	ma_plot_fig.update_layout(updatemenus=[
