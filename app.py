@@ -1,7 +1,6 @@
 import dash
 from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
-from dash_core_components.Markdown import Markdown
 import dash_html_components as html
 import dash_daq as daq
 import dash_auth
@@ -136,7 +135,7 @@ app.layout = html.Div([
 							dcc.Dropdown(
 								id="metadata_dropdown",
 								options=metadata_umap_options,
-								value="tissue",
+								value="condition",
 								clearable=False
 							)
 						], style={"width": "10%", "display": "inline-block"}),
@@ -214,7 +213,7 @@ app.layout = html.Div([
 					html.Div([
 						html.Div([], style={"width":"2.5%", "display": "inline-block"}),
 						html.Div(children=[
-							html.Div(children = [
+							html.Div(children = [html.Br(),
 								dcc.Markdown(
 									"""
 									Low-dimensional embedding of high-dimensional data (e.g., 55k genes in the human transcriptome)  
@@ -230,7 +229,7 @@ app.layout = html.Div([
 						], style={"width":"45%", "display": "inline-block", "font-size": "12px", }),
 						html.Div([], style={"width":"5%", "display": "inline-block"}),
 						html.Div(children=[
-							html.Div(children=[
+							html.Div(children=[html.Br(),
 								dcc.Markdown(
 									"""
 									Low-dimensional embedding of high-dimensional data (e.g., 55k genes in the human transcriptome)  
@@ -252,7 +251,7 @@ app.layout = html.Div([
 							type = "dot",
 							color = "#33A02C"
 						)
-					], style={"width": "50%", "height": 600, "display": "inline-block"} 
+					], style={"width": "47%", "height": 600, "display": "inline-block"} 
 					),
 
 					#UMAP plot expression
@@ -263,7 +262,7 @@ app.layout = html.Div([
 							type = "dot",
 							color = "#33A02C"
 						)
-					], style={"width": "50%", "height": 600, "display": "inline-block"}),
+					], style={"width": "53%", "height": 600, "display": "inline-block"}),
 
 					#boxplots + MA-plot + go plot
 					html.Div([
@@ -281,7 +280,7 @@ app.layout = html.Div([
 							
 							#info text boxplots
 							html.Div([
-								html.Div(children=[
+								html.Div(children=[html.Br(),
 									dcc.Markdown(
 										"""
 										Box plot showing gene expression/species abundance in the different groups.  
@@ -314,7 +313,7 @@ app.layout = html.Div([
 											id="download_diffexp",
 											href="",
 											target="_blank",
-											children = [html.Button("Download table", id="download_diffexp_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+											children = [html.Button("Download full table", id="download_diffexp_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
 											)
 										]
 									)
@@ -328,7 +327,7 @@ app.layout = html.Div([
 
 							#info text MA-plot
 							html.Div([
-								html.Div(children=[
+								html.Div(children=[html.Br(),
 									dcc.Markdown(
 										"""
 										Differential gene expression/species abundance visualization by MA plot,  
@@ -354,57 +353,68 @@ app.layout = html.Div([
 
 						#go plot
 						html.Div([
+							
+							#plot
 							dcc.Loading(
 							id = "loading_go_plot",
 							children = dcc.Graph(id="go_plot_graph"),
 							type = "dot",
 							color = "#33A02C", 
-							)
-						], style={"width": "60%", "display": "inline-block", "vertical-align": "top"}),
+							),
 
-						#info, download button and search bar
-						html.Div([
-							#switch info
-							html.Div([
-								daq.BooleanSwitch(id = "info_go_plot_switch", on = False, color = "#33A02C", label = "Show info")
-							], style={"width": "10%", "display": "inline-block", "textAlign": "right", "vertical-align": "bottom"}),
-							
-							#download button
-							html.Div([
-								dcc.Loading(
-									id = "loading_download_go",
-									type = "circle",
-									color = "#33A02C",
-									children=[html.A(
-										id="download_go",
-										href="",
-										target="_blank",
-										children = [html.Button("Download table", id="download_go_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
-										)
-									]
-								)
-							], style={"width": "17%", "display": "inline-block", "textAlign": "right", "vertical-align": "bottom", 'color': 'black'}),
-							
-							#search bar
-							html.Div([
-								dcc.Input(id="go_plot_filter_input", type="search", placeholder="Type here to filter GO gene sets ↕", size="30", debounce=True),
-							], style={"width": "25%", "display": "inline-block", "font-size": "12px", "vertical-align": "bottom"})
-						], style={"width": "100%", "display": "inline-block", "vertical-align": "bottom", "text-align": "right"}),
-						
-						#info text
-						html.Div([
-							html.Div(children=[
+							#info go plot
+							html.Div(children=[html.Br(),
 								dcc.Markdown(
 									"""
-									Table showing all differentially enriched gene ontology biological processes categories	between the two conditions, unless filtered otherwise.  
-									  
-									Click `column name` to reorder the table.  
-									Click `GO dataset name` to see its specifics in [AmiGO 2](http://amigo.geneontology.org/amigo) web resource [(Ashburner et al. 2000)](https://pubmed.ncbi.nlm.nih.gov/10802651/)
+									Balloon plot showing the top 30 differentially enriched gene ontology biological processes categories  
+									between the two conditions, unless filtered otherwise.
 									"""
-								)], hidden=True, id="info_go_plot"),
-						], style = {"width": "100%", "display": "inline-block", "font-size": "12px", "vertical-align": "bottom", "text-align": "center"})
+							)], hidden=True, id="info_go_plot", style={"font-size": "12px"}),
 
+						], style={"width": "60%", "display": "inline-block", "vertical-align": "top"}),
 					], style = {"width": "100%", "height": 1000, "display": "inline-block"}),
+
+					#info, download button and search bar
+					html.Div([
+						#switch info
+						html.Div([
+							daq.BooleanSwitch(id = "info_go_plot_switch", on = False, color = "#33A02C", label = "Show info ↕")
+						], style={"width": "10%", "display": "inline-block", "textAlign": "right", "vertical-align": "bottom"}),
+						
+						#download button
+						html.Div([
+							dcc.Loading(
+								id = "loading_download_go",
+								type = "circle",
+								color = "#33A02C",
+								children=[html.A(
+									id="download_go",
+									href="",
+									target="_blank",
+									children = [html.Button("Download full table", id="download_go_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+									)
+								]
+							)
+						], style={"width": "17%", "display": "inline-block", "textAlign": "right", "vertical-align": "bottom", 'color': 'black'}),
+						
+						#search bar
+						html.Div([
+							dcc.Input(id="go_plot_filter_input", type="search", placeholder="Type here to filter GO gene sets ↕", size="30", debounce=True),
+						], style={"width": "25%", "display": "inline-block", "font-size": "12px", "vertical-align": "bottom"})
+					], style={"width": "100%", "display": "inline-block", "vertical-align": "bottom", "text-align": "right"}),
+
+					#info text go table
+					html.Div([
+						html.Div(children=[html.Br(),
+							dcc.Markdown(
+								"""
+								Table showing all differentially enriched gene ontology biological processes categories	between the two conditions, unless filtered otherwise.  
+									
+								Click `column name` to reorder the table.  
+								Click `GO dataset name` to see its specifics in [AmiGO 2](http://amigo.geneontology.org/amigo) web resource [(Ashburner et al. 2000)](https://pubmed.ncbi.nlm.nih.gov/10802651/)
+								"""
+							)], hidden=True, id="info_go_table"),
+					], style = {"width": "100%", "display": "inline-block", "font-size": "12px", "vertical-align": "bottom", "text-align": "center"}),
 
 					#go table
 					html.Div([
@@ -425,9 +435,15 @@ app.layout = html.Div([
 								sort_action="native",
 								style_cell_conditional=[
 									{
-										"if": {"column_id": c},
-										"textAlign": "left"
-									} for c in ["Genes", "GO biological process"]
+										"if": {"column_id": "Genes"},
+										"textAlign": "left",
+										"width": "50%"
+									},
+									{
+										"if": {"column_id": "GO biological process"},
+            							"textAlign": "left",
+										"width": "15%"
+									}
 								],
 								style_data_conditional=[
 									{
@@ -444,10 +460,11 @@ app.layout = html.Div([
 										},
 										"backgroundColor": "#D0D1E6"
 									},
-								]
+								],
+								style_as_list_view=True
 							)
 						)
-					], style={}),
+					], style={"width": "100%", "font-family": "arial"}),
 
 					#graphical abstract
 					html.Div([html.Hr(), html.Img(src="assets/workflow.png", alt="graphical_abstract", style={"width": "100%", "height": "100%"}, title="FASTQ reads from 3,853 RNA-Seq data from different tissues, namely ileum, colon, rectum, mesenteric adipose tissue, peripheral blood, and stools, were mined from NCBI GEO/SRA and passed the initial quality filter. All files were mapped to the human reference genome and initial gene quantification was performed. Since these data came from 26 different studies made in different laboratories, we counteract the presumptive bias through a batch correction in accordance with source and tissue of origin. Once the gene counts were adjusted, samples were divided into groups in accordance with the tissue of origin and patient condition prior to differential expression analysis and gene ontology functional enrichment. Finally, the reads failing to map to the human genome were subjected to metatranscriptomics profiling by taxonomic classification using exact k-mer matching either archaeal, bacterial, eukaryotic, or viral genes. This image has been designed using resources from Flaticon.com")
@@ -508,10 +525,11 @@ def show_ma_plot_info(switch_status):
 #info go plot callback
 @app.callback(
 	Output("info_go_plot", "hidden"),
+	Output("info_go_table", "hidden"),
 	Input("info_go_plot_switch", "on")
 )
 def show_go_plot_info(switch_status):
-	return show_info(switch_status)
+	return show_info(switch_status), show_info(switch_status)
 
 ### DOWNLOAD CALLBACKS ###
 
@@ -868,6 +886,9 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 			keep_old_zoom = False
 			umap_metadata_fig["layout"]["xaxis"]["autorange"] = True
 			umap_metadata_fig["layout"]["yaxis"]["autorange"] = True
+		if trigger_id == "umap_dataset_dropdown.value":
+			contrast_switch_umap = False
+			contrast_switch_boxplot = False
 
 		#create figure from tsv
 		umap_metadata_fig, umap_df = plot_umap_metadata(umap_dataset, metadata)
@@ -965,7 +986,7 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 		#plot
 		hover_template = "Sample: %{customdata[0]}<br>Group: %{customdata[1]}<br>Tissue: %{customdata[2]}<br>Source: %{customdata[3]}<br>Library strategy: %{customdata[4]}<br>Log2 expression: %{marker.color}<extra></extra>"
 		
-		umap_expression_fig = go.Figure(data=go.Scatter(x=umap_df["UMAP1"], y=umap_df["UMAP2"], marker_color=umap_df["Log2 expression"], marker_colorscale="reds", marker_showscale=True, marker_opacity=1, marker_size=4, marker_colorbar_title="Log2 expression", marker_colorbar_title_side="right", mode="markers", customdata = custom_data, hovertemplate = hover_template, showlegend = False))
+		umap_expression_fig = go.Figure(data=go.Scatter(x=umap_df["UMAP1"], y=umap_df["UMAP2"], marker_color=umap_df["Log2 expression"], marker_colorscale="reds", marker_showscale=True, marker_opacity=1, marker_size=4, marker_colorbar_title="Log2 expression", marker_colorbar_title_side="right", marker_colorbar_title_font_size=14, mode="markers", customdata = custom_data, hovertemplate = hover_template, showlegend = False))
 		
 		umap_expression_fig.update_layout(title = {"text": "Sample dispersion within the " + transcriptome_title + " transcriptome multidimensional scaling<br>colored by " + gene_species.replace("_", " ").replace("[", "").replace("]", "") + expression_or_abundance + " n=" + str(n_samples), "x": 0.5, "font_size": 14}, coloraxis_colorbar_thickness=20, font_family="Arial", hoverlabel_bgcolor = "lightgrey", xaxis_automargin=True, yaxis_automargin=True, height = 535, margin=dict(t=60, b=0, l=10, r=60), xaxis_title_text="UMAP1", yaxis_title_text="UMAP2")
 
@@ -1148,8 +1169,10 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 
 	if dataset == "human":
 		gene_or_species = "Gene"
+		expression_or_abundance = "gene expression"
 	else:
 		gene_or_species = "Species"
+		expression_or_abundance = "species abundance"
 	gene = gene.replace("_", " ").replace("[", "").replace("]", "")
 
 	#read tsv if change in dataset or contrast
@@ -1243,7 +1266,7 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 		i += 1
 
 	#title and no legend
-	ma_plot_fig.update_layout(title={"text": "Differential gene expression FDR<" + "{:.0e}".format(fdr) + "<br>" + contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl"), "xref": "paper", "x": 0.5, "font_size": 14}, xaxis_automargin=True, xaxis_title="Log2 average expression", yaxis_automargin=True, yaxis_title="Log2 fold change", font_family="Arial", height=359, margin=dict(t=50, b=0, l=5, r=130), showlegend = False)
+	ma_plot_fig.update_layout(title={"text": "Differential {} FDR<".format(expression_or_abundance) + "{:.0e}".format(fdr) + "<br>" + contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl"), "xref": "paper", "x": 0.5, "font_size": 14}, xaxis_automargin=True, xaxis_title="Log2 average expression", yaxis_automargin=True, yaxis_title="Log2 fold change", font_family="Arial", height=359, margin=dict(t=50, b=0, l=5, r=130), showlegend = False)
 	#line at y=0
 	ma_plot_fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=0, line=dict(color="black", width=3), xref="paper", layer="below")
 	#add annotation with number of up and down degs and show selected gene text
