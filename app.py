@@ -433,6 +433,9 @@ app.layout = html.Div([
 								},
 								page_size=10,
 								sort_action="native",
+								style_header={
+									"textAlign": "center"
+								},
 								style_cell_conditional=[
 									{
 										"if": {"column_id": "Genes"},
@@ -697,7 +700,7 @@ def filter_contrasts(dataset, tissue):
 	Input("contrast_dropdown", "value"),
 	Input("go_plot_filter_input", "value")
 )
-def get_table(contrast, search_value):
+def get_go_table(contrast, search_value):
 	go_df = download_from_github("go/{}.merged_go.tsv".format(contrast))
 	go_df = pd.read_csv(go_df, sep="\t")
 	go_df = go_df[["DGE", "Genes", "Process~name", "num_of_Genes", "gene_group", "percentage%", "P-value"]]
