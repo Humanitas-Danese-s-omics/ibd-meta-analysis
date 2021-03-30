@@ -661,8 +661,8 @@ def get_tissues_with_2_or_more_conditions(dataset):
 					filtered_tissues.append(tissue)
 
 	#define default value and options
-	default_value_tissue = "Ileum"
-	tissues_options = [{"label": i.replace("_", " "), "value": i} for i in filtered_tissues]
+	default_value_tissue = "All"
+	tissues_options = [{"label": i.replace("_", " "), "value": i} for i in ["All"] + filtered_tissues]
 
 	return tissues_options, default_value_tissue
 
@@ -679,16 +679,24 @@ def filter_contrasts(dataset, tissue):
 	contrasts = pd.read_csv(contrasts, sep = "\t", header=None, names=["contrast"])
 	contrasts = contrasts["contrast"].dropna().tolist()
 
-	filtered_contrasts = []
-	for contrast in contrasts:
-		#define the two tiessues in the contrast
-		re_result = re.search(r"(\w+)_\w+-vs-(\w+)_\w+", contrast)
-		tissue_1 = re_result.group(1)
-		tissue_2 = re_result.group(2)
-		#check if they are the same
-		if tissue == tissue_1 and tissue == tissue_2:
-			filtered_contrasts.append(contrast)
-	default_contrast_value = filtered_contrasts[0]
+	#if all, then do not filter
+	if tissue == "All":
+		filtered_contrasts = contrasts
+	else:
+		filtered_contrasts = []
+		for contrast in contrasts:
+			#define the two tiessues in the contrast
+			re_result = re.search(r"(\w+)_\w+-vs-(\w+)_\w+", contrast)
+			tissue_1 = re_result.group(1)
+			tissue_2 = re_result.group(2)
+			#check if they are the same
+			if tissue == tissue_1 and tissue == tissue_2:
+				filtered_contrasts.append(contrast)
+		
+	if "Colon_CD-vs-Colon_Control" in filtered_contrasts:
+		default_contrast_value = "Colon_CD-vs-Colon_Control"
+	else:
+		default_contrast_value = filtered_contrasts[0]
 	contrasts = [{"label": i.replace("_", " ").replace("-", " "), "value": i} for i in filtered_contrasts]
 
 	return contrasts, default_contrast_value 
@@ -1084,8 +1092,8 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 		umap_expression_fig = synchronize_zoom(umap_expression_fig, umap_metadata_fig)
 
 	##### CONFIG OPTIONS ####
-	config_umap_metadata = {"doubleClick": "autosize", "modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 500, "height": 500, "scale": 25}}
-	config_umap_expression = {"doubleClick": "autosize", "modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 520, "height": 500, "scale": 25}}
+	config_umap_metadata = {"doubleClick": "autosize", "modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 500, "height": 500, "scale": 5}}
+	config_umap_expression = {"doubleClick": "autosize", "modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 520, "height": 500, "scale": 5}}
 
 	config_umap_metadata["toImageButtonOptions"]["filename"] = "TaMMA_umap_{umap_metadata}_colored_by_{metadata}".format(umap_metadata = umap_dataset, metadata = metadata)
 	config_umap_expression["toImageButtonOptions"]["filename"] = "TaMMA_umap_{umap_metadata}_colored_by_{gene_species}_{expression_abundance}".format(umap_metadata = umap_dataset, gene_species = gene_species, expression_abundance = "expression" if expression_dataset == "human" else "abundance")
@@ -1152,7 +1160,7 @@ def plot_boxplots(expression_dataset, gene, metadata_field, umap_legend_click, b
 
 	#box_fig["layout"]["paper_bgcolor"] = "#BCBDDC"
 
-	config_boxplots = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 450, "height": 400, "scale": 25}}
+	config_boxplots = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 450, "height": 400, "scale": 5}}
 	config_boxplots["toImageButtonOptions"]["filename"] = "TaMMA_boxplots_with_{gene_species}_expression_colored_by_{metadata}".format(gene_species = gene, metadata = metadata_field)
 
 	return box_fig, config_boxplots
@@ -1281,14 +1289,14 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 	#add annotation with number of up and down degs and show selected gene text
 	ma_plot_fig.add_annotation(text = str(up) + " higher in<br>" + contrast.split("-vs-")[0].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.98, showarrow=False, font_size=14, font_color="#DE2D26", font_family="Arial")
 	ma_plot_fig.add_annotation(text = str(down) + " higher in<br>" + contrast.split("-vs-")[1].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.02, showarrow=False, font_size=14, font_color="#045A8D", font_family="Arial")
-	ma_plot_fig.add_annotation(text = "Show gene stats", align="center", xref="paper", yref="paper", x=1.34, y=1, showarrow=False, font_size=12, font_family="Arial")
+	ma_plot_fig.add_annotation(text = "Show gene stats", align="center", xref="paper", yref="paper", x=1.4, y=1, showarrow=False, font_size=12, font_family="Arial")
 
 	#save annotations for button
 	up_genes_annotation = [dict(text = str(up) + " higher in<br>" + contrast.split("-vs-")[0].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.98, showarrow=False, font=dict(size=14, color="#DE2D26", family="Arial"))]
 	down_genes_annotation = [dict(text = str(down) + " higher in<br>" + contrast.split("-vs-")[1].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.02, showarrow=False, font=dict(size=14, color="#045A8D", family="Arial"))]
-	show_gene_annotaton = [dict(text = "Show gene stats", align="center", xref="paper", yref="paper", x=1.34, y=1, showarrow=False, font_size=12)]
+	show_gene_annotaton = [dict(text = "Show gene stats", align="center", xref="paper", yref="paper", x=1.4, y=1, showarrow=False, font_size=12)]
 	selected_gene_annotation = [dict(x=ma_plot_fig["data"][3]["x"][0], y=ma_plot_fig["data"][3]["y"][0], xref="x", yref="y", text=ma_plot_fig["data"][3]["customdata"][0][0], showarrow=True, font=dict(family="Arial", size=14), align="center", arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="#525252", ax=20, ay=-30, bordercolor="#525252", borderwidth=2, borderpad=4, bgcolor="#D9D9D9", opacity=0.7)]
-	gene_stats_annotation = [dict(text="Log2 avg expr: " +  str(round(selected_gene_log2_base_mean, 1)) + "<br>Log2 FC: " +  str(round(selected_gene_log2fc, 1)) + "<br>FDR: " + selected_gene_fdr, align="center", xref="paper", yref="paper", x=1.37, y=0.5, showarrow=False, font=dict(family="Arial", size=12))]
+	gene_stats_annotation = [dict(text="Log2 avg expr: " +  str(round(selected_gene_log2_base_mean, 1)) + "<br>Log2 FC: " +  str(round(selected_gene_log2fc, 1)) + "<br>FDR: " + selected_gene_fdr, align="center", xref="paper", yref="paper", x=1.43, y=0.55, showarrow=False, font=dict(family="Arial", size=12))]
 
 	#buttons
 	ma_plot_fig.update_layout(updatemenus=[
@@ -1296,7 +1304,7 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
             type="buttons",
             direction="right",
             active=1,
-            x=1.36,
+            x=1.42,
             y=0.9,
             buttons=list([
                 dict(label="True",
@@ -1321,7 +1329,7 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 		)]
 	)
 
-	config_ma_plot = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 450, "height": 350, "scale": 25}, "plotGlPixelRatio": 5000}
+	config_ma_plot = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 450, "height": 350, "scale": 5}, "plotGlPixelRatio": 5000}
 	config_ma_plot["toImageButtonOptions"]["filename"] = "TaMMA_maplot_with_{contrast}".format(contrast = contrast)
 
 	#ma_plot_fig["layout"]["paper_bgcolor"] = "#E0F3DB"
@@ -1490,7 +1498,7 @@ def plot_go_plot(contrast, search_value):
 
 	#go_plot_fig["layout"]["paper_bgcolor"] = "#FDE0DD"
 
-	config_go_plot = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 700, "height": computed_height, "scale": 20}}
+	config_go_plot = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 700, "height": computed_height, "scale": 5}}
 	config_go_plot["toImageButtonOptions"]["filename"] = "TaMMA_goplot_with_{contrast}".format(contrast = contrast)
 
 	return go_plot_fig, config_go_plot
