@@ -103,380 +103,414 @@ auth = dash_auth.BasicAuth(
 	VALID_USERNAME_PASSWORD_PAIRS
 )
 
+#styles for tabs and selected tabs
+tab_style = {
+	"padding": 6, 
+	"backgroundColor": "#FAFAFA"
+}
+
+tab_selected_style = {
+    "padding": 6
+}
+
 app.layout = html.Div([
+				
 				html.Div([
-					#header
+					#logo
 					html.Div([
-						#logo
 						html.Img(src="assets/logo.png", alt="logo", style={"width": "70%", "height": "70%"}, title="Tamma means talking drum in West Africa, where it’s also known as dundun. It is a small drum, played with a curved stick and having a membrane stretched over one end or both ends of a narrow-waisted wooden frame by cords whose tension can be manually altered to vary the drum's tonality as it is played. This image has been designed using resources from Flaticon.com."
 						),
-					], style={"width": "100%", "display": "inline-block"}),
-					
-					#menù
-					html.Div([html.Img(src="assets/menu.png", alt="menu", style={"width": "100%", "height": "100%"})
-					], style = {"width": "100%", "display": "inline-block"}),
+					]),
 
-					#general options dropdowns
+					#main content
 					html.Div([
-						#umap dataset dropdown
-						html.Div([ 
-							html.Label("UMAP dataset:"),
-							dcc.Dropdown(
-								id="umap_dataset_dropdown",
-								options=datasets_options,
-								value="human",
-								clearable=False
-							) 
-						], style={"width": "10%", "display": "inline-block"}),
 						
-						#metadata dropdown
-						html.Div([
-							html.Label("Metadata:"),
-							dcc.Dropdown(
-								id="metadata_dropdown",
-								options=metadata_umap_options,
-								value="condition",
-								clearable=False
-							)
-						], style={"width": "10%", "display": "inline-block"}),
-						
-						#expression dataset dropdown
-						html.Div([
-							html.Label(children = "Expression dataset:"),
-							dcc.Dropdown(
-								id="expression_dataset_dropdown",
-								clearable=False,
-								options=datasets_options,
-								value="human"
-							)
-						], style={"width": "10%", "display": "inline-block"}),
+						#menù
+						html.Div([html.Img(src="assets/menu.png", alt="menu", style={"width": "100%", "height": "100%"})
+						], style = {"width": "100%", "display": "inline-block"}),
 
-						#gene/specie dropdown
+						#general options dropdowns
 						html.Div([
-							html.Label(id = "gene_species_label", children = "Loading..."),
-							dcc.Dropdown(
-								id="gene_species_dropdown",
-								clearable=False
-							)
-						], style={"width": "20%", "display": "inline-block"}),
-						
-						#tissue filter for contrast dropdown
-						html.Div([
-							html.Label("Tissue filter:"),
-							dcc.Dropdown(
-								id="tissue_filter_dropdown",
-								clearable=False
-							)
-						], style={"width": "10%", "display": "inline-block"}),
-
-						#contrast dropdown
-						html.Div([
-							html.Label("Comparison:"),
-							dcc.Dropdown(
-								id="contrast_dropdown",
-								clearable=False
-							)
-						], style={"width": "30%", "display": "inline-block"}),
-
-						#stringecy dropdown
-						html.Div([
-							html.Label("FDR:"),
-							dcc.Dropdown(
-								id="stringency_dropdown",
-								options=padj_options,
-								clearable=False
-								)
-						], style={"width": "8%", "display": "inline-block"}),
-					], style={"width": "100%", "textAlign": "center", "font-size": "12px"}
-					),
-
-					#UMAP switches
-					html.Div([
-						html.Br(),
-						html.Div([
-							html.Div([
-								daq.BooleanSwitch(id = "info_umap_metadata_switch", on = False, color = "#33A02C", label = "Show info")
-							], style={"width": "20%", "display": "inline-block", "textAlign": "right"}),
-							html.Div([
-								daq.BooleanSwitch(id = "contrast_only_umap_metadata_switch", on = False, color = "#33A02C", label = "Comparison only")
-							], style={"width": "20%", "display": "inline-block", "textAlign": "left"}),
-							html.Div([
-								daq.BooleanSwitch(id = "hide_unselected_metadata_switch", on = False, color = "#33A02C", label = "Hide unselected")
-							], style={"width": "20%", "display": "inline-block", "textAlign": "left"})
-						], style={"width": "50%", "display": "inline-block"}),
-						html.Div([
-							daq.BooleanSwitch(id = "info_umap_expression_switch", on = False, color = "#33A02C", label = "Show info")
-						], style={"width": "50%", "display": "inline-block"}),
-					], style={"width":"100%"}),
-
-					#UMAP info
-					html.Div([
-						html.Div([], style={"width":"2.5%", "display": "inline-block"}),
-						html.Div(children=[
-							html.Div(children = [html.Br(),
-								dcc.Markdown(
-									"""
-									Low-dimensional embedding of high-dimensional data (e.g., 55k genes in the human transcriptome)  
-									by Uniform Manifold Approximation and Projection (UMAP).  
-									  
-									Click the `legend` to choose which group you want to display.  
-									Click `UMAP dataset dropdown` to change multidimensional scaling.  
-									Click `metadata dropdown` to change sample colors.  
-									Click `comparison only` to display only the samples from the two comparisons.
-									"""
-								)
-							], hidden=True, id="umap_metadata_info"),
-						], style={"width":"45%", "display": "inline-block", "font-size": "12px", }),
-						html.Div([], style={"width":"5%", "display": "inline-block"}),
-						html.Div(children=[
-							html.Div(children=[html.Br(),
-								dcc.Markdown(
-									"""
-									Low-dimensional embedding of high-dimensional data (e.g., 55k genes in the human transcriptome)  
-									by Uniform Manifold Approximation and Projection (UMAP).  
-									  
-									Click `host gene dropdown` to change the gene expression profile.
-									"""
-								)
-							], hidden=True, id="umap_expression_info"),					 
-						], style={"width":"45%", "display": "inline-block", "font-size": "12px"}),
-						html.Div([], style={"width":"2.5%", "display": "inline-block"}),
-					], style={"width":"100%", "textAlign": "center", "display": "inline-block"}),
-
-					#UMAP plot metadata
-					html.Div([
-						dcc.Loading(
-							id = "loading_umap_metadata",
-							children = dcc.Graph(id="umap_metadata", config={}),
-							type = "dot",
-							color = "#33A02C"
-						)
-					], style={"width": "47%", "height": 600, "display": "inline-block"} 
-					),
-
-					#UMAP plot expression
-					html.Div([
-						dcc.Loading(
-							id = "loading_umap_expression",
-							children = dcc.Graph(id="umap_expression"),
-							type = "dot",
-							color = "#33A02C"
-						)
-					], style={"width": "53%", "height": 600, "display": "inline-block"}),
-
-					#boxplots + MA-plot + go plot
-					html.Div([
-						#boxplots + MA-plot
-						html.Div([
-							#control switches boxplots
-							html.Div([
-								html.Div([
-									daq.BooleanSwitch(id = "info_boxplots_switch", on = False, color = "#33A02C", label = "Show info")
-								], style={"width": "30%", "display": "inline-block", "textAlign": "right"}),
-								html.Div([
-									daq.BooleanSwitch(id = "contrast_only_boxplots_switch", on = False, color = "#33A02C", label = "Comparison only"),
-								], style={"width": "30%", "display": "inline-block", "textAlign": "left"})
-							], style={"width": "100%", "display": "inline-block", "text-align":"center"}),
+							#umap dataset dropdown
+							html.Div([ 
+								html.Label("UMAP dataset:"),
+								dcc.Dropdown(
+									id="umap_dataset_dropdown",
+									options=datasets_options,
+									value="human",
+									clearable=False
+								) 
+							], style={"width": "10%", "display": "inline-block"}),
 							
-							#info text boxplots
+							#metadata dropdown
 							html.Div([
+								html.Label("Metadata:"),
+								dcc.Dropdown(
+									id="metadata_dropdown",
+									options=metadata_umap_options,
+									value="condition",
+									clearable=False
+								)
+							], style={"width": "10%", "display": "inline-block"}),
+							
+							#expression dataset dropdown
+							html.Div([
+								html.Label(children = "Expression dataset:"),
+								dcc.Dropdown(
+									id="expression_dataset_dropdown",
+									clearable=False,
+									options=datasets_options,
+									value="human"
+								)
+							], style={"width": "10%", "display": "inline-block"}),
+
+							#gene/specie dropdown
+							html.Div([
+								html.Label(id = "gene_species_label", children = "Loading..."),
+								dcc.Dropdown(
+									id="gene_species_dropdown",
+									clearable=False
+								)
+							], style={"width": "20%", "display": "inline-block"}),
+							
+							#tissue filter for contrast dropdown
+							html.Div([
+								html.Label("Tissue filter:"),
+								dcc.Dropdown(
+									id="tissue_filter_dropdown",
+									clearable=False
+								)
+							], style={"width": "10%", "display": "inline-block"}),
+
+							#contrast dropdown
+							html.Div([
+								html.Label("Comparison:"),
+								dcc.Dropdown(
+									id="contrast_dropdown",
+									clearable=False
+								)
+							], style={"width": "30%", "display": "inline-block"}),
+
+							#stringecy dropdown
+							html.Div([
+								html.Label("FDR:"),
+								dcc.Dropdown(
+									id="stringency_dropdown",
+									options=padj_options,
+									clearable=False
+									)
+							], style={"width": "8%", "display": "inline-block"}),
+						], style={"width": "100%", "textAlign": "center", "font-size": "12px"}
+						),
+
+						#UMAP switches
+						html.Div([
+							html.Br(),
+							html.Div([
+								html.Div([
+									daq.BooleanSwitch(id = "info_umap_metadata_switch", on = False, color = "#33A02C", label = "Show info")
+								], style={"width": "20%", "display": "inline-block", "textAlign": "right"}),
+								html.Div([
+									daq.BooleanSwitch(id = "contrast_only_umap_metadata_switch", on = False, color = "#33A02C", label = "Comparison only")
+								], style={"width": "20%", "display": "inline-block", "textAlign": "left"}),
+								html.Div([
+									daq.BooleanSwitch(id = "hide_unselected_metadata_switch", on = False, color = "#33A02C", label = "Hide unselected")
+								], style={"width": "20%", "display": "inline-block", "textAlign": "left"})
+							], style={"width": "50%", "display": "inline-block"}),
+							html.Div([
+								daq.BooleanSwitch(id = "info_umap_expression_switch", on = False, color = "#33A02C", label = "Show info")
+							], style={"width": "50%", "display": "inline-block"}),
+						], style={"width":"100%"}),
+
+						#UMAP info
+						html.Div([
+							html.Div([], style={"width":"2.5%", "display": "inline-block"}),
+							html.Div(children=[
+								html.Div(children = [html.Br(),
+									dcc.Markdown(
+										"""
+										Low-dimensional embedding of high-dimensional data (e.g., 55k genes in the human transcriptome)  
+										by Uniform Manifold Approximation and Projection (UMAP).  
+										
+										Click the `legend` to choose which group you want to display.  
+										Click `UMAP dataset dropdown` to change multidimensional scaling.  
+										Click `metadata dropdown` to change sample colors.  
+										Click `comparison only` to display only the samples from the two comparisons.
+										"""
+									)
+								], hidden=True, id="umap_metadata_info"),
+							], style={"width":"45%", "display": "inline-block", "font-size": "12px", }),
+							html.Div([], style={"width":"5%", "display": "inline-block"}),
+							html.Div(children=[
 								html.Div(children=[html.Br(),
 									dcc.Markdown(
 										"""
-										Box plot showing gene expression/species abundance in the different groups.  
-										  
-										Click `UMAP legend` to choose which group you want to display.  
-										Click `comparison only` to display only the samples from the two comparisons.
+										Low-dimensional embedding of high-dimensional data (e.g., 55k genes in the human transcriptome)  
+										by Uniform Manifold Approximation and Projection (UMAP).  
+										
+										Click `host gene dropdown` to change the gene expression profile.
 										"""
-									)], hidden=True, id="info_boxplots"),
-							], style = {"width": "100%", "display": "inline-block", "font-size": "12px"}),
+									)
+								], hidden=True, id="umap_expression_info"),					 
+							], style={"width":"45%", "display": "inline-block", "font-size": "12px"}),
+							html.Div([], style={"width":"2.5%", "display": "inline-block"}),
+						], style={"width":"100%", "textAlign": "center", "display": "inline-block"}),
 
-							#boxplots 
+						#UMAP plot metadata
+						html.Div([
+							dcc.Loading(
+								id = "loading_umap_metadata",
+								children = dcc.Graph(id="umap_metadata", style={"height": 600}),
+								type = "dot",
+								color = "#33A02C"
+							)
+						], style={"width": "47%", "height": 600, "display": "inline-block"} 
+						),
+
+						#UMAP plot expression
+						html.Div([
+							dcc.Loading(
+								id = "loading_umap_expression",
+								children = dcc.Graph(id="umap_expression", style={"height": 535}),
+								type = "dot",
+								color = "#33A02C"
+							)
+						], style={"width": "53%", "height": 600, "display": "inline-block"}),
+
+						#boxplots + MA-plot + go plot
+						html.Div([
+							#boxplots + MA-plot
 							html.Div([
+								#control switches boxplots
+								html.Div([
+									html.Div([
+										daq.BooleanSwitch(id = "info_boxplots_switch", on = False, color = "#33A02C", label = "Show info")
+									], style={"width": "30%", "display": "inline-block", "textAlign": "right"}),
+									html.Div([
+										daq.BooleanSwitch(id = "contrast_only_boxplots_switch", on = False, color = "#33A02C", label = "Comparison only"),
+									], style={"width": "30%", "display": "inline-block", "textAlign": "left"})
+								], style={"width": "100%", "display": "inline-block", "text-align":"center"}),
+								
+								#info text boxplots
+								html.Div([
+									html.Div(children=[html.Br(),
+										dcc.Markdown(
+											"""
+											Box plot showing gene expression/species abundance in the different groups.  
+											
+											Click `UMAP legend` to choose which group you want to display.  
+											Click `comparison only` to display only the samples from the two comparisons.
+											"""
+										)], hidden=True, id="info_boxplots"),
+								], style = {"width": "100%", "display": "inline-block", "font-size": "12px"}),
+
+								#boxplots 
+								html.Div([
+									dcc.Loading(
+										id = "loading_boxplots",
+										children = dcc.Graph(id="boxplots_graph", style={"height": 400}),
+										type = "dot",
+										color = "#33A02C"
+									)
+								], style={"width": "100%", "display": "inline-block"}),
+
+								#control switch and download button MA-plot
+								html.Div([
+									#download button
+									html.Div([
+										dcc.Loading(
+											id = "loading_download_diffexp",
+											type = "circle",
+											color = "#33A02C",
+											children=[html.A(
+												id="download_diffexp",
+												href="",
+												target="_blank",
+												children = [html.Button("Download full table", id="download_diffexp_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+												)
+											]
+										)
+									], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom", 'color': 'black'}),
+									
+									#switch
+									html.Div([
+										daq.BooleanSwitch(id = "ma_plot_info_switch", on = False, color = "#33A02C", label = "Show info")
+									], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom"}),
+								], style={"width": "100%", "display": "inline-block", "text-align":"center"}),
+
+								#info text MA-plot
+								html.Div([
+									html.Div(children=[html.Br(),
+										dcc.Markdown(
+											"""
+											Differential gene expression/species abundance visualization by MA plot,  
+											with gene/species dispersion in accordance with the fold changes  
+											between conditions and their average expression/abundance.  
+											
+											Click on `show gene stats` to display its statistics.  
+											Click on `gene/species` inside the plot to change statistics and decorate the plot.
+											"""
+										)], hidden=True, id="info_ma_plot"),
+								], style = {"width": "100%", "display": "inline-block", "font-size": "12px"}),
+
+								#MA-plot
+								html.Div([
+									dcc.Loading(
+										id = "loading_ma_plot",
+										children = dcc.Graph(id="ma_plot_graph", style={"height": 359}),
+										type = "dot",
+										color = "#33A02C"
+									)
+								], style={"width": "100%", "display": "inline-block"}),
+							], style={"width": "40%", "display": "inline-block"}),
+
+							#go plot
+							html.Div([
+								
+								#info and search bar
+								html.Div([
+									#switch info
+									html.Div([
+										daq.BooleanSwitch(id = "info_go_plot_switch", on = False, color = "#33A02C", label = "Show info")
+									], style={"width": "10%", "display": "inline-block", "textAlign": "right", "vertical-align": "bottom"}),
+									
+									#search bar
+									html.Div([
+										dcc.Input(id="go_plot_filter_input", type="search", placeholder="Type here to filter GO gene sets", size="30", debounce=True),
+									], style={"width": "35%", "display": "inline-block", "font-size": "12px", "vertical-align": "bottom"})
+								], style={"width": "100%", "display": "inline-block", "vertical-align": "bottom", "text-align": "right"}),
+
+								#info go plot
+								html.Div(children=[html.Br(),
+									dcc.Markdown(
+										"""
+										Balloon plot showing the top 30 differentially enriched gene ontology biological processes categories  
+										between the two conditions, unless filtered otherwise.
+										"""
+								)], hidden=True, id="info_go_plot", style={"font-size": "12px"}),
+
+								#plot
 								dcc.Loading(
-									id = "loading_boxplots",
-									children = dcc.Graph(id="boxplots_graph"),
+									id = "loading_go_plot",
+									children = dcc.Graph(id="go_plot_graph", style={"height": 900}),
 									type = "dot",
-									color = "#33A02C"
-								)
-							], style={"width": "100%", "display": "inline-block"}),
+									color = "#33A02C", 
+								),
+							], style={"width": "60%", "display": "inline-block", "vertical-align": "top"}),
+						], style = {"width": "100%", "height": 1000, "display": "inline-block"}),
+					]),
 
-							#control switch and download button MA-plot
-							html.Div([
+					#content
+					dcc.Tabs(id="site_tabs", value="summary_tab", children=[
+						#summary tab
+						dcc.Tab(label="Summary", value="summary_tab", children =[
+								html.Br(),
+								#graphical abstract
+								html.Div([html.Img(src="assets/workflow.png", alt="graphical_abstract", style={"width": "100%", "height": "100%"}, title="FASTQ reads from 3,853 RNA-Seq data from different tissues, namely ileum, colon, rectum, mesenteric adipose tissue, peripheral blood, and stools, were mined from NCBI GEO/SRA and passed the initial quality filter. All files were mapped to the human reference genome and initial gene quantification was performed. Since these data came from 26 different studies made in different laboratories, we counteract the presumptive bias through a batch correction in accordance with source and tissue of origin. Once the gene counts were adjusted, samples were divided into groups in accordance with the tissue of origin and patient condition prior to differential expression analysis and gene ontology functional enrichment. Finally, the reads failing to map to the human genome were subjected to metatranscriptomics profiling by taxonomic classification using exact k-mer matching either archaeal, bacterial, eukaryotic, or viral genes. This image has been designed using resources from Flaticon.com")
+								], style={"width": "100%", "display": "inline-block"}),
+
+								#statistics
+								html.Div([
+									dcc.Graph(id="snakey", figure=snakey_fig, config={"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 1000, "height": 400, "scale": 20, "filename": "easter_egg_TBD"}})
+								], style={"width": "100%", "display": "inline-block"})
+						], style=tab_style, selected_style=tab_selected_style),
+						#go table tab
+						dcc.Tab(label="GO table", value="go_table_tab", children=[
+								html.Br(),
+								
 								#download button
 								html.Div([
 									dcc.Loading(
-										id = "loading_download_diffexp",
+										id = "loading_download_go",
 										type = "circle",
 										color = "#33A02C",
 										children=[html.A(
-											id="download_diffexp",
+											id="download_go",
 											href="",
 											target="_blank",
-											children = [html.Button("Download full table", id="download_diffexp_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+											children = [html.Button("Download full table", id="download_go_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
 											)
 										]
 									)
-								], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom", 'color': 'black'}),
-								
-								#switch
+								], style={"width": "25%", "display": "inline-block", "textAlign": "right", "vertical-align": "bottom", 'color': 'black'}),
+
+								#switch info
 								html.Div([
-									daq.BooleanSwitch(id = "ma_plot_info_switch", on = False, color = "#33A02C", label = "Show info")
-								], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom"}),
-							], style={"width": "100%", "display": "inline-block", "text-align":"center"}),
+									daq.BooleanSwitch(id = "info_go_table_switch", on = False, color = "#33A02C", label = "Show info")
+								], style={"width": "25%", "display": "inline-block", "textAlign": "left", "vertical-align": "bottom"}),
+								
+								#info text go table
+								html.Div([
+									html.Div(children=[html.Br(),
+										dcc.Markdown(
+											"""
+											Table showing all differentially enriched gene ontology biological processes categories	between the two conditions, unless filtered otherwise.  
+												
+											Click `column name` to reorder the table.  
+											Click `GO dataset name` to see its specifics in [AmiGO 2](http://amigo.geneontology.org/amigo) web resource [(Ashburner et al. 2000)](https://pubmed.ncbi.nlm.nih.gov/10802651/)
+											"""
+										)], hidden=True, id="info_go_table"),
+								], style = {"width": "100%", "display": "inline-block", "font-size": "12px", "vertical-align": "bottom", "text-align": "center"}),
 
-							#info text MA-plot
-							html.Div([
-								html.Div(children=[html.Br(),
-									dcc.Markdown(
-										"""
-										Differential gene expression/species abundance visualization by MA plot,  
-										with gene/species dispersion in accordance with the fold changes  
-										between conditions and their average expression/abundance.  
-										  
-										Click on `show gene stats` to display its statistics.  
-										Click on `gene/species` inside the plot to change statistics and decorate the plot.
-										"""
-									)], hidden=True, id="info_ma_plot"),
-							], style = {"width": "100%", "display": "inline-block", "font-size": "12px"}),
-
-							#MA-plot
-							html.Div([
-								dcc.Loading(
-									id = "loading_ma_plot",
-									children = dcc.Graph(id="ma_plot_graph"),
-									type = "dot",
-									color = "#33A02C"
-								)
-							], style={"width": "100%", "display": "inline-block"}),
-						], style={"width": "40%", "display": "inline-block"}),
-
-						#go plot
-						html.Div([
-							
-							#plot
-							dcc.Loading(
-							id = "loading_go_plot",
-							children = dcc.Graph(id="go_plot_graph"),
-							type = "dot",
-							color = "#33A02C", 
-							),
-
-							#info go plot
-							html.Div(children=[html.Br(),
-								dcc.Markdown(
-									"""
-									Balloon plot showing the top 30 differentially enriched gene ontology biological processes categories  
-									between the two conditions, unless filtered otherwise.
-									"""
-							)], hidden=True, id="info_go_plot", style={"font-size": "12px"}),
-
-						], style={"width": "60%", "display": "inline-block", "vertical-align": "top"}),
-					], style = {"width": "100%", "height": 1000, "display": "inline-block"}),
-
-					#info, download button and search bar
-					html.Div([
-						#switch info
-						html.Div([
-							daq.BooleanSwitch(id = "info_go_plot_switch", on = False, color = "#33A02C", label = "Show info ↕")
-						], style={"width": "10%", "display": "inline-block", "textAlign": "right", "vertical-align": "bottom"}),
-						
-						#download button
-						html.Div([
-							dcc.Loading(
-								id = "loading_download_go",
-								type = "circle",
-								color = "#33A02C",
-								children=[html.A(
-									id="download_go",
-									href="",
-									target="_blank",
-									children = [html.Button("Download full table", id="download_go_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+								#go table
+								html.Div([
+									dcc.Loading(
+										id="loading_go_table",
+										type="dot",
+										color="#33A02C",
+										children=dash_table.DataTable(
+											id="go_table",
+											style_cell={
+												"whiteSpace": "normal",
+												"height": "auto",
+												"fontSize": 12, 
+												"font-family": "arial",
+												"textAlign": "center"
+											},
+											page_size=10,
+											sort_action="native",
+											style_header={
+												"textAlign": "center"
+											},
+											style_cell_conditional=[
+												{
+													"if": {"column_id": "Genes"},
+													"textAlign": "left",
+													"width": "50%"
+												},
+												{
+													"if": {"column_id": "GO biological process"},
+													"textAlign": "left",
+													"width": "15%"
+												}
+											],
+											style_data_conditional=[
+												{
+													"if": {
+														"column_id": "DGE",
+														"filter_query": "{{DGE}} = {}".format("up")
+													},
+													"backgroundColor": "#FCBBA1"
+												},
+												{
+													"if": {
+														"column_id": "DGE",
+														"filter_query": "{{DGE}} = {}".format("down")
+													},
+													"backgroundColor": "#D0D1E6"
+												},
+											],
+											style_as_list_view=True
+										)
 									)
-								]
-							)
-						], style={"width": "17%", "display": "inline-block", "textAlign": "right", "vertical-align": "bottom", 'color': 'black'}),
-						
-						#search bar
-						html.Div([
-							dcc.Input(id="go_plot_filter_input", type="search", placeholder="Type here to filter GO gene sets ↕", size="30", debounce=True),
-						], style={"width": "25%", "display": "inline-block", "font-size": "12px", "vertical-align": "bottom"})
-					], style={"width": "100%", "display": "inline-block", "vertical-align": "bottom", "text-align": "right"}),
-
-					#info text go table
-					html.Div([
-						html.Div(children=[html.Br(),
-							dcc.Markdown(
-								"""
-								Table showing all differentially enriched gene ontology biological processes categories	between the two conditions, unless filtered otherwise.  
-									
-								Click `column name` to reorder the table.  
-								Click `GO dataset name` to see its specifics in [AmiGO 2](http://amigo.geneontology.org/amigo) web resource [(Ashburner et al. 2000)](https://pubmed.ncbi.nlm.nih.gov/10802651/)
-								"""
-							)], hidden=True, id="info_go_table"),
-					], style = {"width": "100%", "display": "inline-block", "font-size": "12px", "vertical-align": "bottom", "text-align": "center"}),
-
-					#go table
-					html.Div([
-						dcc.Loading(
-							id="loading_go_table",
-							type="dot",
-							color="#33A02C",
-							children=dash_table.DataTable(
-								id="go_table",
-								style_cell={
-									"whiteSpace": "normal",
-									"height": "auto",
-									"fontSize": 12, 
-									"font-family": "arial",
-									"textAlign": "center"
-								},
-								page_size=10,
-								sort_action="native",
-								style_header={
-									"textAlign": "center"
-								},
-								style_cell_conditional=[
-									{
-										"if": {"column_id": "Genes"},
-										"textAlign": "left",
-										"width": "50%"
-									},
-									{
-										"if": {"column_id": "GO biological process"},
-            							"textAlign": "left",
-										"width": "15%"
-									}
-								],
-								style_data_conditional=[
-									{
-										"if": {
-											"column_id": "DGE",
-											"filter_query": "{{DGE}} = {}".format("up")
-										},
-										"backgroundColor": "#FCBBA1"
-									},
-									{
-										"if": {
-											"column_id": "DGE",
-											"filter_query": "{{DGE}} = {}".format("down")
-										},
-										"backgroundColor": "#D0D1E6"
-									},
-								],
-								style_as_list_view=True
-							)
-						)
-					], style={"width": "100%", "font-family": "arial"}),
-
-					#graphical abstract
-					html.Div([html.Hr(), html.Img(src="assets/workflow.png", alt="graphical_abstract", style={"width": "100%", "height": "100%"}, title="FASTQ reads from 3,853 RNA-Seq data from different tissues, namely ileum, colon, rectum, mesenteric adipose tissue, peripheral blood, and stools, were mined from NCBI GEO/SRA and passed the initial quality filter. All files were mapped to the human reference genome and initial gene quantification was performed. Since these data came from 26 different studies made in different laboratories, we counteract the presumptive bias through a batch correction in accordance with source and tissue of origin. Once the gene counts were adjusted, samples were divided into groups in accordance with the tissue of origin and patient condition prior to differential expression analysis and gene ontology functional enrichment. Finally, the reads failing to map to the human genome were subjected to metatranscriptomics profiling by taxonomic classification using exact k-mer matching either archaeal, bacterial, eukaryotic, or viral genes. This image has been designed using resources from Flaticon.com")
-					], style={"width": "100%", "display": "inline-block"}),
-
-					#statistics
-					html.Div([
-						dcc.Graph(id="snakey", figure=snakey_fig, config={"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 1000, "height": 400, "scale": 20, "filename": "easter_egg_TBD"}})
-					], style={"width": "100%", "display": "inline-block"})
+								], style={"width": "100%", "font-family": "arial"}),
+						], style=tab_style, selected_style=tab_selected_style),
+						#custom boxplots
+						dcc.Tab(label="Box plots", value="boxplots_tab", children=[
+							html.Br(),
+							"Coming soon..."
+						], style=tab_style, selected_style=tab_selected_style),
+					], style= {"height": 40}),
 
 				], style={"width": 1200}),
 
@@ -528,11 +562,18 @@ def show_ma_plot_info(switch_status):
 #info go plot callback
 @app.callback(
 	Output("info_go_plot", "hidden"),
-	Output("info_go_table", "hidden"),
 	Input("info_go_plot_switch", "on")
 )
 def show_go_plot_info(switch_status):
-	return show_info(switch_status), show_info(switch_status)
+	return show_info(switch_status)
+
+#info go plot callback
+@app.callback(
+	Output("info_go_table", "hidden"),
+	Input("info_go_table_switch", "on")
+)
+def show_go_plot_info(switch_status):
+	return show_info(switch_status)
 
 ### DOWNLOAD CALLBACKS ###
 
@@ -544,7 +585,7 @@ def show_go_plot_info(switch_status):
 	Input("expression_dataset_dropdown", "value"),
 	Input("contrast_dropdown", "value")
 )
-def get_diffexp_table(button_click, dataset, contrast):
+def downlaod_diffexp_table(button_click, dataset, contrast):
 
 	#download from GitHub
 	url = "dge/{}/{}.diffexp.tsv".format(dataset, contrast)
@@ -565,7 +606,7 @@ def get_diffexp_table(button_click, dataset, contrast):
 	Input("download_go", "n_clicks"),
 	Input("contrast_dropdown", "value")
 )
-def get_go_table(button_click, contrast):
+def download_go_table(button_click, contrast):
 
 	#download from GitHub
 	url = "go/{}.merged_go.tsv".format(contrast)
@@ -587,7 +628,6 @@ def get_go_table(button_click, contrast):
 	Output("gene_species_dropdown", "value"),
 	#stringency
 	Output("stringency_dropdown", "value"),
-
 	#inputs
 	Input("expression_dataset_dropdown", "value"),
 	Input("ma_plot_graph", "clickData"),
@@ -693,8 +733,8 @@ def filter_contrasts(dataset, tissue):
 			if tissue == tissue_1 and tissue == tissue_2:
 				filtered_contrasts.append(contrast)
 		
-	if "Colon_CD-vs-Colon_Control" in filtered_contrasts:
-		default_contrast_value = "Colon_CD-vs-Colon_Control"
+	if "Ileum_CD-vs-Ileum_Control" in filtered_contrasts:
+		default_contrast_value = "Ileum_CD-vs-Ileum_Control"
 	else:
 		default_contrast_value = filtered_contrasts[0]
 	contrasts = [{"label": i.replace("_", " ").replace("-", " "), "value": i} for i in filtered_contrasts]
@@ -708,7 +748,7 @@ def filter_contrasts(dataset, tissue):
 	Input("contrast_dropdown", "value"),
 	Input("go_plot_filter_input", "value")
 )
-def get_go_table(contrast, search_value):
+def display_go_table(contrast, search_value):
 	go_df = download_from_github("go/{}.merged_go.tsv".format(contrast))
 	go_df = pd.read_csv(go_df, sep="\t")
 	go_df = go_df[["DGE", "Genes", "Process~name", "num_of_Genes", "gene_group", "percentage%", "P-value"]]
@@ -744,7 +784,7 @@ def get_go_table(contrast, search_value):
 		go_df = go_df[go_df["Process~name"].isin(processes_to_keep)]
 
 	go_df["Process~name"] = ["[{}](".format(process) + str("http://amigo.geneontology.org/amigo/term/") + process.split("~")[0] + ")" for process in go_df["Process~name"]]
-	go_df = go_df.rename(columns={"Process~name": "GO biological process", "num_of_Genes": "DEGs", "gene_group": "Dataset genes", "percentage%": "Enrichment", "P-value": "Pvalue"})
+	go_df = go_df.rename(columns={"Process~name": "GO biological process", "num_of_Genes": "DEGs", "gene_group": "Dataset genes", "percentage%": "Enrichment"})
 	columns = [
 		{"name": "DGE", "id":"DGE"}, 
 		{"name": "Genes", "id":"Genes"},
@@ -752,7 +792,7 @@ def get_go_table(contrast, search_value):
 		{"name": "DEGs", "id":"DEGs"},
 		{"name": "Dataset genes", "id":"Dataset genes"},
 		{"name": "Enrichment", "id":"Enrichment", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
-		{"name": "Pvalue", "id":"Pvalue", "type": "numeric", "format": Format(precision=1, scheme=Scheme.exponent)}
+		{"name": "P-value", "id":"P-value", "type": "numeric", "format": Format(precision=1, scheme=Scheme.exponent)}
 		]
 	data = go_df.to_dict("records")
 
@@ -772,7 +812,6 @@ def get_go_table(contrast, search_value):
 	#config
 	Output("umap_metadata", "config"),
 	Output("umap_expression", "config"),
-
 	#dropdowns
 	Input("umap_dataset_dropdown", "value"),
 	Input("metadata_dropdown", "value"),
@@ -1301,7 +1340,7 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 	#buttons
 	ma_plot_fig.update_layout(updatemenus=[
 		dict(
-            type="buttons",
+			type="buttons",
             direction="right",
             active=1,
             x=1.42,
@@ -1470,6 +1509,7 @@ def plot_go_plot(contrast, search_value):
 								font_family="Arial",
 								height=computed_height,
 								showlegend=False,
+								autosize=False,
 								margin=dict(t=50, b=0, l=470, r=0),
 								#titles
 								xaxis_title = None, 
@@ -1498,7 +1538,7 @@ def plot_go_plot(contrast, search_value):
 
 	#go_plot_fig["layout"]["paper_bgcolor"] = "#FDE0DD"
 
-	config_go_plot = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 700, "height": computed_height, "scale": 5}}
+	config_go_plot = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 700, "height": computed_height, "scale": 5}, "responsive": True}
 	config_go_plot["toImageButtonOptions"]["filename"] = "TaMMA_goplot_with_{contrast}".format(contrast = contrast)
 
 	return go_plot_fig, config_go_plot
