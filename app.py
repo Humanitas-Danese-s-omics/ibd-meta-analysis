@@ -410,7 +410,7 @@ app.layout = html.Div([
 					]),
 
 					#content
-					dcc.Tabs(id="site_tabs", value="boxplots_tab", children=[
+					dcc.Tabs(id="site_tabs", value="summary_tab", children=[
 						#summary tab
 						dcc.Tab(label="Summary", value="summary_tab", children =[
 								html.Br(),

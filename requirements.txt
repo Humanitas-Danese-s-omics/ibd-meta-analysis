@@ -7,3 +7,4 @@ dash_daq
 plotly
 dash_extensions
 openpyxl
+dash_bootstrap_components
