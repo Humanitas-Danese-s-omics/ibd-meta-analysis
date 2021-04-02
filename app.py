@@ -3,6 +3,7 @@ from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_daq as daq
+import dash_bootstrap_components as dbc
 import dash_auth
 import dash_table
 from dash_table.Format import Format, Scheme
@@ -43,10 +44,18 @@ colors = ["#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C", "#FD
 
 #dropdown options
 datasets_options = [{"label": "Human", "value": "human"},
-					{"label": "Archaea", "value": "archaea"},
-					{"label": "Bacteria", "value": "bacteria"},
-					{"label": "Eukaryota", "value": "eukaryota"},
-					{"label": "Viruses", "value": "viruses"}]
+					{"label": "Archaea by order", "value": "archaea_order"},
+					{"label": "Archaea by family", "value": "archaea_family"},
+					{"label": "Archaea by species", "value": "archaea_species"},
+					{"label": "Bacteria by order", "value": "bacteria_order"},
+					{"label": "Bacteria by family", "value": "bacteria_family"},
+					{"label": "Bacteria by species", "value": "bacteria_species"},
+					{"label": "Eukaryota by order", "value": "eukaryota_order"},
+					{"label": "Eukaryota by family", "value": "eukaryota_family"},
+					{"label": "Eukaryota by species", "value": "eukaryota_species"},
+					{"label": "Viruses by order", "value": "viruses_order"},
+					{"label": "Viruses by family", "value": "viruses_family"},
+					{"label": "Viruses by species", "value": "viruses_species"},]
 
 metadata_umap_options = [{"label": "Condition", "value": "condition"},
 						{"label": "Group", "value": "group"},
@@ -96,7 +105,7 @@ VALID_USERNAME_PASSWORD_PAIRS = {
 }
 
 #layout
-app = dash.Dash(__name__, title="IBD TaMMA")
+app = dash.Dash(__name__, title="IBD TaMMA", external_stylesheets=[dbc.themes.MINTY])
 server = app.server
 auth = dash_auth.BasicAuth(
 	app,
@@ -124,7 +133,6 @@ app.layout = html.Div([
 
 					#main content
 					html.Div([
-						
 						#menù
 						html.Div([html.Img(src="assets/menu.png", alt="menu", style={"width": "100%", "height": "100%"})
 						], style = {"width": "100%", "display": "inline-block"}),
@@ -203,60 +211,58 @@ app.layout = html.Div([
 						], style={"width": "100%", "textAlign": "center", "font-size": "12px"}
 						),
 
-						#UMAP switches
+						#UMAP switches and info
 						html.Div([
 							html.Br(),
 							html.Div([
+								#info umap metadata
 								html.Div([
-									daq.BooleanSwitch(id = "info_umap_metadata_switch", on = False, color = "#33A02C", label = "Show info")
-								], style={"width": "20%", "display": "inline-block", "textAlign": "right"}),
+									html.Img(src="assets/info.png", alt="info", id="info_umap_metadata", style={"width": "15%", "height": "15%"}),
+									dbc.Tooltip(
+										children=[dcc.Markdown(
+											"""
+											Low-dimensional embedding of high-dimensional data (e.g., 55k genes in the human transcriptome)  
+											by Uniform Manifold Approximation and Projection (UMAP).  
+											
+											Click the `legend` to choose which group you want to display.  
+											Click `UMAP dataset dropdown` to change multidimensional scaling.  
+											Click `metadata dropdown` to change sample colors.  
+											Click `comparison only` to display only the samples from the two comparisons.
+											""")
+										],
+										target="info_umap_metadata",
+										style={"font-family": "arial", "font-size": 12}
+									),
+								], style={"width": "20%", "display": "inline-block", "vertical-align": "middle"}),
+								#contrast only switch
 								html.Div([
 									daq.BooleanSwitch(id = "contrast_only_umap_metadata_switch", on = False, color = "#33A02C", label = "Comparison only")
-								], style={"width": "20%", "display": "inline-block", "textAlign": "left"}),
+								], style={"width": "20%", "display": "inline-block", "vertical-align": "middle"}),
+								#hide unselected metadata switch
 								html.Div([
 									daq.BooleanSwitch(id = "hide_unselected_metadata_switch", on = False, color = "#33A02C", label = "Hide unselected")
-								], style={"width": "20%", "display": "inline-block", "textAlign": "left"})
+								], style={"width": "20%", "display": "inline-block", "vertical-align": "middle"})
 							], style={"width": "50%", "display": "inline-block"}),
+							
+							#info umap expression
 							html.Div([
-								daq.BooleanSwitch(id = "info_umap_expression_switch", on = False, color = "#33A02C", label = "Show info")
-							], style={"width": "50%", "display": "inline-block"}),
-						], style={"width":"100%"}),
-
-						#UMAP info
-						html.Div([
-							html.Div([], style={"width":"2.5%", "display": "inline-block"}),
-							html.Div(children=[
-								html.Div(children = [html.Br(),
-									dcc.Markdown(
-										"""
-										Low-dimensional embedding of high-dimensional data (e.g., 55k genes in the human transcriptome)  
-										by Uniform Manifold Approximation and Projection (UMAP).  
-										
-										Click the `legend` to choose which group you want to display.  
-										Click `UMAP dataset dropdown` to change multidimensional scaling.  
-										Click `metadata dropdown` to change sample colors.  
-										Click `comparison only` to display only the samples from the two comparisons.
-										"""
-									)
-								], hidden=True, id="umap_metadata_info"),
-							], style={"width":"45%", "display": "inline-block", "font-size": "12px", }),
-							html.Div([], style={"width":"5%", "display": "inline-block"}),
-							html.Div(children=[
-								html.Div(children=[html.Br(),
-									dcc.Markdown(
+								html.Img(src="assets/info.png", alt="info", id="info_umap_expression", style={"width": "3%", "height": "3%"}),
+								dbc.Tooltip(
+									children=[dcc.Markdown(
 										"""
 										Low-dimensional embedding of high-dimensional data (e.g., 55k genes in the human transcriptome)  
 										by Uniform Manifold Approximation and Projection (UMAP).  
 										
 										Click `host gene dropdown` to change the gene expression profile.
-										"""
-									)
-								], hidden=True, id="umap_expression_info"),					 
-							], style={"width":"45%", "display": "inline-block", "font-size": "12px"}),
-							html.Div([], style={"width":"2.5%", "display": "inline-block"}),
-						], style={"width":"100%", "textAlign": "center", "display": "inline-block"}),
+										""")
+									],
+									target="info_umap_expression",
+									style={"font-family": "arial", "font-size": 12}
+								),
+							], style={"width": "50%", "display": "inline-block", "vertical-align": "middle"}),
+						], style={"width":"100%"}),
 
-						#UMAP plot metadata
+						#UMAP metadata plot 
 						html.Div([
 							dcc.Loading(
 								id = "loading_umap_metadata",
@@ -264,10 +270,9 @@ app.layout = html.Div([
 								type = "dot",
 								color = "#33A02C"
 							)
-						], style={"width": "47%", "height": 600, "display": "inline-block"} 
-						),
+						], style={"width": "47%", "height": 600, "display": "inline-block"}),
 
-						#UMAP plot expression
+						#UMAP expression plot
 						html.Div([
 							dcc.Loading(
 								id = "loading_umap_expression",
@@ -281,41 +286,64 @@ app.layout = html.Div([
 						html.Div([
 							#boxplots + MA-plot
 							html.Div([
-								#control switches boxplots
+								#control switch and info boxplots
 								html.Div([
+
+									#info boxplots
 									html.Div([
-										daq.BooleanSwitch(id = "info_boxplots_switch", on = False, color = "#33A02C", label = "Show info")
-									], style={"width": "30%", "display": "inline-block", "textAlign": "right"}),
+										html.Img(src="assets/info.png", alt="info", id="info_boxplots", style={"width": "12%", "height": "12%"}),
+										dbc.Tooltip(
+											children=[dcc.Markdown(
+												"""
+												Box plot showing gene expression/species abundance in the different groups.  
+												
+												Click `UMAP legend` to choose which group you want to display.  
+												Click `comparison only` to display only the samples from the two comparisons.
+												""")
+											],
+											target="info_boxplots",
+											style={"font-family": "arial", "font-size": 12}
+										),
+									], style={"width": "30%", "display": "inline-block", "vertical-align": "middle"}),
+
 									html.Div([
 										daq.BooleanSwitch(id = "contrast_only_boxplots_switch", on = False, color = "#33A02C", label = "Comparison only"),
-									], style={"width": "30%", "display": "inline-block", "textAlign": "left"})
+									], style={"width": "30%", "display": "inline-block", "textAlign": "left", "vertical-align": "middle"})
 								], style={"width": "100%", "display": "inline-block", "text-align":"center"}),
 								
-								#info text boxplots
-								html.Div([
-									html.Div(children=[html.Br(),
-										dcc.Markdown(
-											"""
-											Box plot showing gene expression/species abundance in the different groups.  
-											
-											Click `UMAP legend` to choose which group you want to display.  
-											Click `comparison only` to display only the samples from the two comparisons.
-											"""
-										)], hidden=True, id="info_boxplots"),
-								], style = {"width": "100%", "display": "inline-block", "font-size": "12px"}),
-
 								#boxplots 
 								html.Div([
+									html.Br(),
 									dcc.Loading(
 										id = "loading_boxplots",
 										children = dcc.Graph(id="boxplots_graph", style={"height": 400}),
 										type = "dot",
 										color = "#33A02C"
-									)
+									),
+									html.Br()
 								], style={"width": "100%", "display": "inline-block"}),
 
-								#control switch and download button MA-plot
+								#info and download button MA-plot
 								html.Div([
+									#info
+									html.Div([
+										html.Img(src="assets/info.png", alt="info", id="info_ma_plot", style={"width": "12%", "height": "12%"}),
+										dbc.Tooltip(
+											children=[dcc.Markdown(
+												"""
+												Differential gene expression/species abundance visualization by MA plot,  
+												with gene/species dispersion in accordance with the fold changes  
+												between conditions and their average expression/abundance.  
+												
+												Click on `show gene stats` to display its statistics.  
+												Click on `gene/species` inside the plot to change statistics and decorate the plot.
+												""")
+											],
+											target="info_ma_plot",
+											style={"font-family": "arial", "font-size": 12}
+										),
+									], style={"width": "30%", "display": "inline-block", "vertical-align": "middle"}),
+									
 									#download button
 									html.Div([
 										dcc.Loading(
@@ -330,28 +358,8 @@ app.layout = html.Div([
 												)
 											]
 										)
-									], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom", 'color': 'black'}),
-									
-									#switch
-									html.Div([
-										daq.BooleanSwitch(id = "ma_plot_info_switch", on = False, color = "#33A02C", label = "Show info")
-									], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "bottom"}),
+									], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "middle", 'color': 'black'}),
 								], style={"width": "100%", "display": "inline-block", "text-align":"center"}),
-
-								#info text MA-plot
-								html.Div([
-									html.Div(children=[html.Br(),
-										dcc.Markdown(
-											"""
-											Differential gene expression/species abundance visualization by MA plot,  
-											with gene/species dispersion in accordance with the fold changes  
-											between conditions and their average expression/abundance.  
-											
-											Click on `show gene stats` to display its statistics.  
-											Click on `gene/species` inside the plot to change statistics and decorate the plot.
-											"""
-										)], hidden=True, id="info_ma_plot"),
-								], style = {"width": "100%", "display": "inline-block", "font-size": "12px"}),
 
 								#MA-plot
 								html.Div([
@@ -369,25 +377,26 @@ app.layout = html.Div([
 								
 								#info and search bar
 								html.Div([
-									#switch info
+									#info
 									html.Div([
-										daq.BooleanSwitch(id = "info_go_plot_switch", on = False, color = "#33A02C", label = "Show info")
-									], style={"width": "10%", "display": "inline-block", "textAlign": "right", "vertical-align": "bottom"}),
+										html.Img(src="assets/info.png", alt="info", id="info_go_plot", style={"width": "16%", "height": "16%"}),
+										dbc.Tooltip(
+											children=[dcc.Markdown(
+												"""
+												Balloon plot showing the top 30 differentially enriched gene ontology biological processes categories 
+												between the two conditions, unless filtered otherwise.
+												""")
+											],
+											target="info_go_plot",
+											style={"font-family": "arial", "font-size": 12}
+										),
+									], style={"width": "15%", "display": "inline-block", "vertical-align": "middle", "textAlign": "right",}),
 									
 									#search bar
 									html.Div([
 										dcc.Input(id="go_plot_filter_input", type="search", placeholder="Type here to filter GO gene sets", size="30", debounce=True),
-									], style={"width": "35%", "display": "inline-block", "font-size": "12px", "vertical-align": "bottom"})
-								], style={"width": "100%", "display": "inline-block", "vertical-align": "bottom", "text-align": "right"}),
-
-								#info go plot
-								html.Div(children=[html.Br(),
-									dcc.Markdown(
-										"""
-										Balloon plot showing the top 30 differentially enriched gene ontology biological processes categories  
-										between the two conditions, unless filtered otherwise.
-										"""
-								)], hidden=True, id="info_go_plot", style={"font-size": "12px"}),
+									], style={"width": "35%", "display": "inline-block", "font-size": "12px", "vertical-align": "middle"})
+								], style={"width": "100%", "display": "inline-block", "vertical-align": "middle", "text-align": "right"}),
 
 								#plot
 								dcc.Loading(
@@ -401,7 +410,7 @@ app.layout = html.Div([
 					]),
 
 					#content
-					dcc.Tabs(id="site_tabs", value="summary_tab", children=[
+					dcc.Tabs(id="site_tabs", value="boxplots_tab", children=[
 						#summary tab
 						dcc.Tab(label="Summary", value="summary_tab", children =[
 								html.Br(),
@@ -418,6 +427,23 @@ app.layout = html.Div([
 						dcc.Tab(label="GO table", value="go_table_tab", children=[
 								html.Br(),
 								
+								#info go table
+								html.Div([
+									html.Img(src="assets/info.png", alt="info", id="info_go_table", style={"width": "3%", "height": "3%"}),
+									dbc.Tooltip(
+										children=[dcc.Markdown(
+											"""
+											Table showing all differentially enriched gene ontology biological processes categories	between the two conditions, unless filtered otherwise.  
+												
+											Click `column name` to reorder the table.  
+											Click `GO dataset name` to see its specifics in AmiGO 2 (`http://amigo.geneontology.org/amigo`) web resource (`Ashburner et al. 2000, PMID 10802651`)
+											""")
+										],
+										target="info_go_table",
+										style={"font-family": "arial", "font-size": 12}
+									),
+								], style={"width": "50%", "display": "inline-block", "vertical-align": "middle", "textAlign": "center"}),
+
 								#download button
 								html.Div([
 									dcc.Loading(
@@ -432,28 +458,11 @@ app.layout = html.Div([
 											)
 										]
 									)
-								], style={"width": "25%", "display": "inline-block", "textAlign": "right", "vertical-align": "bottom", 'color': 'black'}),
-
-								#switch info
-								html.Div([
-									daq.BooleanSwitch(id = "info_go_table_switch", on = False, color = "#33A02C", label = "Show info")
-								], style={"width": "25%", "display": "inline-block", "textAlign": "left", "vertical-align": "bottom"}),
-								
-								#info text go table
-								html.Div([
-									html.Div(children=[html.Br(),
-										dcc.Markdown(
-											"""
-											Table showing all differentially enriched gene ontology biological processes categories	between the two conditions, unless filtered otherwise.  
-												
-											Click `column name` to reorder the table.  
-											Click `GO dataset name` to see its specifics in [AmiGO 2](http://amigo.geneontology.org/amigo) web resource [(Ashburner et al. 2000)](https://pubmed.ncbi.nlm.nih.gov/10802651/)
-											"""
-										)], hidden=True, id="info_go_table"),
-								], style = {"width": "100%", "display": "inline-block", "font-size": "12px", "vertical-align": "bottom", "text-align": "center"}),
+								], style={"width": "25%", "display": "inline-block", "textAlign": "left", "vertical-align": "middle", 'color': 'black'}),
 
 								#go table
 								html.Div([
+									html.Br(),
 									dcc.Loading(
 										id="loading_go_table",
 										type="dot",
@@ -508,72 +517,82 @@ app.layout = html.Div([
 						#custom boxplots
 						dcc.Tab(label="Box plots", value="boxplots_tab", children=[
 							html.Br(),
-							"Coming soon..."
+							html.Div([
+								#input section
+								html.Div([
+									
+									#info + update plot button
+									html.Div([
+										
+										#info
+										html.Div([
+											html.Img(src="assets/info.png", alt="info", id="info_multiboxplots", style={"width": "10%", "height": "10%"}),
+											dbc.Tooltip(
+												children=[dcc.Markdown(
+													"""
+													Fill me with info!
+													""")
+												],
+												target="info_multiboxplots",
+												style={"font-family": "arial", "font-size": 12}
+											),
+										], style={"width": "50%", "display": "inline-block", "vertical-align": "middle"}),
+										
+										#update plot button
+										html.Div([
+											html.Button("Update plot", id="update_multixoplot_plot_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}),
+											#warning popup
+											dbc.Popover(
+												children=[
+													dbc.PopoverHeader(children=["Warning!"], tag="div", style={"font-family": "arial", "font-size": 14}),
+													dbc.PopoverBody(children=["Plotting more than 10 elements is not allowed."], style={"font-family": "arial", "font-size": 12})
+												],
+												id="popover_plot_multiboxplots",
+												target="update_multixoplot_plot_button",
+												is_open=False,
+												style={"font-family": "arial"}
+											),
+										], style={"width": "50%", "display": "inline-block", "vertical-align": "middle"}),
+									]),
+									
+									html.Br(),
+
+									#dropdown
+									dcc.Dropdown(id="gene_species_multi_boxplots_dropdown", multi=True, placeholder="Select genes", style={"textAlign": "left", "font-size": "12px"}),
+
+									html.Br(),
+
+									#text area
+									dcc.Textarea(id="multi_boxplots_text_area", placeholder="Paste gene list (plot allowed for max 10 genes)", style={"width": "100%", "height": 300, "resize": "none", "font-size": "12px"}),
+
+									html.Br(),
+
+									#search button
+									html.Button("Search genes", id="multi_boxplots_search_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}),
+
+									html.Br(),
+
+									#genes not found area
+									html.Div(id="genes_not_found_multi_boxplots_div", children=[], hidden=True, style={"font-size": "12px", "text-align": "center"})
+								], style={"width": "30%", "display": "inline-block", "vertical-align": "top"}),
+
+								#graph
+								html.Div(children=[
+									dcc.Loading(
+										id="multi_boxplots_graph_div", 
+										children = [],
+										type = "dot",
+										color = "#33A02C"
+								),
+								], style={"height": 600, "width": "70%", "display": "inline-block"})
+							], style={"height": 600})
+
 						], style=tab_style, selected_style=tab_selected_style),
 					], style= {"height": 40}),
 
 				], style={"width": 1200}),
 
 			], style={"width": "100%", "justify-content":"center", "display":"flex", "textAlign": "center"})
-
-### INFO CALLBACKS ###
-
-#show info function
-def show_info(switch_status):
-	if switch_status is True:
-		div_hidden = False
-	else:
-		div_hidden = True
-	
-	return div_hidden
-
-#info umap metadata callback
-@app.callback(
-	Output("umap_metadata_info", "hidden"),
-	Input("info_umap_metadata_switch", "on")
-)
-def show_umap_metadata_info(switch_status):
-	return show_info(switch_status)	
-
-#info umap expression callback
-@app.callback(
-	Output("umap_expression_info", "hidden"),
-	Input("info_umap_expression_switch", "on")
-)
-def show_umap_expression_info(switch_status):
-	return show_info(switch_status)
-
-#info boxplots callback
-@app.callback(
-	Output("info_boxplots", "hidden"),
-	Input("info_boxplots_switch", "on")
-)
-def show_boxplots_info(switch_status):
-	return show_info(switch_status)
-
-#info MA-plot callback
-@app.callback(
-	Output("info_ma_plot", "hidden"),
-	Input("ma_plot_info_switch", "on")
-)
-def show_ma_plot_info(switch_status):
-	return show_info(switch_status)
-
-#info go plot callback
-@app.callback(
-	Output("info_go_plot", "hidden"),
-	Input("info_go_plot_switch", "on")
-)
-def show_go_plot_info(switch_status):
-	return show_info(switch_status)
-
-#info go plot callback
-@app.callback(
-	Output("info_go_table", "hidden"),
-	Input("info_go_table_switch", "on")
-)
-def show_go_plot_info(switch_status):
-	return show_info(switch_status)
 
 ### DOWNLOAD CALLBACKS ###
 
@@ -620,12 +639,13 @@ def download_go_table(button_click, contrast):
 
 ### ELEMENTS CALLBACKS ###
 
-#gene/species dropdown
+#gene/species dropdowns
 @app.callback(
 	#gene species dropdown
 	Output("gene_species_label", "children"),
 	Output("gene_species_dropdown", "options"),
 	Output("gene_species_dropdown", "value"),
+	Output("gene_species_multi_boxplots_dropdown", "options"),
 	#stringency
 	Output("stringency_dropdown", "value"),
 	#inputs
@@ -647,7 +667,8 @@ def find_genes_or_species(dataset, selected_point_ma_plot, current_dropdown_opti
 		label = "Host gene:"
 		stringency = 0.0000000001
 	elif dataset != "human":
-		label = "Species:"
+		label = dataset.split("_")[1]
+		label = label.capitalize() + ":"
 		stringency = 0.1
 
 	#if you click a gene, update only the dropdown value and keep the rest as it is
@@ -669,7 +690,7 @@ def find_genes_or_species(dataset, selected_point_ma_plot, current_dropdown_opti
 			options = [{"label": i.replace("_", " ").replace("[", "").replace("]", ""), "value": i} for i in species]
 			value = species[0]
 
-	return label, options, value, stringency
+	return label, options, value, options, stringency
 
 #tissue filter callback
 @app.callback(
@@ -683,7 +704,7 @@ def get_tissues_with_2_or_more_conditions(dataset):
 	contrasts = pd.read_csv(contrasts, sep = "\t", header=None, names=["contrast"])
 	contrasts = contrasts["contrast"].tolist()
 	#get all tissues for dataset
-	tissues = download_from_github("umap_{}.tsv".format(dataset))
+	tissues = download_from_github("umap_{}.tsv".format(dataset.split("_")[0]))
 	tissues = pd.read_csv(tissues, sep = "\t")
 	tissues = tissues["tissue"].unique().tolist()
 
@@ -798,6 +819,62 @@ def display_go_table(contrast, search_value):
 
 	return (columns, data)
 
+#search genes for multi boxplots
+@app.callback(
+	Output("gene_species_multi_boxplots_dropdown", "value"),
+	Output("genes_not_found_multi_boxplots_div", "children"),
+	Output("genes_not_found_multi_boxplots_div", "hidden"),
+	Input("multi_boxplots_search_button", "n_clicks"),
+	State("multi_boxplots_text_area", "value"),
+	State("gene_species_multi_boxplots_dropdown", "value"),
+	State("expression_dataset_dropdown", "value"),
+	State("genes_not_found_multi_boxplots_div", "hidden"),
+	prevent_initial_call=True
+)
+def serach_genes_in_text_area(n_clicks, text, already_selected_genes_species, expression_dataset, log_hidden_status):
+	#text is none, do almost anything
+	if text is None:
+		log_div = [html.Br(), "No genes in the search area!"]
+		log_hidden_status = False
+	else:
+		genes_species_not_found = []
+		#human dataset
+		if expression_dataset == "human":
+			#get all genes
+			all_genes = download_from_github("genes_list.tsv")
+			all_genes = pd.read_csv(all_genes, sep = "\t", header=None, names=["genes"])
+			all_genes = all_genes["genes"].dropna().tolist()
+			#search genes in text
+			genes_species_in_text_area = re.split(r"[\s,;]+", text)
+			#remove last gene if empty
+			if genes_species_in_text_area[-1] == "":
+				genes_species_in_text_area = genes_species_in_text_area[0:-1]
+			
+			#parse gene
+			for gene in genes_species_in_text_area:
+				gene = gene.upper()
+				#gene existing but not in selected: add it to selected
+				if gene in all_genes:
+					if already_selected_genes_species is None:
+						already_selected_genes_species = [gene]
+					elif gene not in already_selected_genes_species:
+						already_selected_genes_species.append(gene)
+				#gene not existing
+				elif gene not in all_genes:
+					genes_species_not_found.append(gene)
+	
+		#log for genes not found
+		if len(genes_species_not_found) > 0:
+			log_div_string = ", ".join(genes_species_not_found)
+			log_div = [html.Br(), "Can't find the following genes:", html.Br(), log_div_string]
+			log_hidden_status = False
+		#hide div if all genes has been found
+		else:
+			log_div = []
+			log_hidden_status = True
+
+	return already_selected_genes_species, log_div, log_hidden_status
+
 ### PLOTS ###
 
 #plot umap callback
@@ -866,7 +943,7 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 	#function for creating umap_metadata_fig from tsv file
 	def plot_umap_metadata(dataset, selected_metadata):
 		#open tsv
-		umap_df = download_from_github("umap_{}.tsv".format(dataset))
+		umap_df = download_from_github("umap_{}.tsv".format(dataset.split("_")[0]))
 		umap_df = pd.read_csv(umap_df, sep = "\t")
 
 		#prepare df
@@ -1014,7 +1091,7 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 		elif umap_dataset == "viruses":
 			transcriptome_title = "viral"
 		
-		counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset, gene_species))
+		counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset.split("_")[0], gene_species))
 		counts = pd.read_csv(counts, sep = "\t")
 		counts = counts.rename(columns={"sample": "Sample"})
 
@@ -1164,9 +1241,11 @@ def plot_boxplots(expression_dataset, gene, metadata_field, umap_legend_click, b
 			boxplots_figure["data"][traces_to_change[n]]["visible"] = settings_to_apply[n]
 		box_fig = boxplots_figure
 	elif trigger_id in ["expression_dataset_dropdown.value", "gene_species_dropdown.value", "metadata_dropdown.value"]:
-		counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset, gene))
+		counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset.split("_")[0], gene))
 		counts = pd.read_csv(counts, sep = "\t")
 		#open metadata and select only the desired column
+		if expression_dataset != "human":
+			expression_dataset = expression_dataset.split("_")[0]
 		metadata_df = download_from_github("umap_{}.tsv".format(expression_dataset))
 		metadata_df = pd.read_csv(metadata_df, sep = "\t")
 		#merge and compute log2 and replace inf with 0
@@ -1188,7 +1267,7 @@ def plot_boxplots(expression_dataset, gene, metadata_field, umap_legend_click, b
 		for metadata in metadata_fields_ordered:
 			filtered_metadata = metadata_df[metadata_df[metadata_field] == metadata]
 			hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library strategy: " + filtered_metadata["library_strategy"]
-			box_fig.add_trace(go.Box(y=filtered_metadata["Log2 counts"], name = metadata, marker_color = colors[i], boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text")) #facet_col=filtered_metadata["group"]
+			box_fig.add_trace(go.Box(y=filtered_metadata["Log2 counts"], name = metadata, marker_color = colors[i], boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text"))
 			i += 1
 		box_fig.update_traces(marker_size=4, showlegend=False)
 		box_fig.update_layout(title = {"text": gene.replace("_", " ").replace("[", "").replace("]", "") + " expression profiles per " + metadata_field_label, "x": 0.5, "font_size": 14}, legend_title_text = metadata_field_label, yaxis_title = "Log2 expression", xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", height=400, margin=dict(t=30, b=30, l=5, r=10))
@@ -1542,6 +1621,119 @@ def plot_go_plot(contrast, search_value):
 	config_go_plot["toImageButtonOptions"]["filename"] = "TaMMA_goplot_with_{contrast}".format(contrast = contrast)
 
 	return go_plot_fig, config_go_plot
+
+#multiboxplots callback
+@app.callback(
+	Output("multi_boxplots_graph_div", "children"),
+	Output("popover_plot_multiboxplots", "is_open"),
+	Input("update_multixoplot_plot_button", "n_clicks"),
+	Input("metadata_dropdown", "value"),
+	Input("umap_metadata", "restyleData"),
+	State("gene_species_multi_boxplots_dropdown", "value"),
+	State("expression_dataset_dropdown", "value"),
+	State("umap_metadata", "figure")
+)
+def plot_multiboxplots(n_clicks, metadata_field, umap_metadata_legend_click, selected_genes_species, expression_dataset, metadata_fig):
+	#define contexts
+	ctx = dash.callback_context
+	trigger_id = ctx.triggered[0]["prop_id"]
+	
+	if selected_genes_species is None or selected_genes_species == [""]:
+		div_content = []
+		popover_status = False
+	else:
+		if len(selected_genes_species) < 11:
+			
+			#find out visible traces
+			"""
+			visible_traces = []
+			i = 0
+			for trace in metadata_fig["data"]:
+				if trace["visible"] is True:
+					visible_traces.append(trace["name"])
+				i += 1
+			
+			print(umap_metadata_legend_click)
+			"""
+
+			#create figure
+			box_fig = go.Figure()
+			#avoind n_rows = 0
+			n_rows = round(len(selected_genes_species)/2)
+			if n_rows == 0:
+				n_rows = 1
+			#vertical spacing
+			if n_rows > 3:
+				vertical_spacing = 0.04
+			elif n_rows == 3:
+				vertical_spacing = 0.07
+			elif n_rows < 3:
+				vertical_spacing = 0.1
+			#make subplots
+			box_fig = make_subplots(rows=n_rows, cols=2, subplot_titles=[gene for gene in selected_genes_species], shared_xaxes=True, vertical_spacing=vertical_spacing, y_title="Log2 expression")
+
+			working_row = 1
+			working_col = 1
+			for gene in selected_genes_species:
+				counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset, gene))
+				counts = pd.read_csv(counts, sep = "\t")
+				#open metadata and select only the desired column
+				metadata_df = download_from_github("umap_{}.tsv".format(expression_dataset))
+				metadata_df = pd.read_csv(metadata_df, sep = "\t")
+				#merge and compute log2 and replace inf with 0
+				metadata_df = metadata_df.merge(counts, how="left", on="sample")
+				metadata_df["Log2 counts"] = np.log2(metadata_df["counts"])
+				metadata_df["Log2 counts"].replace(to_replace = -np.inf, value = 0, inplace=True)
+				#sort by metadata and clean it
+				metadata = metadata_df.sort_values(by=[metadata_field])
+				metadata_df[metadata_field] = [i.replace("_", " ") for i in metadata_df[metadata_field]]
+
+				#label for dropdown
+				metadata_field_label = metadata_field.replace("_", " ")
+
+				i = 0
+				metadata_fields_ordered = metadata_df[metadata_field].unique().tolist()
+				metadata_fields_ordered.sort()
+				for metadata in metadata_fields_ordered:
+					filtered_metadata = metadata_df[metadata_df[metadata_field] == metadata]
+					hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library strategy: " + filtered_metadata["library_strategy"]
+					box_fig.add_trace(go.Box(y=filtered_metadata["Log2 counts"], name = metadata, marker_color = colors[i], boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text"), row = int(working_row), col = working_col)
+					i += 1
+
+				#row and column count
+				working_row += 0.5
+				if working_col == 1:
+					working_col = 2
+				elif working_col == 2:
+					working_col = 1
+
+			# CIT; NDC80; AURKA; PPP1R12A; XRCC2; RGS14; ENSA; AKAP8; BUB1B; TADA3
+			#update all traces markers and remove legend
+			box_fig.update_traces(marker_size=4, showlegend=False)
+			#compute height
+			if n_rows == 1:
+				height_fig = 450
+			else:
+				height_fig = n_rows*300
+			#add title and set height
+			box_fig.update_layout(height=height_fig, title = {"text": "Gene expression profiles per " + metadata_field_label, "x": 0.5, "font_size": 14}, font_family="Arial")
+
+			#embed in html
+			div_content = [
+				dcc.Loading(
+					children = dcc.Graph(figure=box_fig),
+					type = "dot",
+					color = "#33A02C"
+				)
+			]
+
+			popover_status = False
+		else:
+			div_content = []
+			popover_status = True
+
+	return div_content, popover_status
+
 
 if __name__ == "__main__":
 	import os.path
