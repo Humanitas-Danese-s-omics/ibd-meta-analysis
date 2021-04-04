@@ -224,10 +224,10 @@ app.layout = html.Div([
 											Low-dimensional embedding of high-dimensional data (e.g., 55k genes in the human transcriptome)  
 											by Uniform Manifold Approximation and Projection (UMAP).  
 											
-											Click the `legend` to choose which group you want to display.  
-											Click `UMAP dataset dropdown` to change multidimensional scaling.  
-											Click `metadata dropdown` to change sample colors.  
-											Click `comparison only` to display only the samples from the two comparisons.
+											Click the ___legend___ to choose which group you want to display.  
+											Click the ___UMAP dataset___ dropdown to change multidimensional scaling.  
+											Click the ___Metadata___ dropdown to change sample colors.  
+											Click the ___Comparison only___ button to display only the samples from the two comparisons.
 											""")
 										],
 										target="info_umap_metadata",
@@ -253,7 +253,7 @@ app.layout = html.Div([
 										Low-dimensional embedding of high-dimensional data (e.g., 55k genes in the human transcriptome)  
 										by Uniform Manifold Approximation and Projection (UMAP).  
 										
-										Click `host gene dropdown` to change the gene expression profile.
+										Click the ___Host gene___ / ___Species___ / ___Family___ / ___Order___ dropdown to change the expression/abundance profile.
 										""")
 									],
 									target="info_umap_expression",
@@ -295,10 +295,10 @@ app.layout = html.Div([
 										dbc.Tooltip(
 											children=[dcc.Markdown(
 												"""
-												Box plot showing gene expression/species abundance in the different groups.  
+												Box plots showing host gene/species/family/order expression/abundance in the different groups.
 												
-												Click `UMAP legend` to choose which group you want to display.  
-												Click `comparison only` to display only the samples from the two comparisons.
+												Click the ___UMAP legend___ to choose which group you want to display.  
+												Click the ___Comparison only___ button to display only the samples from the two comparisons.
 												""")
 											],
 											target="info_boxplots",
@@ -310,7 +310,7 @@ app.layout = html.Div([
 										daq.BooleanSwitch(id = "contrast_only_boxplots_switch", on = False, color = "#33A02C", label = "Comparison only"),
 									], style={"width": "30%", "display": "inline-block", "textAlign": "left", "vertical-align": "middle"})
 								], style={"width": "100%", "display": "inline-block", "text-align":"center"}),
-								
+
 								#boxplots 
 								html.Div([
 									html.Br(),
@@ -331,12 +331,12 @@ app.layout = html.Div([
 										dbc.Tooltip(
 											children=[dcc.Markdown(
 												"""
-												Differential gene expression/species abundance visualization by MA plot,  
-												with gene/species dispersion in accordance with the fold changes  
-												between conditions and their average expression/abundance.  
+												Differential expression/abundance visualization by MA plot,  
+												with gene/species/family/order dispersion in accordance with the fold changes  
+												between conditions and their average expression/abundance.
 												
-												Click on `show gene stats` to display its statistics.  
-												Click on `gene/species` inside the plot to change statistics and decorate the plot.
+												Click on the ___Show gene stats___ to display its statistics.  
+												Click inside the plot to change statistics of interest.
 												""")
 											],
 											target="info_ma_plot",
@@ -383,8 +383,10 @@ app.layout = html.Div([
 										dbc.Tooltip(
 											children=[dcc.Markdown(
 												"""
-												Balloon plot showing the top 30 differentially enriched gene ontology biological processes categories 
-												between the two conditions, unless filtered otherwise.
+												Balloon plot showing the top 15 up and top 15 down differentially enriched gene ontology biological processes 
+												between the two conditions (differential gene expression FDR<1e-10), unless filtered otherwise.
+
+												Click on the ___Comparison___ dropdown to change the results.
 												""")
 											],
 											target="info_go_plot",
@@ -410,12 +412,12 @@ app.layout = html.Div([
 					]),
 
 					#content
-					dcc.Tabs(id="site_tabs", value="summary_tab", children=[
+					dcc.Tabs(id="site_tabs", value="boxplots_tab", children=[
 						#summary tab
 						dcc.Tab(label="Summary", value="summary_tab", children =[
 								html.Br(),
 								#graphical abstract
-								html.Div([html.Img(src="assets/workflow.png", alt="graphical_abstract", style={"width": "100%", "height": "100%"}, title="FASTQ reads from 3,853 RNA-Seq data from different tissues, namely ileum, colon, rectum, mesenteric adipose tissue, peripheral blood, and stools, were mined from NCBI GEO/SRA and passed the initial quality filter. All files were mapped to the human reference genome and initial gene quantification was performed. Since these data came from 26 different studies made in different laboratories, we counteract the presumptive bias through a batch correction in accordance with source and tissue of origin. Once the gene counts were adjusted, samples were divided into groups in accordance with the tissue of origin and patient condition prior to differential expression analysis and gene ontology functional enrichment. Finally, the reads failing to map to the human genome were subjected to metatranscriptomics profiling by taxonomic classification using exact k-mer matching either archaeal, bacterial, eukaryotic, or viral genes. This image has been designed using resources from Flaticon.com")
+								html.Div([html.Img(src="assets/workflow.png", alt="graphical_abstract", style={"width": "40%", "height": "40%"}, title="FASTQ reads from 3,853 RNA-Seq data from different tissues, namely ileum, colon, rectum, mesenteric adipose tissue, peripheral blood, and stools, were mined from NCBI GEO/SRA and passed the initial quality filter. All files were mapped to the human reference genome and initial gene quantification was performed. Since these data came from 26 different studies made in different laboratories, we counteract the presumptive bias through a batch correction in accordance with source and tissue of origin. Once the gene counts were adjusted, samples were divided into groups in accordance with the tissue of origin and patient condition prior to differential expression analysis and gene ontology functional enrichment. Finally, the reads failing to map to the human genome were subjected to metatranscriptomics profiling by taxonomic classification using exact k-mer matching either archaeal, bacterial, eukaryotic, or viral genes. This image has been designed using resources from Flaticon.com")
 								], style={"width": "100%", "display": "inline-block"}),
 
 								#statistics
@@ -433,10 +435,10 @@ app.layout = html.Div([
 									dbc.Tooltip(
 										children=[dcc.Markdown(
 											"""
-											Table showing all differentially enriched gene ontology biological processes categories	between the two conditions, unless filtered otherwise.  
+											Table showing the complete list of the differentially enriched gene ontology biological processes between the two conditions, unless filtered otherwise.  
 												
-											Click `column name` to reorder the table.  
-											Click `GO dataset name` to see its specifics in AmiGO 2 (`http://amigo.geneontology.org/amigo`) web resource (`Ashburner et al. 2000, PMID 10802651`)
+											Click on headers to reorder the table.  
+											Click on a GO dataset name to see its specifics in the AmiGO 2 web resource (___Ashburner et al. 2000, PMID 10802651___)
 											""")
 										],
 										target="info_go_table",
@@ -530,7 +532,10 @@ app.layout = html.Div([
 											dbc.Tooltip(
 												children=[dcc.Markdown(
 													"""
-													Fill me with info!
+													Box plots showing host gene/species/family/order expression/abundance in the different groups.
+													
+													Click the ___UMAP legend___ to choose which group you want to display.  
+													Click the ___Comparison only___ button to display only the samples from the two comparisons.
 													""")
 												],
 												target="info_multiboxplots",
@@ -1401,7 +1406,7 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 		i += 1
 
 	#title and no legend
-	ma_plot_fig.update_layout(title={"text": "Differential {} FDR<".format(expression_or_abundance) + "{:.0e}".format(fdr) + "<br>" + contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl"), "xref": "paper", "x": 0.5, "font_size": 14}, xaxis_automargin=True, xaxis_title=xaxis_title, yaxis_automargin=True, yaxis_title="Log2 fold change", font_family="Arial", height=359, margin=dict(t=50, b=0, l=5, r=130), showlegend = False)
+	ma_plot_fig.update_layout(title={"text": "Differential {} FDR<".format(expression_or_abundance) + "{:.0e}".format(fdr) + "<br>" + contrast.replace("_", " ").replace("-", " ").replace("Control", "Control"), "xref": "paper", "x": 0.5, "font_size": 14}, xaxis_automargin=True, xaxis_title=xaxis_title, yaxis_automargin=True, yaxis_title="Log2 fold change", font_family="Arial", height=359, margin=dict(t=50, b=0, l=5, r=130), showlegend = False)
 	#line at y=0
 	ma_plot_fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=0, line=dict(color="black", width=3), xref="paper", layer="below")
 	#add annotation with number of up and down degs and show selected gene text
@@ -1582,7 +1587,7 @@ def plot_go_plot(contrast, search_value):
 	go_plot_fig.add_trace(go.Scatter(x = [1, 1, 1], y = [10, 45, 80], marker_size = legend_sizes, marker_sizeref = sizeref, marker_color = "#737373", mode="markers+text", text=["min", "mid", "max"], hoverinfo="text", hovertext=legend_sizes, textposition="top center"), row = 4, col = 2)
 
 	#figure layout
-	go_plot_fig.update_layout(title={"text": "Gene ontology enrichment plot<br>Human transcriptome DGE FDR<1e-10<br>" + contrast.replace("_", " ").replace("-", " ").replace("Control", "Ctrl"), 
+	go_plot_fig.update_layout(title={"text": "Gene ontology enrichment plot<br>Human transcriptome DGE FDR<1e-10<br>" + contrast.replace("_", " ").replace("-", " ").replace("Control", "Control"), 
 									"x": 0.5, 
 									"font_size": 14}, 
 								font_family="Arial",
