@@ -43,7 +43,14 @@ colors = ["#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C", "#FD
 		"#BC80BD", "#CCEBC5", "#FFED6F"]
 
 #dropdown options
-datasets_options = [{"label": "Human", "value": "human"},
+umap_datasets_options = [{"label": "Human", "value": "human"},
+					{"label": "Archaea", "value": "archaea"},
+					{"label": "Bacteria", "value": "bacteria"},
+					{"label": "Eukaryota", "value": "eukaryota"},
+					{"label": "Viruses", "value": "viruses"}]
+
+#dropdown options
+expression_datasets_options = [{"label": "Human", "value": "human"},
 					{"label": "Archaea by order", "value": "archaea_order"},
 					{"label": "Archaea by family", "value": "archaea_family"},
 					{"label": "Archaea by species", "value": "archaea_species"},
@@ -55,7 +62,7 @@ datasets_options = [{"label": "Human", "value": "human"},
 					{"label": "Eukaryota by species", "value": "eukaryota_species"},
 					{"label": "Viruses by order", "value": "viruses_order"},
 					{"label": "Viruses by family", "value": "viruses_family"},
-					{"label": "Viruses by species", "value": "viruses_species"},]
+					{"label": "Viruses by species", "value": "viruses_species"}]
 
 metadata_umap_options = [{"label": "Condition", "value": "condition"},
 						{"label": "Group", "value": "group"},
@@ -122,6 +129,38 @@ tab_selected_style = {
     "padding": 6
 }
 
+#google analytics tag
+app.index_string = '''
+	<!DOCTYPE html>
+	<html>
+		<head>
+			<!-- Global site tag (gtag.js) - Google Analytics -->
+			<script async src="https://www.googletagmanager.com/gtag/js?id=G-HL81GG80X2"></script>
+			<script>
+				window.dataLayer = window.dataLayer || [];
+				function gtag(){dataLayer.push(arguments);}
+				gtag('js', new Date());
+
+				gtag('config', 'G-HL81GG80X2');
+			</script>
+			{%metas%}
+			<title>{%title%}</title>
+			{%favicon%}
+			{%css%}
+		</head>
+		<body>
+			<div></div>
+			{%app_entry%}
+			<footer>
+				{%config%}
+				{%scripts%}
+				{%renderer%}
+			</footer>
+			<div></div>
+		</body>
+	</html>
+'''
+
 app.layout = html.Div([
 				
 				html.Div([
@@ -144,7 +183,7 @@ app.layout = html.Div([
 								html.Label("UMAP dataset:"),
 								dcc.Dropdown(
 									id="umap_dataset_dropdown",
-									options=datasets_options,
+									options=umap_datasets_options,
 									value="human",
 									clearable=False
 								) 
@@ -167,7 +206,7 @@ app.layout = html.Div([
 								dcc.Dropdown(
 									id="expression_dataset_dropdown",
 									clearable=False,
-									options=datasets_options,
+									options=expression_datasets_options,
 									value="human"
 								)
 							], style={"width": "10%", "display": "inline-block"}),
@@ -231,7 +270,7 @@ app.layout = html.Div([
 											""")
 										],
 										target="info_umap_metadata",
-										style={"font-family": "arial", "font-size": 12}
+										style={"font-family": "arial", "font-size": 14}
 									),
 								], style={"width": "20%", "display": "inline-block", "vertical-align": "middle"}),
 								#contrast only switch
@@ -257,7 +296,7 @@ app.layout = html.Div([
 										""")
 									],
 									target="info_umap_expression",
-									style={"font-family": "arial", "font-size": 12}
+									style={"font-family": "arial", "font-size": 14}
 								),
 							], style={"width": "50%", "display": "inline-block", "vertical-align": "middle"}),
 						], style={"width":"100%"}),
@@ -302,7 +341,7 @@ app.layout = html.Div([
 												""")
 											],
 											target="info_boxplots",
-											style={"font-family": "arial", "font-size": 12}
+											style={"font-family": "arial", "font-size": 14}
 										),
 									], style={"width": "30%", "display": "inline-block", "vertical-align": "middle"}),
 
@@ -340,7 +379,7 @@ app.layout = html.Div([
 												""")
 											],
 											target="info_ma_plot",
-											style={"font-family": "arial", "font-size": 12}
+											style={"font-family": "arial", "font-size": 14}
 										),
 									], style={"width": "30%", "display": "inline-block", "vertical-align": "middle"}),
 									
@@ -390,7 +429,7 @@ app.layout = html.Div([
 												""")
 											],
 											target="info_go_plot",
-											style={"font-family": "arial", "font-size": 12}
+											style={"font-family": "arial", "font-size": 14}
 										),
 									], style={"width": "15%", "display": "inline-block", "vertical-align": "middle", "textAlign": "right",}),
 									
@@ -417,7 +456,7 @@ app.layout = html.Div([
 						dcc.Tab(label="Summary", value="summary_tab", children =[
 								html.Br(),
 								#graphical abstract
-								html.Div([html.Img(src="assets/workflow.png", alt="graphical_abstract", style={"width": "40%", "height": "40%"}, title="FASTQ reads from 3,853 RNA-Seq data from different tissues, namely ileum, colon, rectum, mesenteric adipose tissue, peripheral blood, and stools, were mined from NCBI GEO/SRA and passed the initial quality filter. All files were mapped to the human reference genome and initial gene quantification was performed. Since these data came from 26 different studies made in different laboratories, we counteract the presumptive bias through a batch correction in accordance with source and tissue of origin. Once the gene counts were adjusted, samples were divided into groups in accordance with the tissue of origin and patient condition prior to differential expression analysis and gene ontology functional enrichment. Finally, the reads failing to map to the human genome were subjected to metatranscriptomics profiling by taxonomic classification using exact k-mer matching either archaeal, bacterial, eukaryotic, or viral genes. This image has been designed using resources from Flaticon.com")
+								html.Div([html.Img(src="assets/workflow.png", alt="graphical_abstract", style={"width": "40%", "height": "40%"}, title="FASTQ reads from 3,853 RNA-Seq data from different tissues, namely ileum, colon, rectum, mesenteric adipose tissue, peripheral blood, and stools, were mined from NCBI GEO/SRA and passed the initial quality filter. All files were mapped to the human reference genome and initial gene quantification was performed. Since these data came from 26 different studies made in different laboratories, we counteract the presumptive bias through a batch correction in accordance with source and tissue of origin. Once the gene counts were adjusted, samples were divided into groups in accordance with the tissue of origin and patient condition prior to differential expression analysis and gene ontology functional enrichment. Finally, the reads failing to map to the human genome were subjected to metatranscriptomics profiling by taxonomic classification using exact k-mer matching either archaeal, bacterial, eukaryotic, or viral genes. This image has been designed using resources from https://streamlineicons.com")
 								], style={"width": "100%", "display": "inline-block"}),
 
 								#statistics
@@ -442,7 +481,7 @@ app.layout = html.Div([
 											""")
 										],
 										target="info_go_table",
-										style={"font-family": "arial", "font-size": 12}
+										style={"font-family": "arial", "font-size": 14}
 									),
 								], style={"width": "50%", "display": "inline-block", "vertical-align": "middle", "textAlign": "center"}),
 
@@ -539,7 +578,7 @@ app.layout = html.Div([
 													""")
 												],
 												target="info_multiboxplots",
-												style={"font-family": "arial", "font-size": 12}
+												style={"font-family": "arial", "font-size": 14}
 											),
 										], style={"width": "50%", "display": "inline-block", "vertical-align": "middle"}),
 										
@@ -588,8 +627,7 @@ app.layout = html.Div([
 										children = [],
 										type = "dot",
 										color = "#33A02C"
-								),
-								], style={"height": 600, "width": "70%", "display": "inline-block"})
+								)], style={"height": 600, "width": "70%", "display": "inline-block"})
 							], style={"height": 600})
 
 						], style=tab_style, selected_style=tab_selected_style),
@@ -1309,9 +1347,10 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 		expression_or_abundance = "gene expression"
 		xaxis_title = "Log2 average expression"
 	else:
-		gene_or_species = "Species"
-		expression_or_abundance = "species abundance"
 		xaxis_title = "Log2 average abundance"
+		gene_or_species = dataset.split("_")[1]
+		expression_or_abundance = gene_or_species + " abundance"
+		gene_or_species = gene_or_species.capitalize()
 
 	gene = gene.replace("_", " ").replace("[", "").replace("]", "")
 
@@ -1393,7 +1432,7 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 	colors = ["#636363", "#D7301F", "#045A8D", selected_gene_marker_color]
 	#rename column if not human
 	if dataset != "human":
-		table = table.rename(columns={"Gene": "Species"})
+		table = table.rename(columns={"Gene": gene_or_species})
 
 	#plot
 	ma_plot_fig = go.Figure()
@@ -1418,8 +1457,7 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 	up_genes_annotation = [dict(text = str(up) + " higher in<br>" + contrast.split("-vs-")[0].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.98, showarrow=False, font=dict(size=14, color="#DE2D26", family="Arial"))]
 	down_genes_annotation = [dict(text = str(down) + " higher in<br>" + contrast.split("-vs-")[1].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.02, showarrow=False, font=dict(size=14, color="#045A8D", family="Arial"))]
 	show_gene_annotaton = [dict(text = "Show gene stats", align="center", xref="paper", yref="paper", x=1.4, y=1, showarrow=False, font_size=12)]
-	selected_gene_annotation = [dict(x=ma_plot_fig["data"][3]["x"][0], y=ma_plot_fig["data"][3]["y"][0], xref="x", yref="y", text=ma_plot_fig["data"][3]["customdata"][0][0], showarrow=True, font=dict(family="Arial", size=14), align="center", arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="#525252", ax=20, ay=-30, bordercolor="#525252", borderwidth=2, borderpad=4, bgcolor="#D9D9D9", opacity=0.7)]
-	gene_stats_annotation = [dict(text="Log2 avg expr: " +  str(round(selected_gene_log2_base_mean, 1)) + "<br>Log2 FC: " +  str(round(selected_gene_log2fc, 1)) + "<br>FDR: " + selected_gene_fdr, align="center", xref="paper", yref="paper", x=1.43, y=0.55, showarrow=False, font=dict(family="Arial", size=12))]
+	selected_gene_annotation = [dict(x=ma_plot_fig["data"][3]["x"][0], y=ma_plot_fig["data"][3]["y"][0], xref="x", yref="y", text=ma_plot_fig["data"][3]["customdata"][0][0] + "<br>Log2 avg expr: " +  str(round(selected_gene_log2_base_mean, 1)) + "<br>Log2 FC: " +  str(round(selected_gene_log2fc, 1)) + "<br>FDR: " + selected_gene_fdr, showarrow=True, font=dict(family="Arial", size=12, color="#252525"), align="center", arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="#525252", ax=-50, ay=-50, bordercolor="#525252", borderwidth=2, borderpad=4, bgcolor="#D9D9D9", opacity=0.7)]
 
 	#buttons
 	ma_plot_fig.update_layout(updatemenus=[
@@ -1437,7 +1475,7 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 									{"color": colors[1], "size": 5 , "symbol": 2, "line": {"color": None, "width": None}}, 
 									{"color": colors[2], "size": 5, "symbol": 2, "line": {"color": None, "width": None}}, 
 									{"color": "#D9D9D9", "size": 9, "symbol": 2, "line": {"color": "#525252", "width": 2}}]},
-						{"annotations": up_genes_annotation + down_genes_annotation + show_gene_annotaton + selected_gene_annotation + gene_stats_annotation}]
+						{"annotations": up_genes_annotation + down_genes_annotation + show_gene_annotaton + selected_gene_annotation}]
 				),
 				dict(label="False",
                     method="update",
@@ -1642,31 +1680,26 @@ def plot_multiboxplots(n_clicks, metadata_field, umap_metadata_legend_click, sel
 	#define contexts
 	ctx = dash.callback_context
 	trigger_id = ctx.triggered[0]["prop_id"]
-	
-	if selected_genes_species is None or selected_genes_species == [""]:
+
+	#empty dropdown
+	if selected_genes_species is None or selected_genes_species == []:
 		div_content = []
 		popover_status = False
+	#filled dropdown
 	else:
+		#up to 10 elements to plot
 		if len(selected_genes_species) < 11:
-			
-			#find out visible traces
-			"""
-			visible_traces = []
-			i = 0
-			for trace in metadata_fig["data"]:
-				if trace["visible"] is True:
-					visible_traces.append(trace["name"])
-				i += 1
-			
-			print(umap_metadata_legend_click)
-			"""
 
 			#create figure
 			box_fig = go.Figure()
-			#avoind n_rows = 0
-			n_rows = round(len(selected_genes_species)/2)
-			if n_rows == 0:
-				n_rows = 1
+			
+			#define number of rows
+			if (len(selected_genes_species) % 2) == 0:
+				n_rows = len(selected_genes_species)/2
+			else:
+				n_rows = int(len(selected_genes_species)/2) + 1
+			n_rows = int(n_rows)
+
 			#vertical spacing
 			if n_rows > 3:
 				vertical_spacing = 0.04
@@ -1674,8 +1707,17 @@ def plot_multiboxplots(n_clicks, metadata_field, umap_metadata_legend_click, sel
 				vertical_spacing = 0.07
 			elif n_rows < 3:
 				vertical_spacing = 0.1
+			
+			#define specs for subplot
+			specs = []
+			for i in range(0, n_rows):
+				specs.append([{}, {}])
+			#in case of odd number of selected elements, the last plot in grid is None
+			if (len(selected_genes_species) % 2) != 0:
+				specs[-1][-1] = None
+
 			#make subplots
-			box_fig = make_subplots(rows=n_rows, cols=2, subplot_titles=[gene for gene in selected_genes_species], shared_xaxes=True, vertical_spacing=vertical_spacing, y_title="Log2 expression")
+			box_fig = make_subplots(rows=n_rows, cols=2, specs=specs, subplot_titles=[gene for gene in selected_genes_species], shared_xaxes=True, vertical_spacing=vertical_spacing, y_title="Log2 expression")
 
 			working_row = 1
 			working_col = 1
@@ -1696,14 +1738,46 @@ def plot_multiboxplots(n_clicks, metadata_field, umap_metadata_legend_click, sel
 				#label for dropdown
 				metadata_field_label = metadata_field.replace("_", " ")
 
-				i = 0
-				metadata_fields_ordered = metadata_df[metadata_field].unique().tolist()
-				metadata_fields_ordered.sort()
-				for metadata in metadata_fields_ordered:
+				#find out visible traces
+				if trigger_id == "umap_metadata.restyleData":
+					#get all traces
+					all_traces = []
+					colors_dict = {}
+					i += 0
+					for trace in metadata_fig["data"]:
+						all_traces.append(trace["name"])
+						colors_dict[trace["name"]] = colors[i]
+						i += 1
+
+					#identify traces to remove
+					traces_to_remove = []
+					#parse legend click data to get changes 
+					for i in range(0, len(umap_metadata_legend_click[1])):
+						status = umap_metadata_legend_click[0]["visible"][i]
+						trace = umap_metadata_legend_click[1][i]
+						if status is not True:
+							traces_to_remove.append(all_traces[trace])
+					#remove from all traces the traces to remove
+					visible_traces = []
+					for trace in all_traces:
+						if trace not in traces_to_remove:
+							visible_traces.append(trace)
+				#visible traces in umap metadata legend are the one to plot
+				else:
+					visible_traces = []
+					colors_dict = {}
+					i = 0
+					for trace in metadata_fig["data"]:
+						if trace["visible"] is True:
+							visible_traces.append(trace["name"])
+						colors_dict[trace["name"]] = colors[i]
+						i += 1
+
+				#plot
+				for metadata in visible_traces:
 					filtered_metadata = metadata_df[metadata_df[metadata_field] == metadata]
 					hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library strategy: " + filtered_metadata["library_strategy"]
-					box_fig.add_trace(go.Box(y=filtered_metadata["Log2 counts"], name = metadata, marker_color = colors[i], boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text"), row = int(working_row), col = working_col)
-					i += 1
+					box_fig.add_trace(go.Box(y=filtered_metadata["Log2 counts"], name = metadata, marker_color = colors_dict[metadata], boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text"), row = int(working_row), col = working_col)
 
 				#row and column count
 				working_row += 0.5
@@ -1733,6 +1807,7 @@ def plot_multiboxplots(n_clicks, metadata_field, umap_metadata_legend_click, sel
 			]
 
 			popover_status = False
+		#more then 10 elements to plot
 		else:
 			div_content = []
 			popover_status = True
