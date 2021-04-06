@@ -134,19 +134,7 @@ app.index_string = '''
 	<!DOCTYPE html>
 	<html>
 		<head>
-			<!-- Global site tag (gtag.js) - Google Analytics -->
-			<script async src="https://www.googletagmanager.com/gtag/js?id=G-HL81GG80X2"></script>
-			<script>
-				window.dataLayer = window.dataLayer || [];
-				function gtag(){dataLayer.push(arguments);}
-				gtag('js', new Date());
-
-				gtag('config', 'G-HL81GG80X2');
-			</script>
-			{%metas%}
-			<title>{%title%}</title>
-			{%favicon%}
-			{%css%}
+			<!-- Global site tag (gtag.js) - Google Analytics --><script async src="https://www.googletagmanager.com/gtag/js?id=G-HL81GG80X2"></script><script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-HL81GG80X2'); </script>
 		</head>
 		<body>
 			<div></div>
@@ -621,13 +609,14 @@ app.layout = html.Div([
 								], style={"width": "30%", "display": "inline-block", "vertical-align": "top"}),
 
 								#graph
-								html.Div(children=[
-									dcc.Loading(
-										id="multi_boxplots_graph_div", 
-										children = [],
+								html.Div(
+									id="multi_boxplots_div",
+									children=[dcc.Loading(
+										children = [dcc.Graph(id="multi_boxplots_graph", figure={})
+										],
 										type = "dot",
-										color = "#33A02C"
-								)], style={"height": 600, "width": "70%", "display": "inline-block"})
+										color = "#33A02C")
+								], hidden=True, style={"height": 600, "width": "70%", "display": "inline-block"})
 							], style={"height": 600})
 
 						], style=tab_style, selected_style=tab_selected_style),
@@ -1667,152 +1656,151 @@ def plot_go_plot(contrast, search_value):
 
 #multiboxplots callback
 @app.callback(
-	Output("multi_boxplots_graph_div", "children"),
+	Output("multi_boxplots_graph", "figure"),
+	Output("multi_boxplots_div", "hidden"),
 	Output("popover_plot_multiboxplots", "is_open"),
 	Input("update_multixoplot_plot_button", "n_clicks"),
 	Input("metadata_dropdown", "value"),
 	Input("umap_metadata", "restyleData"),
 	State("gene_species_multi_boxplots_dropdown", "value"),
 	State("expression_dataset_dropdown", "value"),
-	State("umap_metadata", "figure")
+	State("umap_metadata", "figure"),
+	State("multi_boxplots_graph", "figure"),
+	State("multi_boxplots_div", "hidden"),
+	prevent_initial_call=True
 )
-def plot_multiboxplots(n_clicks, metadata_field, umap_metadata_legend_click, selected_genes_species, expression_dataset, metadata_fig):
+def plot_multiboxplots(n_clicks, metadata_field, umap_metadata_legend_click, selected_genes_species, expression_dataset, metadata_fig, box_fig, hidden_status):
 	#define contexts
 	ctx = dash.callback_context
 	trigger_id = ctx.triggered[0]["prop_id"]
 
-	#empty dropdown
-	if selected_genes_species is None or selected_genes_species == []:
-		div_content = []
+	if trigger_id == "umap_metadata.restyleData":
+		
+		print(len(box_fig["data"]))
 		popover_status = False
-	#filled dropdown
+		#identify how many changes have to be applyed
+		number_of_changes = len(umap_metadata_legend_click[1])
+		#identify which traces have to be changed
+		traces_to_change = umap_metadata_legend_click[1]
+		#identify which settings have to be applied to each changed trace
+		settings_to_apply = umap_metadata_legend_click[0]["visible"]
+		#identify how many plots there are
+		n_plots = len(selected_genes_species)
+		i = 0
+		for plot in range(0, n_plots):
+			traces_to_change = [trace + i for trace in traces_to_change]
+			print(traces_to_change)
+			#apply each change
+			for n in range(0, number_of_changes):
+				box_fig["data"][traces_to_change[n]]["visible"] = settings_to_apply[n]
+			i += len(metadata_fig["data"])
 	else:
-		#up to 10 elements to plot
-		if len(selected_genes_species) < 11:
+		#empty dropdown
+		if selected_genes_species is None or selected_genes_species == []:
+			hidden_status = True
+			popover_status = False
+		#filled dropdown
+		else:
+			#up to 10 elements to plot
+			if len(selected_genes_species) < 11:
 
-			#create figure
-			box_fig = go.Figure()
-			
-			#define number of rows
-			if (len(selected_genes_species) % 2) == 0:
-				n_rows = len(selected_genes_species)/2
-			else:
-				n_rows = int(len(selected_genes_species)/2) + 1
-			n_rows = int(n_rows)
-
-			#vertical spacing
-			if n_rows > 3:
-				vertical_spacing = 0.04
-			elif n_rows == 3:
-				vertical_spacing = 0.07
-			elif n_rows < 3:
-				vertical_spacing = 0.1
-			
-			#define specs for subplot
-			specs = []
-			for i in range(0, n_rows):
-				specs.append([{}, {}])
-			#in case of odd number of selected elements, the last plot in grid is None
-			if (len(selected_genes_species) % 2) != 0:
-				specs[-1][-1] = None
-
-			#make subplots
-			box_fig = make_subplots(rows=n_rows, cols=2, specs=specs, subplot_titles=[gene for gene in selected_genes_species], shared_xaxes=True, vertical_spacing=vertical_spacing, y_title="Log2 expression")
-
-			working_row = 1
-			working_col = 1
-			for gene in selected_genes_species:
-				counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset, gene))
-				counts = pd.read_csv(counts, sep = "\t")
-				#open metadata and select only the desired column
-				metadata_df = download_from_github("umap_{}.tsv".format(expression_dataset))
-				metadata_df = pd.read_csv(metadata_df, sep = "\t")
-				#merge and compute log2 and replace inf with 0
-				metadata_df = metadata_df.merge(counts, how="left", on="sample")
-				metadata_df["Log2 counts"] = np.log2(metadata_df["counts"])
-				metadata_df["Log2 counts"].replace(to_replace = -np.inf, value = 0, inplace=True)
-				#sort by metadata and clean it
-				metadata = metadata_df.sort_values(by=[metadata_field])
-				metadata_df[metadata_field] = [i.replace("_", " ") for i in metadata_df[metadata_field]]
-
-				#label for dropdown
-				metadata_field_label = metadata_field.replace("_", " ")
-
-				#find out visible traces
-				if trigger_id == "umap_metadata.restyleData":
-					#get all traces
-					all_traces = []
-					colors_dict = {}
-					i += 0
-					for trace in metadata_fig["data"]:
-						all_traces.append(trace["name"])
-						colors_dict[trace["name"]] = colors[i]
-						i += 1
-
-					#identify traces to remove
-					traces_to_remove = []
-					#parse legend click data to get changes 
-					for i in range(0, len(umap_metadata_legend_click[1])):
-						status = umap_metadata_legend_click[0]["visible"][i]
-						trace = umap_metadata_legend_click[1][i]
-						if status is not True:
-							traces_to_remove.append(all_traces[trace])
-					#remove from all traces the traces to remove
-					visible_traces = []
-					for trace in all_traces:
-						if trace not in traces_to_remove:
-							visible_traces.append(trace)
-				#visible traces in umap metadata legend are the one to plot
+				#create figure
+				box_fig = go.Figure()
+				
+				#define number of rows
+				if (len(selected_genes_species) % 2) == 0:
+					n_rows = len(selected_genes_species)/2
 				else:
+					n_rows = int(len(selected_genes_species)/2) + 1
+				n_rows = int(n_rows)
+
+				#vertical spacing
+				if n_rows > 3:
+					vertical_spacing = 0.04
+				elif n_rows == 3:
+					vertical_spacing = 0.07
+				elif n_rows < 3:
+					vertical_spacing = 0.1
+				
+				#define specs for subplot
+				specs = []
+				for i in range(0, n_rows):
+					specs.append([{}, {}])
+				#in case of odd number of selected elements, the last plot in grid is None
+				if (len(selected_genes_species) % 2) != 0:
+					specs[-1][-1] = None
+
+				#make subplots
+				box_fig = make_subplots(rows=n_rows, cols=2, specs=specs, subplot_titles=[gene for gene in selected_genes_species], shared_xaxes=True, vertical_spacing=vertical_spacing, y_title="Log2 expression")
+
+				working_row = 1
+				working_col = 1
+				for gene in selected_genes_species:
+					counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset, gene))
+					counts = pd.read_csv(counts, sep = "\t")
+					#open metadata and select only the desired column
+					metadata_df = download_from_github("umap_{}.tsv".format(expression_dataset))
+					metadata_df = pd.read_csv(metadata_df, sep = "\t")
+					#merge and compute log2 and replace inf with 0
+					metadata_df = metadata_df.merge(counts, how="left", on="sample")
+					metadata_df["Log2 counts"] = np.log2(metadata_df["counts"])
+					metadata_df["Log2 counts"].replace(to_replace = -np.inf, value = 0, inplace=True)
+					#sort by metadata and clean it
+					metadata = metadata_df.sort_values(by=[metadata_field])
+					metadata_df[metadata_field] = [i.replace("_", " ") for i in metadata_df[metadata_field]]
+
+					#label for dropdown
+					metadata_field_label = metadata_field.replace("_", " ")
+
+					#visible traces in umap metadata legend are the one to plot
 					visible_traces = []
-					colors_dict = {}
-					i = 0
+					#find visible traces
 					for trace in metadata_fig["data"]:
 						if trace["visible"] is True:
 							visible_traces.append(trace["name"])
-						colors_dict[trace["name"]] = colors[i]
+
+					#plot
+					metadata_fields_ordered = metadata_df[metadata_field].unique().tolist()
+					metadata_fields_ordered.sort()
+					i = 0
+					for metadata in metadata_fields_ordered:
+						#visible setting
+						if metadata in visible_traces:
+							visible_status = True
+						else:
+							visible_status = False
+						
+						filtered_metadata = metadata_df[metadata_df[metadata_field] == metadata]
+						hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library strategy: " + filtered_metadata["library_strategy"]
+						box_fig.add_trace(go.Box(y=filtered_metadata["Log2 counts"], name = metadata, marker_color = colors[i], boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text", visible = visible_status), row = int(working_row), col = working_col)
 						i += 1
 
-				#plot
-				for metadata in visible_traces:
-					filtered_metadata = metadata_df[metadata_df[metadata_field] == metadata]
-					hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library strategy: " + filtered_metadata["library_strategy"]
-					box_fig.add_trace(go.Box(y=filtered_metadata["Log2 counts"], name = metadata, marker_color = colors_dict[metadata], boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text"), row = int(working_row), col = working_col)
+					#row and column count
+					working_row += 0.5
+					if working_col == 1:
+						working_col = 2
+					elif working_col == 2:
+						working_col = 1
 
-				#row and column count
-				working_row += 0.5
-				if working_col == 1:
-					working_col = 2
-				elif working_col == 2:
-					working_col = 1
+				# CIT; NDC80; AURKA; PPP1R12A; XRCC2; RGS14; ENSA; AKAP8; BUB1B; TADA3
+				#update all traces markers and remove legend
+				box_fig.update_traces(marker_size=4, showlegend=False)
+				#compute height
+				if n_rows == 1:
+					height_fig = 450
+				else:
+					height_fig = n_rows*300
+				#add title and set height
+				box_fig.update_layout(height=height_fig, title = {"text": "Gene expression profiles per " + metadata_field_label, "x": 0.5, "font_size": 14}, font_family="Arial")
 
-			# CIT; NDC80; AURKA; PPP1R12A; XRCC2; RGS14; ENSA; AKAP8; BUB1B; TADA3
-			#update all traces markers and remove legend
-			box_fig.update_traces(marker_size=4, showlegend=False)
-			#compute height
-			if n_rows == 1:
-				height_fig = 450
+				popover_status = False
+				hidden_status = False
+			#more then 10 elements to plot
 			else:
-				height_fig = n_rows*300
-			#add title and set height
-			box_fig.update_layout(height=height_fig, title = {"text": "Gene expression profiles per " + metadata_field_label, "x": 0.5, "font_size": 14}, font_family="Arial")
+				hidden_status = True
+				popover_status = True
 
-			#embed in html
-			div_content = [
-				dcc.Loading(
-					children = dcc.Graph(figure=box_fig),
-					type = "dot",
-					color = "#33A02C"
-				)
-			]
-
-			popover_status = False
-		#more then 10 elements to plot
-		else:
-			div_content = []
-			popover_status = True
-
-	return div_content, popover_status
+	return box_fig, hidden_status, popover_status
 
 
 if __name__ == "__main__":
