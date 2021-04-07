@@ -248,7 +248,7 @@ app.layout = html.Div([
 							html.Div([
 								#info umap metadata
 								html.Div([
-									html.Img(src="assets/info.png", alt="info", id="info_umap_metadata", style={"width": "15%", "height": "15%"}),
+									html.Img(src="assets/info.png", alt="info", id="info_umap_metadata", style={"width": 20, "height": 20}),
 									dbc.Tooltip(
 										children=[dcc.Markdown(
 											"""
@@ -277,7 +277,7 @@ app.layout = html.Div([
 							
 							#info umap expression
 							html.Div([
-								html.Img(src="assets/info.png", alt="info", id="info_umap_expression", style={"width": "3%", "height": "3%"}),
+								html.Img(src="assets/info.png", alt="info", id="info_umap_expression", style={"width": 20, "height": 20}),
 								dbc.Tooltip(
 									children=[dcc.Markdown(
 										"""
@@ -322,7 +322,7 @@ app.layout = html.Div([
 
 									#info boxplots
 									html.Div([
-										html.Img(src="assets/info.png", alt="info", id="info_boxplots", style={"width": "12%", "height": "12%"}),
+										html.Img(src="assets/info.png", alt="info", id="info_boxplots", style={"width": 20, "height": 20}),
 										dbc.Tooltip(
 											children=[dcc.Markdown(
 												"""
@@ -358,7 +358,7 @@ app.layout = html.Div([
 								html.Div([
 									#info
 									html.Div([
-										html.Img(src="assets/info.png", alt="info", id="info_ma_plot", style={"width": "12%", "height": "12%"}),
+										html.Img(src="assets/info.png", alt="info", id="info_ma_plot", style={"width": 20, "height": 20}),
 										dbc.Tooltip(
 											children=[dcc.Markdown(
 												"""
@@ -410,7 +410,7 @@ app.layout = html.Div([
 								html.Div([
 									#info
 									html.Div([
-										html.Img(src="assets/info.png", alt="info", id="info_go_plot", style={"width": "16%", "height": "16%"}),
+										html.Img(src="assets/info.png", alt="info", id="info_go_plot", style={"width": 20, "height": 20}),
 										dbc.Tooltip(
 											children=[dcc.Markdown(
 												"""
@@ -443,7 +443,7 @@ app.layout = html.Div([
 					]),
 
 					#content
-					dcc.Tabs(id="site_tabs", value="boxplots_tab", children=[
+					dcc.Tabs(id="site_tabs", value="summary_tab", children=[
 						#summary tab
 						dcc.Tab(label="Summary", value="summary_tab", children =[
 								html.Br(),
@@ -462,7 +462,7 @@ app.layout = html.Div([
 								
 								#info go table
 								html.Div([
-									html.Img(src="assets/info.png", alt="info", id="info_go_table", style={"width": "3%", "height": "3%"}),
+									html.Img(src="assets/info.png", alt="info", id="info_go_table", style={"width": 20, "height": 20}),
 									dbc.Tooltip(
 										children=[dcc.Markdown(
 											"""
@@ -559,7 +559,7 @@ app.layout = html.Div([
 										
 										#info
 										html.Div([
-											html.Img(src="assets/info.png", alt="info", id="info_multiboxplots", style={"width": "10%", "height": "10%"}),
+											html.Img(src="assets/info.png", alt="info", id="info_multiboxplots", style={"width": 20, "height": 20}),
 											dbc.Tooltip(
 												children=[dcc.Markdown(
 													"""
@@ -581,7 +581,7 @@ app.layout = html.Div([
 											dbc.Popover(
 												children=[
 													dbc.PopoverHeader(children=["Warning!"], tag="div", style={"font-family": "arial", "font-size": 14}),
-													dbc.PopoverBody(children=["Plotting more than 10 elements is not allowed."], style={"font-family": "arial", "font-size": 12})
+													dbc.PopoverBody(children=["Plotting more than 10 features is not allowed."], style={"font-family": "arial", "font-size": 12})
 												],
 												id="popover_plot_multiboxplots",
 												target="update_multixoplot_plot_button",
@@ -594,33 +594,36 @@ app.layout = html.Div([
 									html.Br(),
 
 									#dropdown
-									dcc.Dropdown(id="gene_species_multi_boxplots_dropdown", multi=True, placeholder="Select genes", style={"textAlign": "left", "font-size": "12px"}),
+									dcc.Dropdown(id="gene_species_multi_boxplots_dropdown", multi=True, placeholder="", style={"textAlign": "left", "font-size": "12px"}),
 
 									html.Br(),
 
 									#text area
-									dcc.Textarea(id="multi_boxplots_text_area", placeholder="Paste gene list (plot allowed for max 10 genes)", style={"width": "100%", "height": 300, "resize": "none", "font-size": "12px"}),
+									dcc.Textarea(id="multi_boxplots_text_area", style={"width": "100%", "height": 300, "resize": "none", "font-size": "12px"}),
 
 									html.Br(),
 
 									#search button
-									html.Button("Search genes", id="multi_boxplots_search_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}),
+									html.Button("Search", id="multi_boxplots_search_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}),
 
 									html.Br(),
 
 									#genes not found area
 									html.Div(id="genes_not_found_multi_boxplots_div", children=[], hidden=True, style={"font-size": "12px", "text-align": "center"})
-								], style={"width": "30%", "display": "inline-block", "vertical-align": "top"}),
+								], style={"width": "25%", "display": "inline-block", "vertical-align": "top"}),
 
 								#graph
-								html.Div(
-									id="multi_boxplots_div",
-									children=[dcc.Loading(
-										children = [dcc.Graph(id="multi_boxplots_graph", figure={})
-										],
-										type = "dot",
-										color = "#33A02C")
-								], hidden=True, style={"height": 600, "width": "70%", "display": "inline-block"})
+								html.Div([
+									dcc.Loading(type = "dot", color = "#33A02C", children=[
+										html.Div(
+											id="multi_boxplots_div",
+											children=[dcc.Loading(
+												children = [dcc.Graph(id="multi_boxplots_graph", figure={})],
+												type = "dot",
+												color = "#33A02C")
+										], hidden=True)
+									])
+								], style={"height": 600, "width": "75%", "display": "inline-block"})
 							], style={"height": 600})
 
 						], style=tab_style, selected_style=tab_selected_style),
@@ -682,6 +685,7 @@ def download_go_table(button_click, contrast):
 	Output("gene_species_dropdown", "options"),
 	Output("gene_species_dropdown", "value"),
 	Output("gene_species_multi_boxplots_dropdown", "options"),
+	Output("gene_species_multi_boxplots_dropdown", "placeholder"),
 	#stringency
 	Output("stringency_dropdown", "value"),
 	#inputs
@@ -702,10 +706,17 @@ def find_genes_or_species(dataset, selected_point_ma_plot, current_dropdown_opti
 	if dataset == "human":
 		label = "Host gene:"
 		stringency = 0.0000000001
+		placeholder = "Select host genes"
 	elif dataset != "human":
 		label = dataset.split("_")[1]
 		label = label.capitalize() + ":"
 		stringency = 0.1
+		if label == "Species:":
+			placeholder = "Select " + dataset.replace("_", " ")
+		if label == "Order:":
+			placeholder = "Select " + dataset.split("_")[0] + " orders"
+		if label == "Family:":
+			placeholder = "Select " + dataset.split("_")[0] + " families"
 
 	#if you click a gene, update only the dropdown value and keep the rest as it is
 	if trigger_id == "ma_plot_graph":
@@ -717,7 +728,7 @@ def find_genes_or_species(dataset, selected_point_ma_plot, current_dropdown_opti
 			genes = download_from_github("genes_list.tsv")
 			genes = pd.read_csv(genes, sep = "\t", header=None, names=["genes"])
 			genes = genes["genes"].dropna().tolist()
-			options=[{"label": i, "value": i} for i in genes]
+			options = [{"label": i, "value": i} for i in genes]
 			value="TNF"
 		else:
 			species = download_from_github("{}_list.tsv".format(dataset))
@@ -726,7 +737,7 @@ def find_genes_or_species(dataset, selected_point_ma_plot, current_dropdown_opti
 			options = [{"label": i.replace("_", " ").replace("[", "").replace("]", ""), "value": i} for i in species]
 			value = species[0]
 
-	return label, options, value, options, stringency
+	return label, options, value, options, placeholder, stringency
 
 #tissue filter callback
 @app.callback(
@@ -855,40 +866,80 @@ def display_go_table(contrast, search_value):
 
 	return (columns, data)
 
+#placeholder for multi_boxplots_text_area
+@app.callback(
+	Output("multi_boxplots_text_area", "placeholder"),
+	Input("expression_dataset_dropdown", "value")
+)
+def get_placeholder_multiboxplots_text_area(expression_dataset):
+	if expression_dataset == "human":
+		placeholder = "Paste list (plot allowed for max 10 features)"
+	else:
+		placeholder = "Paste list (plot allowed for max 10 features, one per line)"
+
+	return placeholder
+
 #search genes for multi boxplots
 @app.callback(
 	Output("gene_species_multi_boxplots_dropdown", "value"),
 	Output("genes_not_found_multi_boxplots_div", "children"),
 	Output("genes_not_found_multi_boxplots_div", "hidden"),
 	Input("multi_boxplots_search_button", "n_clicks"),
+	Input("expression_dataset_dropdown", "value"),
 	State("multi_boxplots_text_area", "value"),
 	State("gene_species_multi_boxplots_dropdown", "value"),
-	State("expression_dataset_dropdown", "value"),
 	State("genes_not_found_multi_boxplots_div", "hidden"),
 	prevent_initial_call=True
 )
-def serach_genes_in_text_area(n_clicks, text, already_selected_genes_species, expression_dataset, log_hidden_status):
-	#text is none, do almost anything
-	if text is None:
-		log_div = [html.Br(), "No genes in the search area!"]
-		log_hidden_status = False
+def serach_genes_in_text_area(n_clicks, expression_dataset, text, already_selected_genes_species, log_hidden_status):
+	#define contexts
+	ctx = dash.callback_context
+	trigger_id = ctx.triggered[0]["prop_id"]
+	if trigger_id == "expression_dataset_dropdown.value":
+		already_selected_genes_species = []
+		log_div = []
+		log_hidden_status = True
 	else:
-		genes_species_not_found = []
-		#human dataset
-		if expression_dataset == "human":
+		#text is none, do almost anything
+		if text is None:
+			if expression_dataset == "human":
+				log_div = [html.Br(), "No host genes in the search area!"]
+			else:
+				element = expression_dataset.replace("_", " ").replace("viruses", "viral").replace("bacteria", "bacterial").replace("archaea", "archaeal").replace("eukaryota", "eukaryotic").replace("order", "orders").replace("family", "families")
+				log_div = [html.Br(), "No " + element + " in the search area!"]
+			log_hidden_status = False
+		else:
+			genes_species_not_found = []
+
 			#get all genes
-			all_genes = download_from_github("genes_list.tsv")
+			if expression_dataset == "human":
+				all_genes = download_from_github("genes_list.tsv")
+			else:
+				all_genes = download_from_github("{}_list.tsv".format(expression_dataset))
 			all_genes = pd.read_csv(all_genes, sep = "\t", header=None, names=["genes"])
 			all_genes = all_genes["genes"].dropna().tolist()
+
+			#upper for case insensitive search
+			if expression_dataset != "human":
+				original_names = {}
+				for gene in all_genes:
+					original_names[gene.upper()] = gene
+				all_genes = [x.upper() for x in all_genes]
+				already_selected_genes_species = [x.upper() for x in already_selected_genes_species]
+			
 			#search genes in text
-			genes_species_in_text_area = re.split(r"[\s,;]+", text)
+			if expression_dataset == "human": 
+				genes_species_in_text_area = re.split(r"[\s,;]+", text)
+			else:
+				genes_species_in_text_area = re.split(r"[\n]+", text)
+
 			#remove last gene if empty
 			if genes_species_in_text_area[-1] == "":
 				genes_species_in_text_area = genes_species_in_text_area[0:-1]
-			
+
 			#parse gene
 			for gene in genes_species_in_text_area:
-				gene = gene.upper()
+				gene = gene.upper().replace(" ", "_")
 				#gene existing but not in selected: add it to selected
 				if gene in all_genes:
 					if already_selected_genes_species is None:
@@ -897,17 +948,22 @@ def serach_genes_in_text_area(n_clicks, text, already_selected_genes_species, ex
 						already_selected_genes_species.append(gene)
 				#gene not existing
 				elif gene not in all_genes:
-					genes_species_not_found.append(gene)
-	
-		#log for genes not found
-		if len(genes_species_not_found) > 0:
-			log_div_string = ", ".join(genes_species_not_found)
-			log_div = [html.Br(), "Can't find the following genes:", html.Br(), log_div_string]
-			log_hidden_status = False
-		#hide div if all genes has been found
-		else:
-			log_div = []
-			log_hidden_status = True
+					if gene not in genes_species_not_found:
+						genes_species_not_found.append(gene)
+
+			if expression_dataset != "human":
+				already_selected_genes_species = [original_names[gene.upper()] for gene in already_selected_genes_species]
+				genes_species_not_found = [gene.lower().capitalize() for gene in genes_species_not_found]
+
+			#log for genes not found
+			if len(genes_species_not_found) > 0:
+				log_div_string = ", ".join(genes_species_not_found)
+				log_div = [html.Br(), "Can not find:", html.Br(), log_div_string]
+				log_hidden_status = False
+			#hide div if all genes has been found
+			else:
+				log_div = []
+				log_hidden_status = True
 
 	return already_selected_genes_species, log_div, log_hidden_status
 
@@ -1288,6 +1344,9 @@ def plot_boxplots(expression_dataset, gene, metadata_field, umap_legend_click, b
 		#open metadata and select only the desired column
 		if expression_dataset != "human":
 			expression_dataset = expression_dataset.split("_")[0]
+			expression_or_abundance = "expression"
+		else:
+			expression_or_abundance = "abundance"
 		metadata_df = download_from_github("umap_{}.tsv".format(expression_dataset))
 		metadata_df = pd.read_csv(metadata_df, sep = "\t")
 		#merge and compute log2 and replace inf with 0
@@ -1321,7 +1380,7 @@ def plot_boxplots(expression_dataset, gene, metadata_field, umap_legend_click, b
 	#box_fig["layout"]["paper_bgcolor"] = "#BCBDDC"
 
 	config_boxplots = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 450, "height": 400, "scale": 5}}
-	config_boxplots["toImageButtonOptions"]["filename"] = "TaMMA_boxplots_with_{gene_species}_expression_colored_by_{metadata}".format(gene_species = gene, metadata = metadata_field)
+	config_boxplots["toImageButtonOptions"]["filename"] = "TaMMA_boxplots_with_{gene_species}_{expression_or_abundance}_colored_by_{metadata}".format(gene_species = gene, expression_or_abundance = expression_or_abundance, metadata = metadata_field)
 
 	return box_fig, config_boxplots
 
@@ -1667,6 +1726,7 @@ def plot_go_plot(contrast, search_value):
 #multiboxplots callback
 @app.callback(
 	Output("multi_boxplots_graph", "figure"),
+	Output("multi_boxplots_graph", "config"),
 	Output("multi_boxplots_div", "hidden"),
 	Output("popover_plot_multiboxplots", "is_open"),
 	Input("update_multixoplot_plot_button", "n_clicks"),
@@ -1680,9 +1740,14 @@ def plot_go_plot(contrast, search_value):
 	prevent_initial_call=True
 )
 def plot_multiboxplots(n_clicks, metadata_field, umap_metadata_legend_click, selected_genes_species, expression_dataset, metadata_fig, box_fig, hidden_status):
+	# CIT; NDC80; AURKA; PPP1R12A; XRCC2; RGS14; ENSA; AKAP8; BUB1B; TADA3
 	#define contexts
 	ctx = dash.callback_context
 	trigger_id = ctx.triggered[0]["prop_id"]
+	
+	#default values used when the figure is hidden
+	height_fig = 450
+	title_text = ""
 
 	#empty dropdown
 	if selected_genes_species is None or selected_genes_species == []:
@@ -1745,10 +1810,10 @@ def plot_multiboxplots(n_clicks, metadata_field, umap_metadata_legend_click, sel
 				working_row = 1
 				working_col = 1
 				for gene in selected_genes_species:
-					counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset, gene))
+					counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset.split("_")[0], gene))
 					counts = pd.read_csv(counts, sep = "\t")
 					#open metadata and select only the desired column
-					metadata_df = download_from_github("umap_{}.tsv".format(expression_dataset))
+					metadata_df = download_from_github("umap_{}.tsv".format(expression_dataset.split("_")[0]))
 					metadata_df = pd.read_csv(metadata_df, sep = "\t")
 					#merge and compute log2 and replace inf with 0
 					metadata_df = metadata_df.merge(counts, how="left", on="sample")
@@ -1791,7 +1856,6 @@ def plot_multiboxplots(n_clicks, metadata_field, umap_metadata_legend_click, sel
 					elif working_col == 2:
 						working_col = 1
 
-				# CIT; NDC80; AURKA; PPP1R12A; XRCC2; RGS14; ENSA; AKAP8; BUB1B; TADA3
 				#update all traces markers and remove legend
 				box_fig.update_traces(marker_size=4, showlegend=False)
 				#compute height
@@ -1800,7 +1864,11 @@ def plot_multiboxplots(n_clicks, metadata_field, umap_metadata_legend_click, sel
 				else:
 					height_fig = n_rows*300
 				#add title and set height
-				box_fig.update_layout(height=height_fig, title = {"text": "Gene expression profiles per " + metadata_field_label, "x": 0.5, "font_size": 14}, font_family="Arial")
+				if expression_dataset == "human":
+					title_text = "Host gene expression profiles per "
+				else:
+					title_text = "{} abundance profiles per ".format(expression_dataset.replace("_", " ").replace("viruses", "viral").capitalize())
+				box_fig.update_layout(height=height_fig, title = {"text": title_text + metadata_field_label, "x": 0.5, "font_size": 14}, font_family="Arial", margin_r=10)
 
 				popover_status = False
 				hidden_status = False
@@ -1809,7 +1877,10 @@ def plot_multiboxplots(n_clicks, metadata_field, umap_metadata_legend_click, sel
 				hidden_status = True
 				popover_status = True
 
-	return box_fig, hidden_status, popover_status
+	config_multi_boxplots = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 900, "height": height_fig, "scale": 5}}
+	config_multi_boxplots["toImageButtonOptions"]["filename"] = "TaMMA_multiboxplots_{title_text}".format(title_text = title_text.replace(" ", "_") + metadata_field)
+
+	return box_fig, config_multi_boxplots, hidden_status, popover_status
 
 
 if __name__ == "__main__":
