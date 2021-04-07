@@ -135,6 +135,10 @@ app.index_string = '''
 	<html>
 		<head>
 			<!-- Global site tag (gtag.js) - Google Analytics --><script async src="https://www.googletagmanager.com/gtag/js?id=G-HL81GG80X2"></script><script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-HL81GG80X2'); </script>
+		{%metas%}
+        <title>{%title%}</title>
+        {%favicon%}
+        {%css%}
 		</head>
 		<body>
 			<div></div>
