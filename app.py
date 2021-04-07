@@ -301,7 +301,7 @@ app.layout = html.Div([
 								type = "dot",
 								color = "#33A02C"
 							)
-						], style={"width": "47%", "height": 600, "display": "inline-block"}),
+						], style={"width": "46.5%", "height": 600, "display": "inline-block"}),
 
 						#UMAP expression plot
 						html.Div([
@@ -311,7 +311,7 @@ app.layout = html.Div([
 								type = "dot",
 								color = "#33A02C"
 							)
-						], style={"width": "53%", "height": 600, "display": "inline-block"}),
+						], style={"width": "53.5%", "height": 600, "display": "inline-block"}),
 
 						#boxplots + MA-plot + go plot
 						html.Div([
@@ -1136,7 +1136,8 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 		custom_data = umap_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library strategy"]]
 
 		#add counts to umap df
-		umap_df = umap_df.merge(counts, how="left", on="Sample")
+		umap_df = umap_df.merge(counts, how="outer", on="Sample")
+		n_samples_metadata = len(umap_df["Sample"])
 		umap_df = umap_df.dropna(subset=["counts"])
 
 		#filter samples that are not visible
@@ -1147,18 +1148,18 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 		umap_df["Log2 expression"].replace(to_replace = -np.inf, value = 0, inplace=True)
 
 		#count samples
-		n_samples = len(umap_df["Sample"])
+		n_samples_expression = len(umap_df["Sample"])
 
 		#plot
 		hover_template = "Sample: %{customdata[0]}<br>Group: %{customdata[1]}<br>Tissue: %{customdata[2]}<br>Source: %{customdata[3]}<br>Library strategy: %{customdata[4]}<br>Log2 expression: %{marker.color}<extra></extra>"
 		
 		umap_expression_fig = go.Figure(data=go.Scatter(x=umap_df["UMAP1"], y=umap_df["UMAP2"], marker_color=umap_df["Log2 expression"], marker_colorscale="reds", marker_showscale=True, marker_opacity=1, marker_size=4, marker_colorbar_title="Log2 {}".format(expression_or_abundance), marker_colorbar_title_side="right", marker_colorbar_title_font_size=14, mode="markers", customdata = custom_data, hovertemplate = hover_template, showlegend = False))
 		
-		umap_expression_fig.update_layout(title = {"text": "Sample dispersion within the " + transcriptome_title + " transcriptome multidimensional scaling<br>colored by " + gene_species.replace("_", " ").replace("[", "").replace("]", "") + expression_or_abundance + " n=" + str(n_samples), "x": 0.5, "font_size": 14}, coloraxis_colorbar_thickness=20, font_family="Arial", hoverlabel_bgcolor = "lightgrey", xaxis_automargin=True, yaxis_automargin=True, height = 535, margin=dict(t=60, b=0, l=10, r=60), xaxis_title_text="UMAP1", yaxis_title_text="UMAP2")
+		umap_expression_fig.update_layout(title = {"text": "Sample dispersion within the " + transcriptome_title + " transcriptome multidimensional scaling<br>colored by " + gene_species.replace("_", " ").replace("[", "").replace("]", "") + expression_or_abundance + " n=" + str(n_samples_expression), "x": 0.5, "font_size": 14}, coloraxis_colorbar_thickness=20, font_family="Arial", hoverlabel_bgcolor = "lightgrey", xaxis_automargin=True, yaxis_automargin=True, height = 535, margin=dict(t=60, b=0, l=10, r=60), xaxis_title_text="UMAP1", yaxis_title_text="UMAP2")
 
 		#update layout umap metadata
 		umap_metadata_fig["layout"]["height"] = 600
-		umap_metadata_fig["layout"]["title"]["text"] = "Sample dispersion within the " + transcriptome_title + " transcriptome multidimensional scaling<br>colored by " + selected_metadata + " metadata n=" + str(n_samples)
+		umap_metadata_fig["layout"]["title"]["text"] = "Sample dispersion within the " + transcriptome_title + " transcriptome multidimensional scaling<br>colored by " + selected_metadata + " metadata n=" + str(n_samples_metadata)
 		umap_metadata_fig["layout"]["title"]["x"] = 0.5
 		umap_metadata_fig["layout"]["title"]["font"]["size"] = 14
 		umap_metadata_fig["layout"]["legend"]["title"]["text"] = selected_metadata.capitalize().replace("_", " ")
@@ -1241,7 +1242,12 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 						trace["visible"] = "legendonly"
 
 		#update zoom from metadata
-		umap_expression_fig = synchronize_zoom(umap_expression_fig, umap_metadata_fig)
+		umap_expression_fig = synchronize_zoom(umap_expression_fig, umap_metadata_fig)			
+		
+		#click on the legend will turn autorange False
+		if trigger_id == "umap_metadata.restyleData":
+			umap_expression_fig["layout"]["xaxis"]["autorange"] = False
+			umap_expression_fig["layout"]["yaxis"]["autorange"] = False
 
 	##### CONFIG OPTIONS ####
 	config_umap_metadata = {"doubleClick": "autosize", "modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 500, "height": 500, "scale": 5}}
@@ -1449,7 +1455,7 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 	#save annotations for button
 	up_genes_annotation = [dict(text = str(up) + " higher in<br>" + contrast.split("-vs-")[0].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.98, showarrow=False, font=dict(size=14, color="#DE2D26", family="Arial"))]
 	down_genes_annotation = [dict(text = str(down) + " higher in<br>" + contrast.split("-vs-")[1].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.02, showarrow=False, font=dict(size=14, color="#045A8D", family="Arial"))]
-	show_gene_annotaton = [dict(text = "Show gene stats", align="center", xref="paper", yref="paper", x=1.4, y=1, showarrow=False, font_size=12)]
+	show_gene_annotaton = [dict(text = "Show gene stats", align="center", xref="paper", yref="paper", x=1.37, y=1, showarrow=False, font_size=12)]
 	selected_gene_annotation = [dict(x=ma_plot_fig["data"][3]["x"][0], y=ma_plot_fig["data"][3]["y"][0], xref="x", yref="y", text=ma_plot_fig["data"][3]["customdata"][0][0] + "<br>Log2 avg expr: " +  str(round(selected_gene_log2_base_mean, 1)) + "<br>Log2 FC: " +  str(round(selected_gene_log2fc, 1)) + "<br>FDR: " + selected_gene_fdr, showarrow=True, font=dict(family="Arial", size=12, color="#252525"), align="center", arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="#525252", ax=-50, ay=-50, bordercolor="#525252", borderwidth=2, borderpad=4, bgcolor="#D9D9D9", opacity=0.7)]
 
 	#buttons
@@ -1458,7 +1464,7 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 			type="buttons",
             direction="right",
             active=1,
-            x=1.42,
+            x=1.40,
             y=0.9,
             buttons=list([
                 dict(label="True",
@@ -1678,33 +1684,32 @@ def plot_multiboxplots(n_clicks, metadata_field, umap_metadata_legend_click, sel
 	ctx = dash.callback_context
 	trigger_id = ctx.triggered[0]["prop_id"]
 
-	if trigger_id == "umap_metadata.restyleData":
-		
-		print(len(box_fig["data"]))
+	#empty dropdown
+	if selected_genes_species is None or selected_genes_species == []:
+		hidden_status = True
 		popover_status = False
-		#identify how many changes have to be applyed
-		number_of_changes = len(umap_metadata_legend_click[1])
-		#identify which traces have to be changed
-		traces_to_change = umap_metadata_legend_click[1]
-		#identify which settings have to be applied to each changed trace
-		settings_to_apply = umap_metadata_legend_click[0]["visible"]
-		#identify how many plots there are
-		n_plots = len(selected_genes_species)
-		i = 0
-		for plot in range(0, n_plots):
-			traces_to_change = [trace + i for trace in traces_to_change]
-			print(traces_to_change)
-			#apply each change
-			for n in range(0, number_of_changes):
-				box_fig["data"][traces_to_change[n]]["visible"] = settings_to_apply[n]
-			i += len(metadata_fig["data"])
+	#filled dropdown
 	else:
-		#empty dropdown
-		if selected_genes_species is None or selected_genes_species == []:
-			hidden_status = True
+		#click umap legend
+		if trigger_id == "umap_metadata.restyleData":	
 			popover_status = False
-		#filled dropdown
-		else:
+			#identify how many changes have to be applyed
+			number_of_changes = len(umap_metadata_legend_click[1])
+			#identify which traces have to be changed
+			traces_to_change = umap_metadata_legend_click[1]
+			#identify which settings have to be applied to each changed trace
+			settings_to_apply = umap_metadata_legend_click[0]["visible"]
+			#identify how many plots there are
+			n_plots = len(selected_genes_species)
+			i = 0
+			for plot in range(0, n_plots):
+				actual_traces_to_change = [trace + i for trace in traces_to_change]
+				#apply each change
+				for n in range(0, number_of_changes):
+					box_fig["data"][actual_traces_to_change[n]]["visible"] = settings_to_apply[n]
+				i += len(metadata_fig["data"])
+		#any other change
+		elif trigger_id != "umap_metadata.restyleData":
 			#up to 10 elements to plot
 			if len(selected_genes_species) < 11:
 
