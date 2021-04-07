@@ -1344,9 +1344,9 @@ def plot_boxplots(expression_dataset, gene, metadata_field, umap_legend_click, b
 		#open metadata and select only the desired column
 		if expression_dataset != "human":
 			expression_dataset = expression_dataset.split("_")[0]
-			expression_or_abundance = "expression"
-		else:
 			expression_or_abundance = "abundance"
+		else:
+			expression_or_abundance = "expression"
 		metadata_df = download_from_github("umap_{}.tsv".format(expression_dataset))
 		metadata_df = pd.read_csv(metadata_df, sep = "\t")
 		#merge and compute log2 and replace inf with 0
@@ -1371,7 +1371,7 @@ def plot_boxplots(expression_dataset, gene, metadata_field, umap_legend_click, b
 			box_fig.add_trace(go.Box(y=filtered_metadata["Log2 counts"], name = metadata, marker_color = colors[i], boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text"))
 			i += 1
 		box_fig.update_traces(marker_size=4, showlegend=False)
-		box_fig.update_layout(title = {"text": gene.replace("_", " ").replace("[", "").replace("]", "") + " expression profiles per " + metadata_field_label, "x": 0.5, "font_size": 14}, legend_title_text = metadata_field_label, yaxis_title = "Log2 expression", xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", height=400, margin=dict(t=30, b=30, l=5, r=10))
+		box_fig.update_layout(title = {"text": gene.replace("_", " ").replace("[", "").replace("]", "") + " {} profiles per ".format(expression_or_abundance) + metadata_field_label, "x": 0.5, "font_size": 14}, legend_title_text = metadata_field_label, yaxis_title = "Log2 {}".format(expression_or_abundance), xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", height=400, margin=dict(t=30, b=30, l=5, r=10))
 
 	#syncronyze legend status with umap metadata
 	for trace in range(0, len(umap_metadata_figure["data"])):
@@ -1805,7 +1805,11 @@ def plot_multiboxplots(n_clicks, metadata_field, umap_metadata_legend_click, sel
 					specs[-1][-1] = None
 
 				#make subplots
-				box_fig = make_subplots(rows=n_rows, cols=2, specs=specs, subplot_titles=[gene for gene in selected_genes_species], shared_xaxes=True, vertical_spacing=vertical_spacing, y_title="Log2 expression")
+				if expression_dataset == "human":
+					expression_or_abundance = "expression"
+				else:
+					expression_or_abundance = "abundance"
+				box_fig = make_subplots(rows=n_rows, cols=2, specs=specs, subplot_titles=[gene for gene in selected_genes_species], shared_xaxes=True, vertical_spacing=vertical_spacing, y_title="Log2 {}".format(expression_or_abundance))
 
 				working_row = 1
 				working_col = 1
