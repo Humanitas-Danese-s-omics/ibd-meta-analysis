@@ -171,37 +171,31 @@ app.layout = html.Div([
 						#general options dropdowns
 						html.Div([
 							#umap dataset dropdown
-							html.Div([ 
-								html.Label("UMAP dataset:"),
-								dcc.Dropdown(
-									id="umap_dataset_dropdown",
-									options=umap_datasets_options,
-									value="human",
-									clearable=False
-								) 
-							], style={"width": "10%", "display": "inline-block"}),
-							
+							html.Label(["Clustering", 
+										dcc.Dropdown(
+											id="umap_dataset_dropdown",
+											clearable=False,
+											options=umap_datasets_options,
+											value="human"
+							)], style={"width": "7%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
+
 							#metadata dropdown
-							html.Div([
-								html.Label("Metadata:"),
-								dcc.Dropdown(
-									id="metadata_dropdown",
-									options=metadata_umap_options,
-									value="condition",
-									clearable=False
-								)
-							], style={"width": "10%", "display": "inline-block"}),
-							
+							html.Label(["Group by", 
+										dcc.Dropdown(
+											id="metadata_dropdown",
+											clearable=False,
+											options=metadata_umap_options,
+											value="condition"
+							)], style={"width": "8%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
+
 							#expression dataset dropdown
-							html.Div([
-								html.Label(children = "Expression dataset:"),
-								dcc.Dropdown(
-									id="expression_dataset_dropdown",
-									clearable=False,
-									options=expression_datasets_options,
-									value="human"
-								)
-							], style={"width": "10%", "display": "inline-block"}),
+							html.Label(["Expression", 
+										dcc.Dropdown(
+											id="expression_dataset_dropdown",
+											clearable=False,
+											options=expression_datasets_options,
+											value="human"
+							)], style={"width": "13%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
 
 							#gene/specie dropdown
 							html.Div([
@@ -210,36 +204,30 @@ app.layout = html.Div([
 									id="gene_species_dropdown",
 									clearable=False
 								)
-							], style={"width": "20%", "display": "inline-block"}),
-							
+							], style={"width": "28%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
+
 							#tissue filter for contrast dropdown
-							html.Div([
-								html.Label("Tissue filter:"),
-								dcc.Dropdown(
-									id="tissue_filter_dropdown",
-									clearable=False
-								)
-							], style={"width": "10%", "display": "inline-block"}),
+							html.Label(["Tissue", 
+										dcc.Dropdown(
+											id="tissue_filter_dropdown",
+											clearable=False,
+							)], style={"width": "11%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
 
 							#contrast dropdown
-							html.Div([
-								html.Label("Comparison:"),
-								dcc.Dropdown(
-									id="contrast_dropdown",
-									clearable=False
-								)
-							], style={"width": "30%", "display": "inline-block"}),
+							html.Label(["Comparison", 
+										dcc.Dropdown(
+											id="contrast_dropdown",
+											clearable=False,
+							)], style={"width": "25%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
 
 							#stringecy dropdown
-							html.Div([
-								html.Label("FDR:"),
-								dcc.Dropdown(
-									id="stringency_dropdown",
-									options=padj_options,
-									clearable=False
-									)
-							], style={"width": "8%", "display": "inline-block"}),
-						], style={"width": "100%", "textAlign": "center", "font-size": "12px"}
+							html.Label(["FDR", 
+										dcc.Dropdown(
+											id="stringency_dropdown",
+											clearable=False,
+											options=padj_options,
+							)], style={"width": "8%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
+						], style={"width": "100%", "font-size": "12px"}
 						),
 
 						#UMAP switches and info
@@ -326,7 +314,7 @@ app.layout = html.Div([
 										dbc.Tooltip(
 											children=[dcc.Markdown(
 												"""
-												Box plots showing host gene/species/family/order expression/abundance in the different groups.
+												Box plots showing gene/species/family/order expression/abundance in the different groups.
 												
 												Click the ___UMAP legend___ to choose which group you want to display.  
 												Click the ___Comparison only___ button to display only the samples from the two comparisons.
@@ -354,42 +342,23 @@ app.layout = html.Div([
 									html.Br()
 								], style={"width": "100%", "display": "inline-block"}),
 
-								#info and download button MA-plot
+								#info MA-plot
 								html.Div([
-									#info
-									html.Div([
-										html.Img(src="assets/info.png", alt="info", id="info_ma_plot", style={"width": 20, "height": 20}),
-										dbc.Tooltip(
-											children=[dcc.Markdown(
-												"""
-												Differential expression/abundance visualization by MA plot,  
-												with gene/species/family/order dispersion in accordance with the fold changes  
-												between conditions and their average expression/abundance.
-												
-												Click on the ___Show gene stats___ to display its statistics.  
-												Click inside the plot to change statistics of interest.
-												""")
-											],
-											target="info_ma_plot",
-											style={"font-family": "arial", "font-size": 14}
-										),
-									], style={"width": "30%", "display": "inline-block", "vertical-align": "middle"}),
-									
-									#download button
-									html.Div([
-										dcc.Loading(
-											id = "loading_download_diffexp",
-											type = "circle",
-											color = "#33A02C",
-											children=[html.A(
-												id="download_diffexp",
-												href="",
-												target="_blank",
-												children = [html.Button("Download full table", id="download_diffexp_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
-												)
-											]
-										)
-									], style={"width": "30%", "display": "inline-block", "textAlign": "center", "vertical-align": "middle", 'color': 'black'}),
+									html.Img(src="assets/info.png", alt="info", id="info_ma_plot", style={"width": 20, "height": 20}),
+									dbc.Tooltip(
+										children=[dcc.Markdown(
+											"""
+											Differential expression/abundance visualization by MA plot,  
+											with gene/species/family/order dispersion in accordance with the fold changes  
+											between conditions and their average expression/abundance.
+											
+											Click on the ___Show gene stats___ to display its statistics.  
+											Click inside the plot to change statistics of interest.
+											""")
+										],
+										target="info_ma_plot",
+										style={"font-family": "arial", "font-size": 14}
+									),
 								], style={"width": "100%", "display": "inline-block", "text-align":"center"}),
 
 								#MA-plot
@@ -442,110 +411,19 @@ app.layout = html.Div([
 						], style = {"width": "100%", "height": 1000, "display": "inline-block"}),
 					]),
 
-					#content
+					#tabs
 					dcc.Tabs(id="site_tabs", value="summary_tab", children=[
 						#summary tab
 						dcc.Tab(label="Summary", value="summary_tab", children =[
 								html.Br(),
 								#graphical abstract
-								html.Div([html.Img(src="assets/workflow.png", alt="graphical_abstract", style={"width": "40%", "height": "40%"}, title="FASTQ reads from 3,853 RNA-Seq data from different tissues, namely ileum, colon, rectum, mesenteric adipose tissue, peripheral blood, and stools, were mined from NCBI GEO/SRA and passed the initial quality filter. All files were mapped to the human reference genome and initial gene quantification was performed. Since these data came from 26 different studies made in different laboratories, we counteract the presumptive bias through a batch correction in accordance with source and tissue of origin. Once the gene counts were adjusted, samples were divided into groups in accordance with the tissue of origin and patient condition prior to differential expression analysis and gene ontology functional enrichment. Finally, the reads failing to map to the human genome were subjected to metatranscriptomics profiling by taxonomic classification using exact k-mer matching either archaeal, bacterial, eukaryotic, or viral genes. This image has been designed using resources from https://streamlineicons.com")
+								html.Div([html.Img(src="assets/workflow.png", alt="graphical_abstract", style={"width": "60%", "height": "60%"}, title="FASTQ reads from 3,853 RNA-Seq data from different tissues, namely ileum, colon, rectum, mesenteric adipose tissue, peripheral blood, and stools, were mined from NCBI GEO/SRA and passed the initial quality filter. All files were mapped to the human reference genome and initial gene quantification was performed. Since these data came from 26 different studies made in different laboratories, we counteract the presumptive bias through a batch correction in accordance with source and tissue of origin. Once the gene counts were adjusted, samples were divided into groups in accordance with the tissue of origin and patient condition prior to differential expression analysis and gene ontology functional enrichment. Finally, the reads failing to map to the human genome were subjected to metatranscriptomics profiling by taxonomic classification using exact k-mer matching either archaeal, bacterial, eukaryotic, or viral genes. This image has been designed using resources from https://streamlineicons.com")
 								], style={"width": "100%", "display": "inline-block"}),
 
 								#statistics
 								html.Div([
 									dcc.Graph(id="snakey", figure=snakey_fig, config={"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 1000, "height": 400, "scale": 20, "filename": "easter_egg_TBD"}})
 								], style={"width": "100%", "display": "inline-block"})
-						], style=tab_style, selected_style=tab_selected_style),
-						#go table tab
-						dcc.Tab(label="GO table", value="go_table_tab", children=[
-								html.Br(),
-								
-								#info go table
-								html.Div([
-									html.Img(src="assets/info.png", alt="info", id="info_go_table", style={"width": 20, "height": 20}),
-									dbc.Tooltip(
-										children=[dcc.Markdown(
-											"""
-											Table showing the complete list of the differentially enriched gene ontology biological processes between the two conditions, unless filtered otherwise.  
-												
-											Click on headers to reorder the table.  
-											Click on a GO dataset name to see its specifics in the AmiGO 2 web resource (___Ashburner et al. 2000, PMID 10802651___)
-											""")
-										],
-										target="info_go_table",
-										style={"font-family": "arial", "font-size": 14}
-									),
-								], style={"width": "50%", "display": "inline-block", "vertical-align": "middle", "textAlign": "center"}),
-
-								#download button
-								html.Div([
-									dcc.Loading(
-										id = "loading_download_go",
-										type = "circle",
-										color = "#33A02C",
-										children=[html.A(
-											id="download_go",
-											href="",
-											target="_blank",
-											children = [html.Button("Download full table", id="download_go_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
-											)
-										]
-									)
-								], style={"width": "25%", "display": "inline-block", "textAlign": "left", "vertical-align": "middle", 'color': 'black'}),
-
-								#go table
-								html.Div([
-									html.Br(),
-									dcc.Loading(
-										id="loading_go_table",
-										type="dot",
-										color="#33A02C",
-										children=dash_table.DataTable(
-											id="go_table",
-											style_cell={
-												"whiteSpace": "normal",
-												"height": "auto",
-												"fontSize": 12, 
-												"font-family": "arial",
-												"textAlign": "center"
-											},
-											page_size=10,
-											sort_action="native",
-											style_header={
-												"textAlign": "center"
-											},
-											style_cell_conditional=[
-												{
-													"if": {"column_id": "Genes"},
-													"textAlign": "left",
-													"width": "50%"
-												},
-												{
-													"if": {"column_id": "GO biological process"},
-													"textAlign": "left",
-													"width": "15%"
-												}
-											],
-											style_data_conditional=[
-												{
-													"if": {
-														"column_id": "DGE",
-														"filter_query": "{{DGE}} = {}".format("up")
-													},
-													"backgroundColor": "#FCBBA1"
-												},
-												{
-													"if": {
-														"column_id": "DGE",
-														"filter_query": "{{DGE}} = {}".format("down")
-													},
-													"backgroundColor": "#D0D1E6"
-												},
-											],
-											style_as_list_view=True
-										)
-									)
-								], style={"width": "100%", "font-family": "arial"}),
 						], style=tab_style, selected_style=tab_selected_style),
 						#custom boxplots
 						dcc.Tab(label="Box plots", value="boxplots_tab", children=[
@@ -625,7 +503,217 @@ app.layout = html.Div([
 									])
 								], style={"height": 600, "width": "75%", "display": "inline-block"})
 							], style={"height": 600})
+						], style=tab_style, selected_style=tab_selected_style),
+						#dge table tab
+						dcc.Tab(label="DGE table", value="dge_tab", children=[
+							html.Br(),
+							
+							#info dge table
+							html.Div([
+								html.Img(src="assets/info.png", alt="info", id="info_dge_table", style={"width": 20, "height": 20}),
+								dbc.Tooltip(
+									children=[dcc.Markdown(
+										"""
+										Table showing the differential gene/species/family/order expression/abundance between the two conditions, unless filtered otherwise.
+			
+										Click on headers to reorder the table.
 
+										Click on a host Gene to see its info in GeneCards (___https://www.genecards.org___).
+										Click on a Ensembl Gene ID to see its info in Ensembl (___https://www.ensembl.org___).
+										Click on a database icon to see its info in IBD Exome Browser (___https://ibd.broadinstitute.org___).
+
+										Click on a Species/Family/Order to see its info in NCBI Genome (___https://www.ncbi.nlm.nih.gov/genome___).
+										""")
+									],
+									target="info_dge_table",
+									style={"font-family": "arial", "font-size": 14}
+								),
+							], style={"width": "25%", "display": "inline-block", "vertical-align": "middle", "textAlign": "center"}),
+
+							#download button diffexp
+							html.Div([
+								dcc.Loading(
+									id = "loading_download_diffexp",
+									type = "circle",
+									color = "#33A02C",
+									children=[html.A(
+										id="download_diffexp",
+										href="",
+										target="_blank",
+										children = [html.Button("Download full table", id="download_diffexp_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+										)
+									]
+								)
+							], style={"width": "25%", "display": "inline-block", "vertical-align": "middle", 'color': 'black'}),
+
+							#dropdown
+							html.Div([
+								dcc.Dropdown(id="multi_gene_dge_table_selection_dropdown", multi=True, placeholder="", style={"textAlign": "left", "font-size": "12px", "width": "75%"})
+							], style={"width": "50%", "display": "inline-block", "font-size": "12px", "vertical-align": "middle"}),
+
+							#filtered dge table
+							html.Div(id="filtered_dge_table_div", children=[
+								html.Br(),
+								dcc.Loading(
+									id="loading_dge_table_filtered",
+									type="dot",
+									color="#33A02C",
+									children=dash_table.DataTable(
+										id="dge_table_filtered",
+										style_cell={
+											"whiteSpace": "normal",
+											"height": "auto",
+											"fontSize": 12, 
+											"font-family": "arial",
+											"textAlign": "center"
+										},
+										page_size=25,
+										sort_action="native",
+										style_header={
+											"textAlign": "center"
+										},
+										style_cell_conditional=[
+											{
+												"if": {"column_id": ["Gene", "Order", "Family", "Species", "Gene ID"]},
+												"textAlign": "left"
+											},
+											{
+												"if": {"column_id": "IBD exome browser"},
+												"width": "12%"
+											}
+										],
+										style_data_conditional=[],
+										style_as_list_view=True
+									)
+								)
+							], style={"width": "100%", "font-family": "arial"}, hidden=True),
+
+							#full dge table
+							html.Div([
+								html.Br(),
+								dcc.Loading(
+									id="loading_dge_table",
+									type="dot",
+									color="#33A02C",
+									children=dash_table.DataTable(
+										id="dge_table",
+										style_cell={
+											"whiteSpace": "normal",
+											"height": "auto",
+											"fontSize": 12, 
+											"font-family": "arial",
+											"textAlign": "center"
+										},
+										page_size=25,
+										sort_action="native",
+										style_header={
+											"textAlign": "center"
+										},
+										style_cell_conditional=[
+											{
+												"if": {"column_id": ["Gene", "Order", "Family", "Species", "Gene ID"]},
+												"textAlign": "left"
+											},
+											{
+												"if": {"column_id": "IBD exome browser"},
+												"width": "12%"
+											}
+										],
+										style_data_conditional=[],
+										style_as_list_view=True
+									)
+								)
+							], style={"width": "100%", "font-family": "arial"}),
+							html.Br()
+						], style=tab_style, selected_style=tab_selected_style),
+						#go table tab
+						dcc.Tab(label="GO table", value="go_table_tab", children=[
+							html.Br(),
+							
+							#info go table
+							html.Div([
+								html.Img(src="assets/info.png", alt="info", id="info_go_table", style={"width": 20, "height": 20}),
+								dbc.Tooltip(
+									children=[dcc.Markdown(
+										"""
+										Table showing the differentially enriched gene ontology biological processes between the two conditions, unless filtered otherwise.
+
+										Click on headers to reorder the table.
+										Click on a GO dataset name to see its specifics in AmiGO 2 (___Ashburner et al. 2000, PMID 10802651___).
+										""")
+									],
+									target="info_go_table",
+									style={"font-family": "arial", "font-size": 14}
+								),
+							], style={"width": "50%", "display": "inline-block", "vertical-align": "middle", "textAlign": "center"}),
+
+							#download button
+							html.Div([
+								dcc.Loading(
+									id = "loading_download_go",
+									type = "circle",
+									color = "#33A02C",
+									children=[html.A(
+										id="download_go",
+										href="",
+										target="_blank",
+										children = [html.Button("Download full table", id="download_go_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+										)
+									]
+								)
+							], style={"width": "25%", "display": "inline-block", "textAlign": "left", "vertical-align": "middle", 'color': 'black'}),
+
+							#go table
+							html.Div([
+								html.Br(),
+								dcc.Loading(
+									id="loading_go_table",
+									type="dot",
+									color="#33A02C",
+									children=dash_table.DataTable(
+										id="go_table",
+										style_cell={
+											"whiteSpace": "normal",
+											"height": "auto",
+											"fontSize": 12, 
+											"font-family": "arial",
+											"textAlign": "center"
+										},
+										page_size=10,
+										sort_action="native",
+										style_header={
+											"textAlign": "center"
+										},
+										style_cell_conditional=[
+											{
+												"if": {"column_id": "Genes"},
+												"textAlign": "left",
+												"width": "50%"
+											},
+											{
+												"if": {"column_id": "GO biological process"},
+												"textAlign": "left",
+												"width": "15%"
+											}
+										],
+										style_data_conditional=[
+											{
+												"if": {
+													"filter_query": "{{DGE}} = {}".format("up")
+												},
+												"backgroundColor": "#FFE6E6"
+											},
+											{
+												"if": {
+													"filter_query": "{{DGE}} = {}".format("down")
+												},
+												"backgroundColor": "#E6F0FF"
+											}
+										],
+										style_as_list_view=True
+									)
+								)
+							], style={"width": "100%", "font-family": "arial"}),
 						], style=tab_style, selected_style=tab_selected_style),
 					], style= {"height": 40}),
 
@@ -686,6 +774,8 @@ def download_go_table(button_click, contrast):
 	Output("gene_species_dropdown", "value"),
 	Output("gene_species_multi_boxplots_dropdown", "options"),
 	Output("gene_species_multi_boxplots_dropdown", "placeholder"),
+	Output("multi_gene_dge_table_selection_dropdown", "options"),
+	Output("multi_gene_dge_table_selection_dropdown", "placeholder"),
 	#stringency
 	Output("stringency_dropdown", "value"),
 	#inputs
@@ -704,19 +794,21 @@ def find_genes_or_species(dataset, selected_point_ma_plot, current_dropdown_opti
 
 	#dropdown label depends on selected dataset
 	if dataset == "human":
-		label = "Host gene:"
+		label = "Host gene"
 		stringency = 0.0000000001
-		placeholder = "Select host genes"
+		placeholder_multiboxplots_dropdown = "Select host genes"
+		placeholder_multidropdown_dge_table = "Type here to search host genes"
 	elif dataset != "human":
 		label = dataset.split("_")[1]
-		label = label.capitalize() + ":"
+		label = label.capitalize()
 		stringency = 0.1
-		if label == "Species:":
-			placeholder = "Select " + dataset.replace("_", " ")
-		if label == "Order:":
-			placeholder = "Select " + dataset.split("_")[0] + " orders"
-		if label == "Family:":
-			placeholder = "Select " + dataset.split("_")[0] + " families"
+		placeholder_multidropdown_dge_table = "Type here to search {}".format(dataset.replace("_", " ").replace("order", "orders").replace("family", "families"))
+		if label == "Species":
+			placeholder_multiboxplots_dropdown = "Select " + dataset.replace("_", " ")
+		if label == "Order":
+			placeholder_multiboxplots_dropdown = "Select " + dataset.split("_")[0] + " orders"
+		if label == "Family":
+			placeholder_multiboxplots_dropdown = "Select " + dataset.split("_")[0] + " families"
 
 	#if you click a gene, update only the dropdown value and keep the rest as it is
 	if trigger_id == "ma_plot_graph":
@@ -737,7 +829,7 @@ def find_genes_or_species(dataset, selected_point_ma_plot, current_dropdown_opti
 			options = [{"label": i.replace("_", " ").replace("[", "").replace("]", ""), "value": i} for i in species]
 			value = species[0]
 
-	return label, options, value, options, placeholder, stringency
+	return label, options, value, options, placeholder_multiboxplots_dropdown, options, placeholder_multidropdown_dge_table, stringency
 
 #tissue filter callback
 @app.callback(
@@ -809,7 +901,169 @@ def filter_contrasts(dataset, tissue):
 
 	return contrasts, default_contrast_value 
 
-#go_table
+#dge table filtered by multidropdown
+@app.callback(
+	Output("dge_table_filtered", "columns"),
+	Output("dge_table_filtered", "data"),
+	Output("dge_table_filtered", "style_data_conditional"),
+	Output("filtered_dge_table_div", "hidden"),
+	Input("multi_gene_dge_table_selection_dropdown", "value"),
+	Input("contrast_dropdown", "value"),
+	Input("expression_dataset_dropdown", "value"),
+	Input("stringency_dropdown", "value")
+)
+def get_filtered_dge_table(dropdown_values, contrast, dataset, fdr):
+	if dropdown_values is None or dropdown_values == []:
+		hidden_div = True
+		columns = []
+		data = [{}]
+		style_data_conditional = []
+	else:
+		hidden_div = False
+		#open tsv
+		table = download_from_github("dge/{}/{}.diffexp.tsv".format(dataset, contrast))
+		table = pd.read_csv(table, sep = "\t")
+
+		#filter selected genes
+		table = table[table["Gene"].isin(dropdown_values)]
+
+		#define dataset specific variables
+		if dataset == "human":
+			base_mean_label = "Average expression"
+			gene_column_name = "Gene"
+			genes_with_links = []
+			for gene in table["Gene"]:
+				if gene is not np.nan:
+					genes_with_links.append("[{}](".format(gene) + str("https://www.genecards.org/cgi-bin/carddisp.pl?gene=") + gene + ")")
+				else:
+					genes_with_links.append("")
+			table["Gene"] = genes_with_links
+		else:
+			base_mean_label = "Average abundance"
+			gene_column_name = dataset.split("_")[1].capitalize()
+			table = table.rename(columns={"Gene": gene_column_name})
+			table[gene_column_name] = ["[{}](".format(x) + str("https://www.ncbi.nlm.nih.gov/genome/?term=") + x.replace(" ", "+") + ")" for x in table[gene_column_name]]
+
+		#data carpentry and links
+		table = table.rename(columns={"Geneid": "Gene ID", "log2FoldChange": "log2 FC", "lfcSE": "log2 FC SE", "pvalue": "P-value", "padj": "FDR", "baseMean": base_mean_label})
+		table = table.sort_values(by=["FDR"])
+		table["IBD exome browser"] = table["Gene ID"]
+		table["Gene ID"] = ["[{}](".format(gene_id) + str("https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=") + gene_id + ")" for gene_id in table["Gene ID"]]
+		table["IBD exome browser"] = ["[![DB](assets/db.png)](" + str("https://ibd.broadinstitute.org/gene/") + gene_id + ")" for gene_id in table["IBD exome browser"]]
+
+		#define data
+		data = table.to_dict("records")
+
+		#define columns
+		columns = [
+			{"name": gene_column_name, "id": gene_column_name, "type": "text", "presentation": "markdown"}, 
+			{"name": "Gene ID", "id":"Gene ID", "type": "text", "presentation": "markdown"},
+			{"name": base_mean_label, "id": base_mean_label, "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
+			{"name": "log2 FC", "id":"log2 FC", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
+			{"name": "log2 FC SE", "id":"log2 FC SE", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
+			{"name": "P-value", "id":"P-value", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
+			{"name": "FDR", "id":"FDR", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
+			{"name": "IBD exome browser", "id":"IBD exome browser", "type": "text", "presentation": "markdown"},
+			]
+		#Gene ID column not useful for metatransciptomics data
+		if dataset != "human":
+			del columns[1]
+			del columns[-1]
+
+		#color rows by pvalue and up and down log2FC
+		style_data_conditional = [
+			{
+				"if": {
+					"filter_query": "{FDR} < {threshold}".format(FDR="{FDR}", threshold=fdr) + " && {log2 FC} < 0"
+				},
+				"backgroundColor": "#E6F0FF"
+			},
+			{
+				"if": {
+					"filter_query": "{FDR} < {threshold}".format(FDR="{FDR}", threshold=fdr) + " && {log2 FC} > 0"
+				},
+				"backgroundColor": "#FFE6E6"
+			}
+		]
+
+	return columns, data, style_data_conditional, hidden_div
+
+#dge table full
+@app.callback(
+	Output("dge_table", "columns"),
+	Output("dge_table", "data"),
+	Output("dge_table", "style_data_conditional"),
+	Input("contrast_dropdown", "value"),
+	Input("expression_dataset_dropdown", "value"),
+	Input("stringency_dropdown", "value")
+)
+def display_dge_table(contrast, dataset, fdr):
+	#open tsv
+	table = download_from_github("dge/{}/{}.diffexp.tsv".format(dataset, contrast))
+	table = pd.read_csv(table, sep = "\t")
+
+	#define dataset specific variables
+	if dataset == "human":
+		base_mean_label = "Average expression"
+		gene_column_name = "Gene"
+		genes_with_links = []
+		for gene in table["Gene"]:
+			if gene is not np.nan:
+				genes_with_links.append("[{}](".format(gene) + str("https://www.genecards.org/cgi-bin/carddisp.pl?gene=") + gene + ")")
+			else:
+				genes_with_links.append("")
+		table["Gene"] = genes_with_links
+	else:
+		base_mean_label = "Average abundance"
+		gene_column_name = dataset.split("_")[1].capitalize()
+		table = table.rename(columns={"Gene": gene_column_name})
+		table[gene_column_name] = ["[{}](".format(x) + str("https://www.ncbi.nlm.nih.gov/genome/?term=") + x.replace(" ", "+") + ")" for x in table[gene_column_name]]
+
+	#data carpentry and links
+	table = table.rename(columns={"Geneid": "Gene ID", "log2FoldChange": "log2 FC", "lfcSE": "log2 FC SE", "pvalue": "P-value", "padj": "FDR", "baseMean": base_mean_label})
+	table = table.sort_values(by=["FDR"])
+	table["IBD exome browser"] = table["Gene ID"]
+	table["Gene ID"] = ["[{}](".format(gene_id) + str("https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=") + gene_id + ")" for gene_id in table["Gene ID"]]
+	table["IBD exome browser"] = ["[![DB](assets/db.png)](" + str("https://ibd.broadinstitute.org/gene/") + gene_id + ")" for gene_id in table["IBD exome browser"]]
+
+	#define data
+	data = table.to_dict("records")
+
+	#define columns
+	columns = [
+		{"name": gene_column_name, "id": gene_column_name, "type": "text", "presentation": "markdown"}, 
+		{"name": "Gene ID", "id":"Gene ID", "type": "text", "presentation": "markdown"},
+		{"name": base_mean_label, "id": base_mean_label, "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
+		{"name": "log2 FC", "id":"log2 FC", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
+		{"name": "log2 FC SE", "id":"log2 FC SE", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
+		{"name": "P-value", "id":"P-value", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
+		{"name": "FDR", "id":"FDR", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
+		{"name": "IBD exome browser", "id":"IBD exome browser", "type": "text", "presentation": "markdown"},
+		]
+	#Gene ID column not useful for metatransciptomics data
+	if dataset != "human":
+		del columns[1]
+		del columns[-1]
+
+	#color rows by pvalue and up and down log2FC
+	style_data_conditional = [
+		{
+			"if": {
+				"filter_query": "{FDR} < {threshold}".format(FDR="{FDR}", threshold=fdr) + " && {log2 FC} < 0"
+			},
+			"backgroundColor": "#E6F0FF"
+		},
+		{
+			"if": {
+				"filter_query": "{FDR} < {threshold}".format(FDR="{FDR}", threshold=fdr) + " && {log2 FC} > 0"
+			},
+			"backgroundColor": "#FFE6E6"
+		}
+	]
+
+	return columns, data, style_data_conditional
+
+#go table
 @app.callback(
 	Output("go_table", "columns"),
 	Output("go_table", "data"),
@@ -860,11 +1114,11 @@ def display_go_table(contrast, search_value):
 		{"name": "DEGs", "id":"DEGs"},
 		{"name": "Dataset genes", "id":"Dataset genes"},
 		{"name": "Enrichment", "id":"Enrichment", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
-		{"name": "P-value", "id":"P-value", "type": "numeric", "format": Format(precision=1, scheme=Scheme.exponent)}
+		{"name": "P-value", "id":"P-value", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)}
 		]
 	data = go_df.to_dict("records")
 
-	return (columns, data)
+	return columns, data
 
 #placeholder for multi_boxplots_text_area
 @app.callback(
