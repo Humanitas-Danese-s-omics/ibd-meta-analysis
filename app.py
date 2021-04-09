@@ -1050,6 +1050,12 @@ def display_dge_table(contrast, dataset, fdr):
 	style_data_conditional = [
 		{
 			"if": {
+				"filter_query": "{FDR} is blank"
+			},
+			"backgroundColor": "white"
+		},
+		{
+			"if": {
 				"filter_query": "{FDR} < {threshold}".format(FDR="{FDR}", threshold=fdr) + " && {log2 FC} < 0"
 			},
 			"backgroundColor": "#E6F0FF"
@@ -1059,12 +1065,6 @@ def display_dge_table(contrast, dataset, fdr):
 				"filter_query": "{FDR} < {threshold}".format(FDR="{FDR}", threshold=fdr) + " && {log2 FC} > 0"
 			},
 			"backgroundColor": "#FFE6E6"
-		},
-		{
-			"if": {
-				"filter_query": "{FDR} is blank"
-			},
-			"backgroundColor": "white"
 		}
 	]
 
