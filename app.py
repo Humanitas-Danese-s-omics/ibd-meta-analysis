@@ -518,11 +518,11 @@ app.layout = html.Div([
 			
 										Click on headers to reorder the table.
 
-										Click on a host Gene to see its info in GeneCards (___https://www.genecards.org___).
-										Click on a Ensembl Gene ID to see its info in Ensembl (___https://www.ensembl.org___).
-										Click on a database icon to see its info in IBD Exome Browser (___https://ibd.broadinstitute.org___).
+										Click on a host Gene to see its info in GeneCards (___www.genecards.org___).
+										Click on a Ensembl Gene ID to see its info in Ensembl (___www.ensembl.org___).
+										Click on a database icon to see its info in IBD Exome Browser (___ibd.broadinstitute.org___).
 
-										Click on a Species/Family/Order to see its info in NCBI Genome (___https://www.ncbi.nlm.nih.gov/genome___).
+										Click on a Species/Family/Order to see its info in NCBI Genome (___www.ncbi.nlm.nih.gov/genome___).
 										""")
 									],
 									target="info_dge_table",
