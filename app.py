@@ -158,7 +158,7 @@ app.layout = html.Div([
 				html.Div([
 					#logo
 					html.Div([
-						html.Img(src="assets/logo.png", alt="logo", style={"width": "70%", "height": "70%"}, title="Tamma means talking drum in West Africa, where it’s also known as dundun. It is a small drum, played with a curved stick and having a membrane stretched over one end or both ends of a narrow-waisted wooden frame by cords whose tension can be manually altered to vary the drum's tonality as it is played. This image has been designed using resources from Flaticon.com."
+						html.Img(src="assets/logo.png", alt="logo", style={"width": "70%", "height": "70%"}, title="Tamma means talking drum in West Africa, where it’s also known as _dundun_. It is a small drum, played with a curved stick and having a membrane stretched over one end or both ends of a narrow-waisted wooden frame by cords whose tension can be manually altered to vary the drum's tonality as it is played. This image has been designed using resources from Flaticon.com."
 						),
 					]),
 
@@ -240,8 +240,7 @@ app.layout = html.Div([
 									dbc.Tooltip(
 										children=[dcc.Markdown(
 											"""
-											Low-dimensional embedding of high-dimensional data (e.g., 55k genes in the human transcriptome)  
-											by Uniform Manifold Approximation and Projection (UMAP).  
+											Low-dimensional embedding of high-dimensional data (e.g., 55k genes in the human transcriptome) by Uniform Manifold Approximation and Projection (UMAP).  
 											
 											Click the ___legend___ to choose which group you want to display.  
 											Click the ___UMAP dataset___ dropdown to change multidimensional scaling.  
@@ -269,8 +268,7 @@ app.layout = html.Div([
 								dbc.Tooltip(
 									children=[dcc.Markdown(
 										"""
-										Low-dimensional embedding of high-dimensional data (e.g., 55k genes in the human transcriptome)  
-										by Uniform Manifold Approximation and Projection (UMAP).  
+										Low-dimensional embedding of high-dimensional data (e.g., 55k genes in the human transcriptome) by Uniform Manifold Approximation and Projection (UMAP).  
 										
 										Click the ___Host gene___ / ___Species___ / ___Family___ / ___Order___ dropdown to change the expression/abundance profile.
 										""")
@@ -348,9 +346,7 @@ app.layout = html.Div([
 									dbc.Tooltip(
 										children=[dcc.Markdown(
 											"""
-											Differential expression/abundance visualization by MA plot,  
-											with gene/species/family/order dispersion in accordance with the fold changes  
-											between conditions and their average expression/abundance.
+											Differential expression/abundance visualization by MA plot, with gene/species/family/order dispersion in accordance with the fold change between conditions and their average expression/abundance.
 											
 											Click on the ___Show gene stats___ to display its statistics.  
 											Click inside the plot to change statistics of interest.
@@ -383,8 +379,7 @@ app.layout = html.Div([
 										dbc.Tooltip(
 											children=[dcc.Markdown(
 												"""
-												Balloon plot showing the top 15 up and top 15 down differentially enriched gene ontology biological processes 
-												between the two conditions (differential gene expression FDR<1e-10), unless filtered otherwise.
+												Balloon plot showing top 15 up and top 15 down differentially enriched gene ontology biological processes between the two conditions (differential gene expression FDR<1e-10), unless filtered otherwise.
 
 												Click on the ___Comparison___ dropdown to change the results.
 												""")
