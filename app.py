@@ -1025,6 +1025,7 @@ def display_dge_table(contrast, dataset, fdr):
 	table["IBD exome browser"] = table["Gene ID"]
 	table["Gene ID"] = ["[{}](".format(gene_id) + str("https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=") + gene_id + ")" for gene_id in table["Gene ID"]]
 	table["IBD exome browser"] = ["[![DB](assets/db.png)](" + str("https://ibd.broadinstitute.org/gene/") + gene_id + ")" for gene_id in table["IBD exome browser"]]
+	table["FDR"] = table["FDR"].fillna("")
 
 	#define data
 	data = table.to_dict("records")
