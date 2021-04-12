@@ -180,7 +180,7 @@ app.layout = html.Div([
 							)], style={"width": "7%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
 
 							#metadata dropdown
-							html.Label(["Group by", 
+							html.Label(["Color by", 
 										dcc.Dropdown(
 											id="metadata_dropdown",
 											clearable=False,
@@ -501,8 +501,13 @@ app.layout = html.Div([
 						], style=tab_style, selected_style=tab_selected_style),
 						#dge table tab
 						dcc.Tab(label="DGE table", value="dge_tab", children=[
-							html.Br(),
 							
+							html.Br(),
+							#title dge table
+							html.Div(id="dge_table_title", children=[], style={"width": "100%", "display": "inline-block", "textAlign": "center", "font-size": "14px"}),
+							html.Br(),
+							html.Br(),
+
 							#info dge table
 							html.Div([
 								html.Img(src="assets/info.png", alt="info", id="info_dge_table", style={"width": 20, "height": 20}),
@@ -623,8 +628,13 @@ app.layout = html.Div([
 						], style=tab_style, selected_style=tab_selected_style),
 						#go table tab
 						dcc.Tab(label="GO table", value="go_table_tab", children=[
-							html.Br(),
 							
+							html.Br(),
+							#title go table
+							html.Div(id="go_table_title", children=[], style={"width": "100%", "display": "inline-block", "textAlign": "center", "font-size": "14px"}),
+							html.Br(),
+							html.Br(),
+
 							#info go table
 							html.Div([
 								html.Img(src="assets/info.png", alt="info", id="info_go_table", style={"width": 20, "height": 20}),
@@ -896,6 +906,25 @@ def filter_contrasts(dataset, tissue):
 
 	return contrasts, default_contrast_value 
 
+#title dge tab
+@app.callback(
+	Output("dge_table_title", "children"),
+	Output("go_table_title", "children"),
+	Input("expression_dataset_dropdown", "value"),
+	Input("contrast_dropdown", "value"),
+	Input("stringency_dropdown", "value")
+)
+def create_dge_tab_title(expression_dataset, contrast, fdr):
+	if expression_dataset == "human":
+		expression_or_abundance = "gene expression"
+	else:
+		expression_or_abundance = "{} abundance".format(expression_dataset.split("_")[0])
+
+	children_dge = "Differential {expression_or_abundance} FDR {fdr}, {contrast}".format(expression_or_abundance=expression_or_abundance, contrast=contrast.replace("_", " ").replace("-", " "), fdr=fdr)
+	children_go = "Gene ontology enrichment plot, human transcriptome DGE FDR<1e-10, {contrast}".format(contrast=contrast.replace("_", " ").replace("-", " "))
+
+	return children_dge, children_go
+
 #dge table filtered by multidropdown
 @app.callback(
 	Output("dge_table_filtered", "columns"),
@@ -908,7 +937,10 @@ def filter_contrasts(dataset, tissue):
 	Input("stringency_dropdown", "value")
 )
 def get_filtered_dge_table(dropdown_values, contrast, dataset, fdr):
-	if dropdown_values is None or dropdown_values == []:
+	ctx = dash.callback_context
+	trigger_id = ctx.triggered[0]["prop_id"]
+	
+	if dropdown_values is None or dropdown_values == [] or trigger_id == "expression_dataset_dropdown.value":
 		hidden_div = True
 		columns = []
 		data = [{}]
@@ -920,6 +952,9 @@ def get_filtered_dge_table(dropdown_values, contrast, dataset, fdr):
 		table = pd.read_csv(table, sep = "\t")
 
 		#filter selected genes
+		if dataset != "human":
+			table["Gene"] = [x.replace("_", " ").replace("[", "").replace("]", "") for x in table["Gene"]]
+			dropdown_values = [value.replace("_", " ").replace("[", "").replace("]", "") for value in dropdown_values]
 		table = table[table["Gene"].isin(dropdown_values)]
 
 		#define dataset specific variables
@@ -945,6 +980,7 @@ def get_filtered_dge_table(dropdown_values, contrast, dataset, fdr):
 		table["IBD exome browser"] = table["Gene ID"]
 		table["Gene ID"] = ["[{}](".format(gene_id) + str("https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=") + gene_id + ")" for gene_id in table["Gene ID"]]
 		table["IBD exome browser"] = ["[![DB](assets/db.png)](" + str("https://ibd.broadinstitute.org/gene/") + gene_id + ")" for gene_id in table["IBD exome browser"]]
+		table["FDR"] = table["FDR"].fillna("NA")
 
 		#define data
 		data = table.to_dict("records")
@@ -967,6 +1003,12 @@ def get_filtered_dge_table(dropdown_values, contrast, dataset, fdr):
 
 		#color rows by pvalue and up and down log2FC
 		style_data_conditional = [
+			{
+				"if": {
+					"filter_query": '{FDR} = "NA"'
+				},
+				"backgroundColor": "white"
+			},
 			{
 				"if": {
 					"filter_query": "{FDR} < {threshold}".format(FDR="{FDR}", threshold=fdr) + " && {log2 FC} < 0"
@@ -1012,7 +1054,7 @@ def display_dge_table(contrast, dataset, fdr):
 		base_mean_label = "Average abundance"
 		gene_column_name = dataset.split("_")[1].capitalize()
 		table = table.rename(columns={"Gene": gene_column_name})
-		table[gene_column_name] = ["[{}](".format(x) + str("https://www.ncbi.nlm.nih.gov/genome/?term=") + x.replace(" ", "+") + ")" for x in table[gene_column_name]]
+		table[gene_column_name] = ["[{}](".format(x.replace("_", " ").replace("[", "").replace("]", "")) + str("https://www.ncbi.nlm.nih.gov/genome/?term=") + x.replace(" ", "+") + ")" for x in table[gene_column_name]]
 
 	#data carpentry and links
 	table = table.rename(columns={"Geneid": "Gene ID", "log2FoldChange": "log2 FC", "lfcSE": "log2 FC SE", "pvalue": "P-value", "padj": "FDR", "baseMean": base_mean_label})
@@ -1020,7 +1062,7 @@ def display_dge_table(contrast, dataset, fdr):
 	table["IBD exome browser"] = table["Gene ID"]
 	table["Gene ID"] = ["[{}](".format(gene_id) + str("https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=") + gene_id + ")" for gene_id in table["Gene ID"]]
 	table["IBD exome browser"] = ["[![DB](assets/db.png)](" + str("https://ibd.broadinstitute.org/gene/") + gene_id + ")" for gene_id in table["IBD exome browser"]]
-	table["FDR"] = table["FDR"].fillna("")
+	table["FDR"] = table["FDR"].fillna("NA")
 
 	#define data
 	data = table.to_dict("records")
@@ -1045,7 +1087,7 @@ def display_dge_table(contrast, dataset, fdr):
 	style_data_conditional = [
 		{
 			"if": {
-				"filter_query": "{FDR} is blank"
+				"filter_query": '{FDR} = "NA"'
 			},
 			"backgroundColor": "white"
 		},
@@ -1365,8 +1407,19 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 			contrast_switch_umap = False
 			contrast_switch_boxplot = False
 
+		#keep legend selection if you change umap dataset dropdown
+		if trigger_id == "umap_dataset_dropdown.value":
+			traces_visibility = []
+			for trace in umap_metadata_fig["data"]:
+				traces_visibility.append(trace["visible"])
+
 		#create figure from tsv
 		umap_metadata_fig, umap_df = plot_umap_metadata(umap_dataset, metadata)
+
+		#apply old trace visibility
+		if trigger_id == "umap_dataset_dropdown.value":
+			for i in range(0, len(umap_metadata_fig["data"])):
+				umap_metadata_fig["data"][i]["visible"] = traces_visibility[i]
 
 		#add "visible" key to all the traces if not present; these will be used by umap expression and boxplots
 		for trace in umap_metadata_fig["data"]:
@@ -1443,10 +1496,6 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 		counts = pd.read_csv(counts, sep = "\t")
 		counts = counts.rename(columns={"sample": "Sample"})
 
-		#create custom data for hover data
-		label_to_value = {"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy", "condition": "Condition"}
-		custom_data = umap_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library strategy"]]
-
 		#add counts to umap df
 		umap_df = umap_df.merge(counts, how="outer", on="Sample")
 		n_samples_metadata = len(umap_df["Sample"])
@@ -1454,6 +1503,9 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 
 		#filter samples that are not visible
 		umap_df = umap_df[umap_df["Sample"].isin(samples_to_keep)]
+		#create custom data for hover data
+		label_to_value = {"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy", "condition": "Condition"}
+		custom_data = umap_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library strategy"]]
 
 		#add log2 counts column to df
 		umap_df["Log2 expression"] = np.log2(umap_df["counts"])
@@ -1586,6 +1638,12 @@ def plot_boxplots(expression_dataset, gene, metadata_field, umap_legend_click, b
 	ctx = dash.callback_context
 	trigger_id = ctx.triggered[0]["prop_id"]
 
+	if expression_dataset != "human":
+		expression_dataset = expression_dataset.split("_")[0]
+		expression_or_abundance = "abundance"
+	else:
+		expression_or_abundance = "expression"
+
 	#get counts for a specific gene
 	if trigger_id == "umap_metadata.restyleData":
 		number_of_changes = len(umap_legend_click[1])
@@ -1598,11 +1656,6 @@ def plot_boxplots(expression_dataset, gene, metadata_field, umap_legend_click, b
 		counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset.split("_")[0], gene))
 		counts = pd.read_csv(counts, sep = "\t")
 		#open metadata and select only the desired column
-		if expression_dataset != "human":
-			expression_dataset = expression_dataset.split("_")[0]
-			expression_or_abundance = "abundance"
-		else:
-			expression_or_abundance = "expression"
 		metadata_df = download_from_github("umap_{}.tsv".format(expression_dataset))
 		metadata_df = pd.read_csv(metadata_df, sep = "\t")
 		#merge and compute log2 and replace inf with 0
@@ -1779,7 +1832,7 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 			type="buttons",
             direction="right",
             active=1,
-            x=1.40,
+            x=1.42,
             y=0.9,
             buttons=list([
                 dict(label="True",
@@ -2065,7 +2118,7 @@ def plot_multiboxplots(n_clicks, metadata_field, umap_metadata_legend_click, sel
 					expression_or_abundance = "expression"
 				else:
 					expression_or_abundance = "abundance"
-				box_fig = make_subplots(rows=n_rows, cols=2, specs=specs, subplot_titles=[gene for gene in selected_genes_species], shared_xaxes=True, vertical_spacing=vertical_spacing, y_title="Log2 {}".format(expression_or_abundance))
+				box_fig = make_subplots(rows=n_rows, cols=2, specs=specs, subplot_titles=[gene.replace("[", "").replace("]", "").replace("_", " ") for gene in selected_genes_species], shared_xaxes=True, vertical_spacing=vertical_spacing, y_title="Log2 {}".format(expression_or_abundance))
 
 				working_row = 1
 				working_col = 1
