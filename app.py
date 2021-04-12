@@ -1359,7 +1359,9 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 			i += 1
 
 		#add titles to axis
-		umap_metadata_fig.update_layout(xaxis_title_text = "UMAP1", yaxis_title_text = "UMAP2")
+		umap_metadata_fig.update_layout(xaxis_title_text = "UMAP1", yaxis_title_text = "UMAP2", height=600, title_x=0.5, title_font_size=14, legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_xanchor="center", legend_x=0.5, legend_yanchor="top", legend_y=-0.15, legend_itemsizing="constant", xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", margin=dict(t=60, b=0, l=10, r=10))
+		
+		#umap_metadata_fig["layout"]["paper_bgcolor"]="LightSteelBlue"
 
 		return umap_metadata_fig, umap_df
 
@@ -1478,31 +1480,19 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 	##### UMAP EXPRESSION #####
 
 	#function for creating umap_expression_fig from tsv file
-	def plot_umap_expression(umap_dataset, expression_dataset, gene_species, samples_to_keep, umap_df, selected_metadata, umap_metadata_fig):
+	def plot_umap_expression(expression_dataset, gene_species, samples_to_keep, umap_df, selected_metadata):
 		#labels for graph title
 		if expression_dataset == "human":
 			expression_or_abundance = " expression"
 		else:
 			expression_or_abundance = " abundance"
 
-		if umap_dataset == "human":
-			transcriptome_title = "human"
-		elif umap_dataset == "archaea":
-			transcriptome_title = "archaeal"
-		elif umap_dataset == "bacteria":
-			transcriptome_title = "bacterial"
-		elif umap_dataset == "eukaryota":
-			transcriptome_title = "eukaryota"
-		elif umap_dataset == "viruses":
-			transcriptome_title = "viral"
-		
 		counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset.split("_")[0], gene_species))
 		counts = pd.read_csv(counts, sep = "\t")
 		counts = counts.rename(columns={"sample": "Sample"})
 
 		#add counts to umap df
 		umap_df = umap_df.merge(counts, how="outer", on="Sample")
-		n_samples_metadata = len(umap_df["Sample"])
 		umap_df = umap_df.dropna(subset=["counts"])
 
 		#filter samples that are not visible
@@ -1515,37 +1505,19 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 		umap_df["Log2 expression"] = np.log2(umap_df["counts"])
 		umap_df["Log2 expression"].replace(to_replace = -np.inf, value = 0, inplace=True)
 
-		#count samples
-		n_samples_expression = len(umap_df["Sample"])
-
 		#plot
 		hover_template = "Sample: %{customdata[0]}<br>Group: %{customdata[1]}<br>Tissue: %{customdata[2]}<br>Source: %{customdata[3]}<br>Library strategy: %{customdata[4]}<br>Log2 expression: %{marker.color}<extra></extra>"
 		
 		umap_expression_fig = go.Figure(data=go.Scatter(x=umap_df["UMAP1"], y=umap_df["UMAP2"], marker_color=umap_df["Log2 expression"], marker_colorscale="reds", marker_showscale=True, marker_opacity=1, marker_size=4, marker_colorbar_title="Log2 {}".format(expression_or_abundance), marker_colorbar_title_side="right", marker_colorbar_title_font_size=14, mode="markers", customdata = custom_data, hovertemplate = hover_template, showlegend = False))
 		
-		umap_expression_fig.update_layout(title = {"text": "Sample dispersion within the " + transcriptome_title + " transcriptome multidimensional scaling<br>colored by " + gene_species.replace("_", " ").replace("[", "").replace("]", "") + expression_or_abundance + " n=" + str(n_samples_expression), "x": 0.5, "font_size": 14}, coloraxis_colorbar_thickness=20, font_family="Arial", hoverlabel_bgcolor = "lightgrey", xaxis_automargin=True, yaxis_automargin=True, height = 535, margin=dict(t=60, b=0, l=10, r=60), xaxis_title_text="UMAP1", yaxis_title_text="UMAP2")
+		umap_expression_fig.update_layout(title = {"x": 0.5, "font_size": 14}, coloraxis_colorbar_thickness=20, font_family="Arial", hoverlabel_bgcolor = "lightgrey", xaxis_automargin=True, yaxis_automargin=True, height = 535, margin=dict(t=60, b=0, l=10, r=60), xaxis_title_text="UMAP1", yaxis_title_text="UMAP2")
 
-		#update layout umap metadata
-		umap_metadata_fig["layout"]["height"] = 600
-		umap_metadata_fig["layout"]["title"]["text"] = "Sample dispersion within the " + transcriptome_title + " transcriptome multidimensional scaling<br>colored by " + selected_metadata + " metadata n=" + str(n_samples_metadata)
-		umap_metadata_fig["layout"]["title"]["x"] = 0.5
-		umap_metadata_fig["layout"]["title"]["font"]["size"] = 14
-		umap_metadata_fig["layout"]["legend"]["title"]["text"] = selected_metadata.capitalize().replace("_", " ")
-		umap_metadata_fig["layout"]["legend"]["orientation"] = "h"
-		umap_metadata_fig["layout"]["legend"]["xanchor"] = "center"
-		umap_metadata_fig["layout"]["legend"]["x"] = 0.5
-		umap_metadata_fig["layout"]["legend"]["yanchor"] = "top"
-		umap_metadata_fig["layout"]["legend"]["y"] = -0.15
-		umap_metadata_fig["layout"]["legend"]["itemsizing"] = "constant"
-		umap_metadata_fig["layout"]["xaxis"]["automargin"] = True
-		umap_metadata_fig["layout"]["yaxis"]["automargin"] = True
-		umap_metadata_fig["layout"]["font"]["family"] = "Arial"
-		umap_metadata_fig["layout"]["margin"] = dict(t=60, b=0, l=10, r=10)
-
-		#umap_metadata_fig["layout"]["paper_bgcolor"]="LightSteelBlue"
+		#add visible key for counting diplayed dots
+		umap_expression_fig["data"][0]["visible"] = True
+		
 		#umap_expression_fig["layout"]["paper_bgcolor"]="#E5F5F9"
 
-		return umap_expression_fig, umap_metadata_fig
+		return umap_expression_fig
 
 	#function to get samples to keep from visibility status in umap_metadata_fig
 	def get_samples_to_keep(umap_metadata_fig):
@@ -1574,7 +1546,7 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 
 		samples_to_keep = get_samples_to_keep(umap_metadata_fig)
 		#create figure
-		umap_expression_fig, umap_metadata_fig = plot_umap_expression(umap_dataset, expression_dataset, gene_species, samples_to_keep, umap_df, metadata, umap_metadata_fig)
+		umap_expression_fig = plot_umap_expression(expression_dataset, gene_species, samples_to_keep, umap_df, metadata)
 
 		#apply old zoom if present
 		if keep_old_zoom:
@@ -1590,7 +1562,7 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 		if trigger_id in ["umap_metadata.restyleData", "contrast_only_umap_metadata_switch.on", "contrast_only_boxplots_switch.on", "contrast_dropdown.value", "hide_unselected_metadata_switch.on"]:
 			samples_to_keep = get_samples_to_keep(umap_metadata_fig)
 			#get new filtered umap_expression_fig
-			umap_expression_fig, umap_metadata_fig = plot_umap_expression(umap_dataset, expression_dataset, gene_species, samples_to_keep, umap_df, metadata, umap_metadata_fig)
+			umap_expression_fig = plot_umap_expression(expression_dataset, gene_species, samples_to_keep, umap_df, metadata)
 			
 			#selected traces only if switch is true
 			if hide_unselected_switch is True:
@@ -1616,6 +1588,51 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 		if trigger_id == "umap_metadata.restyleData":
 			umap_expression_fig["layout"]["xaxis"]["autorange"] = False
 			umap_expression_fig["layout"]["yaxis"]["autorange"] = False
+
+	##### NUMBER OF DISPLAYED SAMPLES #####
+	def get_displayed_samples(figure_data):
+		x_range = figure_data["layout"]["xaxis"]["range"]
+		y_range = figure_data["layout"]["yaxis"]["range"]
+		n_samples = 0
+		#parse only visible traces
+		for trace in figure_data["data"]:
+			if trace["visible"] is True:
+				#start of the app: give an artificial big range for axes
+				if x_range is None or y_range is None:
+					x_range = [-100, 100]
+					y_range = [-100, 100]
+				#check all points
+				for i in range(0, len(trace["x"])):
+					x = trace["x"][i]
+					y = trace["y"][i]
+					if x is not None and y is not None:
+						if x > x_range[0] and x < x_range[1] and y > y_range[0] and y < y_range[1]:
+							n_samples += 1
+
+		return n_samples
+
+	n_samples_umap_metadata = get_displayed_samples(umap_metadata_fig)
+	n_samples_umap_expression = get_displayed_samples(umap_expression_fig)
+
+	#labels for graph title
+	if expression_dataset == "human":
+		expression_or_abundance = " expression"
+	else:
+		expression_or_abundance = " abundance"
+	if umap_dataset == "human":
+		transcriptome_title = "human"
+	elif umap_dataset == "archaea":
+		transcriptome_title = "archaeal"
+	elif umap_dataset == "bacteria":
+		transcriptome_title = "bacterial"
+	elif umap_dataset == "eukaryota":
+		transcriptome_title = "eukaryota"
+	elif umap_dataset == "viruses":
+		transcriptome_title = "viral"
+
+	#apply title
+	umap_metadata_fig["layout"]["title"]["text"] = "Sample dispersion within the " + transcriptome_title + " transcriptome multidimensional scaling<br>colored by " + metadata + " metadata n=" + str(n_samples_umap_metadata)
+	umap_expression_fig["layout"]["title"]["text"] = "Sample dispersion within the " + transcriptome_title + " transcriptome multidimensional scaling<br>colored by " + gene_species.replace("_", " ").replace("[", "").replace("]", "") + expression_or_abundance + " n=" + str(n_samples_umap_expression)
 
 	##### CONFIG OPTIONS ####
 	config_umap_metadata = {"doubleClick": "autosize", "modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 500, "height": 500, "scale": 5}}
