@@ -209,6 +209,7 @@ app.layout = html.Div([
 							#tissue filter for contrast dropdown
 							html.Label(["Tissue", 
 										dcc.Dropdown(
+											value="All",
 											id="tissue_filter_dropdown",
 											clearable=False,
 							)], style={"width": "11%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
@@ -216,6 +217,7 @@ app.layout = html.Div([
 							#contrast dropdown
 							html.Label(["Comparison", 
 										dcc.Dropdown(
+											value="Ileum_CD-vs-Ileum_Control",
 											id="contrast_dropdown",
 											clearable=False,
 							)], style={"width": "25%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
@@ -876,9 +878,10 @@ def get_tissues_with_2_or_more_conditions(dataset):
 	Output("contrast_dropdown", "options"),
 	Output("contrast_dropdown", "value"),
 	Input("expression_dataset_dropdown", "value"),
-	Input("tissue_filter_dropdown", "value")
+	Input("tissue_filter_dropdown", "value"),
+	State("contrast_dropdown", "value")
 )
-def filter_contrasts(dataset, tissue):
+def filter_contrasts(dataset, tissue, contrast):
 	#get all contrasts for selected dataset
 	contrasts = download_from_github("dge_list_{}.tsv".format(dataset))
 	contrasts = pd.read_csv(contrasts, sep = "\t", header=None, names=["contrast"])
@@ -897,14 +900,15 @@ def filter_contrasts(dataset, tissue):
 			#check if they are the same
 			if tissue == tissue_1 and tissue == tissue_2:
 				filtered_contrasts.append(contrast)
-		
-	if "Ileum_CD-vs-Ileum_Control" in filtered_contrasts:
-		default_contrast_value = "Ileum_CD-vs-Ileum_Control"
+
+	#define contrast_value
+	if contrast in filtered_contrasts:
+		contrast_value = contrast
 	else:
-		default_contrast_value = filtered_contrasts[0]
+		contrast_value = filtered_contrasts[0]
 	contrasts = [{"label": i.replace("_", " ").replace("-", " "), "value": i} for i in filtered_contrasts]
 
-	return contrasts, default_contrast_value 
+	return contrasts, contrast_value
 
 #title dge tab
 @app.callback(
