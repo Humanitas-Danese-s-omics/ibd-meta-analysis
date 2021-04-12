@@ -422,6 +422,35 @@ app.layout = html.Div([
 									dcc.Graph(id="snakey", figure=snakey_fig, config={"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 1000, "height": 400, "scale": 20, "filename": "easter_egg_TBD"}})
 								], style={"width": "100%", "display": "inline-block"})
 						], style=tab_style, selected_style=tab_selected_style),
+						dcc.Tab(label="Metadata", value="source_tab", children=[
+							html.Div([
+								html.Br(),
+								dcc.Loading(
+									type="dot",
+									color="#33A02C",
+									children=dash_table.DataTable(
+										id="metadata_table",
+										style_cell={
+											"whiteSpace": "normal",
+											"height": "auto",
+											"fontSize": 12, 
+											"font-family": "arial",
+											"textAlign": "center"
+										},
+										page_size=25,
+										sort_action="native",
+										style_header={
+											"textAlign": "center"
+										},
+										style_cell_conditional=[],
+										style_data_conditional=[],
+										style_as_list_view=True
+									)
+								)
+							], style={"width": "100%", "font-family": "arial"}),
+							html.Br()
+
+						], style=tab_style, selected_style=tab_selected_style),
 						#custom boxplots
 						dcc.Tab(label="Box plots", value="boxplots_tab", children=[
 							html.Br(),
@@ -530,9 +559,9 @@ app.layout = html.Div([
 									target="info_dge_table",
 									style={"font-family": "arial", "font-size": 14}
 								),
-							], style={"width": "25%", "display": "inline-block", "vertical-align": "middle", "textAlign": "center"}),
+							], style={"width": "10%", "display": "inline-block", "vertical-align": "middle", "textAlign": "center"}),
 
-							#download button diffexp
+							#download full table button diffexp
 							html.Div([
 								dcc.Loading(
 									id = "loading_download_diffexp",
@@ -546,12 +575,27 @@ app.layout = html.Div([
 										)
 									]
 								)
+							], style={"width": "15%", "display": "inline-block", "vertical-align": "middle", 'color': 'black'}),
+
+							#download partial button diffexp
+							html.Div([
+								dcc.Loading(
+									type = "circle",
+									color = "#33A02C",
+									children=[html.A(
+										id="download_diffexp_partial",
+										href="",
+										target="_blank",
+										children = [html.Button("Download shown table", id="download_diffexp_button_partial", disabled=True, style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+										)
+									]
+								)
 							], style={"width": "25%", "display": "inline-block", "vertical-align": "middle", 'color': 'black'}),
 
 							#dropdown
 							html.Div([
-								dcc.Dropdown(id="multi_gene_dge_table_selection_dropdown", multi=True, placeholder="", style={"textAlign": "left", "font-size": "12px", "width": "75%"})
-							], style={"width": "50%", "display": "inline-block", "font-size": "12px", "vertical-align": "middle"}),
+								dcc.Dropdown(id="multi_gene_dge_table_selection_dropdown", multi=True, placeholder="", style={"textAlign": "left", "font-size": "12px"})
+							], style={"width": "25%", "display": "inline-block", "font-size": "12px", "vertical-align": "middle"}),
 
 							#filtered dge table
 							html.Div(id="filtered_dge_table_div", children=[
@@ -652,7 +696,7 @@ app.layout = html.Div([
 									target="info_go_table",
 									style={"font-family": "arial", "font-size": 14}
 								),
-							], style={"width": "50%", "display": "inline-block", "vertical-align": "middle", "textAlign": "center"}),
+							], style={"width": "12%", "display": "inline-block", "vertical-align": "middle", "textAlign": "center"}),
 
 							#download button
 							html.Div([
@@ -668,7 +712,22 @@ app.layout = html.Div([
 										)
 									]
 								)
-							], style={"width": "25%", "display": "inline-block", "textAlign": "left", "vertical-align": "middle", 'color': 'black'}),
+							], style={"width": "20%", "display": "inline-block", "textAlign": "left", "vertical-align": "middle", 'color': 'black'}),
+
+							#download button partial
+							html.Div([
+								dcc.Loading(
+									type = "circle",
+									color = "#33A02C",
+									children=[html.A(
+										id="download_go_partial",
+										href="",
+										target="_blank",
+										children = [html.Button("Download shown table", id="download_go_button_partial", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+										)
+									]
+								)
+							], style={"width": "20%", "display": "inline-block", "textAlign": "left", "vertical-align": "middle", 'color': 'black'}),
 
 							#go table
 							html.Div([
@@ -721,6 +780,7 @@ app.layout = html.Div([
 									)
 								)
 							], style={"width": "100%", "font-family": "arial"}),
+							html.Br()
 						], style=tab_style, selected_style=tab_selected_style),
 					], style= {"height": 40}),
 
@@ -745,12 +805,83 @@ def downlaod_diffexp_table(button_click, dataset, contrast):
 	#read the downloaded content and make a pandas dataframe
 	df = download_from_github(url)
 	df = pd.read_csv(df, sep="\t")
+	df = df[["Gene", "Geneid", "log2FoldChange", "lfcSE", "pvalue", "padj", "baseMean"]]
+
+	if dataset != "human":
+		df["Gene"] = [x.replace("_", " ").replace("[", "").replace("]", "") for x in df["Gene"]]
+
+	#define dataset specific variables
+	if dataset == "human":
+		base_mean_label = "Average expression"
+		gene_column_name = "Gene"
+	else:
+		base_mean_label = "Average abundance"
+		gene_column_name = dataset.split("_")[1].capitalize()
+		df = df.rename(columns={"Gene": gene_column_name})
+
+	#data carpentry and links
+	df = df.rename(columns={"Geneid": "Gene ID", "log2FoldChange": "log2 FC", "lfcSE": "log2 FC SE", "pvalue": "P-value", "padj": "FDR", "baseMean": base_mean_label})
+	df = df.sort_values(by=["FDR"])
+
 	#create a downloadable tsv file forced to excel by extension
 	link = df.to_csv(index=False, encoding="utf-8", sep="\t")
 	link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
 	file_name = "DGE_{}_{}.xls".format(dataset, contrast)
 
 	return link, file_name
+
+#download partial diffexp
+@app.callback(
+	Output("download_diffexp_partial", "href"),
+	Output("download_diffexp_partial", "download"),
+	Output("download_diffexp_button_partial", "disabled"),
+	Input("download_diffexp_button_partial", "n_clicks"),
+	Input("expression_dataset_dropdown", "value"),
+	Input("contrast_dropdown", "value"),
+	Input("multi_gene_dge_table_selection_dropdown", "value"),
+)
+def downlaod_diffexp_table_partial(button_click, dataset, contrast, dropdown_values):
+	ctx = dash.callback_context
+	trigger_id = ctx.triggered[0]["prop_id"]
+	
+	if dropdown_values is None or dropdown_values == [] or trigger_id == "expression_dataset_dropdown.value":
+		link = ""
+		file_name = ""
+		disabled_status = True
+	
+	else:
+		disabled_status = False
+		#download from GitHub
+		url = "dge/{}/{}.diffexp.tsv".format(dataset, contrast)
+		#read the downloaded content and make a pandas dataframe
+		df = download_from_github(url)
+		df = pd.read_csv(df, sep="\t")
+
+		#filter selected genes
+		if dataset != "human":
+			df["Gene"] = [x.replace("_", " ").replace("[", "").replace("]", "") for x in df["Gene"]]
+			dropdown_values = [value.replace("_", " ").replace("[", "").replace("]", "") for value in dropdown_values]
+		df = df[df["Gene"].isin(dropdown_values)]
+
+		#define dataset specific variables
+		if dataset == "human":
+			base_mean_label = "Average expression"
+			gene_column_name = "Gene"
+		else:
+			base_mean_label = "Average abundance"
+			gene_column_name = dataset.split("_")[1].capitalize()
+			df = df.rename(columns={"Gene": gene_column_name})
+
+		#data carpentry and links
+		df = df.rename(columns={"Geneid": "Gene ID", "log2FoldChange": "log2 FC", "lfcSE": "log2 FC SE", "pvalue": "P-value", "padj": "FDR", "baseMean": base_mean_label})
+		df = df.sort_values(by=["FDR"])
+
+		#create a downloadable tsv file forced to excel by extension
+		link = df.to_csv(index=False, encoding="utf-8", sep="\t")
+		link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
+		file_name = "DGE_{}_{}_shown.xls".format(dataset, contrast)
+
+	return link, file_name, disabled_status
 
 #download go
 @app.callback(
@@ -765,169 +896,97 @@ def download_go_table(button_click, contrast):
 	url = "go/{}.merged_go.tsv".format(contrast)
 	df = download_from_github(url)
 	df = pd.read_csv(df, sep="\t")
+
+	df = df[["DGE", "Genes", "Process~name", "num_of_Genes", "gene_group", "percentage%", "P-value"]]
+	df = df.rename(columns={"Process~name": "GO biological process", "num_of_Genes": "DEGs", "gene_group": "Dataset genes", "percentage%": "Enrichment"})
+
 	link = df.to_csv(index=False, encoding="utf-8", sep="\t")
 	link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
 	file_name = "GO_human_{}.xls".format(contrast)
 
 	return link, file_name
 
-### ELEMENTS CALLBACKS ###
-
-#gene/species dropdowns
+#download partial go
 @app.callback(
-	#gene species dropdown
-	Output("gene_species_label", "children"),
-	Output("gene_species_dropdown", "options"),
-	Output("gene_species_dropdown", "value"),
-	Output("gene_species_multi_boxplots_dropdown", "options"),
-	Output("gene_species_multi_boxplots_dropdown", "placeholder"),
-	Output("multi_gene_dge_table_selection_dropdown", "options"),
-	Output("multi_gene_dge_table_selection_dropdown", "placeholder"),
-	#stringency
-	Output("stringency_dropdown", "value"),
-	#inputs
-	Input("expression_dataset_dropdown", "value"),
-	Input("ma_plot_graph", "clickData"),
-	State("gene_species_dropdown", "options"),
-)
-def find_genes_or_species(dataset, selected_point_ma_plot, current_dropdown_options):
-	#define contexts
-	ctx = dash.callback_context
-	trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-	#initial run: load all dataset
-	if trigger_id == "":
-		trigger_id = "expression_dataset_dropdown"
-
-	#dropdown label depends on selected dataset
-	if dataset == "human":
-		label = "Host gene"
-		stringency = 0.0000000001
-		placeholder_multiboxplots_dropdown = "Select host genes"
-		placeholder_multidropdown_dge_table = "Type here to search host genes"
-	elif dataset != "human":
-		label = dataset.split("_")[1]
-		label = label.capitalize()
-		stringency = 0.1
-		placeholder_multidropdown_dge_table = "Type here to search {}".format(dataset.replace("_", " ").replace("order", "orders").replace("family", "families"))
-		if label == "Species":
-			placeholder_multiboxplots_dropdown = "Select " + dataset.replace("_", " ")
-		if label == "Order":
-			placeholder_multiboxplots_dropdown = "Select " + dataset.split("_")[0] + " orders"
-		if label == "Family":
-			placeholder_multiboxplots_dropdown = "Select " + dataset.split("_")[0] + " families"
-
-	#if you click a gene, update only the dropdown value and keep the rest as it is
-	if trigger_id == "ma_plot_graph":
-		value = selected_point_ma_plot["points"][0]["customdata"][0].replace(" ", "_")
-		options = current_dropdown_options
-	#if you change the datast, load it and change options and values
-	elif trigger_id == "expression_dataset_dropdown":
-		if dataset == "human":
-			genes = download_from_github("genes_list.tsv")
-			genes = pd.read_csv(genes, sep = "\t", header=None, names=["genes"])
-			genes = genes["genes"].dropna().tolist()
-			options = [{"label": i, "value": i} for i in genes]
-			value="TNF"
-		else:
-			species = download_from_github("{}_list.tsv".format(dataset))
-			species = pd.read_csv(species, sep = "\t", header=None, names=["species"])
-			species = species["species"].dropna().tolist()
-			options = [{"label": i.replace("_", " ").replace("[", "").replace("]", ""), "value": i} for i in species]
-			value = species[0]
-
-	return label, options, value, options, placeholder_multiboxplots_dropdown, options, placeholder_multidropdown_dge_table, stringency
-
-#tissue filter callback
-@app.callback(
-	Output("tissue_filter_dropdown", "options"),
-	Output("tissue_filter_dropdown", "value"),
-	Input("expression_dataset_dropdown", "value")
-)
-def get_tissues_with_2_or_more_conditions(dataset):
-	#get all contrasts for dataset
-	contrasts = download_from_github("dge_list_{}.tsv".format(dataset))
-	contrasts = pd.read_csv(contrasts, sep = "\t", header=None, names=["contrast"])
-	contrasts = contrasts["contrast"].tolist()
-	#get all tissues for dataset
-	tissues = download_from_github("umap_{}.tsv".format(dataset.split("_")[0]))
-	tissues = pd.read_csv(tissues, sep = "\t")
-	tissues = tissues["tissue"].unique().tolist()
-
-	#loop over tissues and contrasts
-	filtered_tissues = []
-	for contrast in contrasts:
-		#define the two tiessues in the contrast
-		re_result = re.search(r"(\w+)_\w+-vs-(\w+)_\w+", contrast)
-		tissue_1 = re_result.group(1)
-		tissue_2 = re_result.group(2)
-		for tissue in tissues:
-			#check if they are the same
-			if tissue == tissue_1 and tissue == tissue_2:
-				if tissue not in filtered_tissues:
-					filtered_tissues.append(tissue)
-
-	#define default value and options
-	default_value_tissue = "All"
-	tissues_options = [{"label": i.replace("_", " "), "value": i} for i in ["All"] + filtered_tissues]
-
-	return tissues_options, default_value_tissue
-
-#contrast callback
-@app.callback(
-	Output("contrast_dropdown", "options"),
-	Output("contrast_dropdown", "value"),
-	Input("expression_dataset_dropdown", "value"),
-	Input("tissue_filter_dropdown", "value"),
-	State("contrast_dropdown", "value")
-)
-def filter_contrasts(dataset, tissue, contrast):
-	#get all contrasts for selected dataset
-	contrasts = download_from_github("dge_list_{}.tsv".format(dataset))
-	contrasts = pd.read_csv(contrasts, sep = "\t", header=None, names=["contrast"])
-	contrasts = contrasts["contrast"].dropna().tolist()
-
-	#if all, then do not filter
-	if tissue == "All":
-		filtered_contrasts = contrasts
-	else:
-		filtered_contrasts = []
-		for contrast in contrasts:
-			#define the two tiessues in the contrast
-			re_result = re.search(r"(\w+)_\w+-vs-(\w+)_\w+", contrast)
-			tissue_1 = re_result.group(1)
-			tissue_2 = re_result.group(2)
-			#check if they are the same
-			if tissue == tissue_1 and tissue == tissue_2:
-				filtered_contrasts.append(contrast)
-
-	#define contrast_value
-	if contrast in filtered_contrasts:
-		contrast_value = contrast
-	else:
-		contrast_value = filtered_contrasts[0]
-	contrasts = [{"label": i.replace("_", " ").replace("-", " "), "value": i} for i in filtered_contrasts]
-
-	return contrasts, contrast_value
-
-#title dge tab
-@app.callback(
-	Output("dge_table_title", "children"),
-	Output("go_table_title", "children"),
-	Input("expression_dataset_dropdown", "value"),
+	Output("download_go_partial", "href"),
+	Output("download_go_partial", "download"),
+	Output("download_go_button_partial", "disabled"),
+	Input("download_go_partial", "n_clicks"),
 	Input("contrast_dropdown", "value"),
-	Input("stringency_dropdown", "value")
+	Input("go_plot_filter_input", "value")
 )
-def create_dge_tab_title(expression_dataset, contrast, fdr):
-	if expression_dataset == "human":
-		expression_or_abundance = "gene expression"
+def download_partial_go_table(n_clicks, contrast, search_value):
+	#define search query if present
+	if search_value is not None and search_value != "":
+		disabled_status = False
+		go_df = download_from_github("go/{}.merged_go.tsv".format(contrast))
+		go_df = pd.read_csv(go_df, sep="\t")
+		go_df = go_df[["DGE", "Genes", "Process~name", "num_of_Genes", "gene_group", "percentage%", "P-value"]]
+		
+		if search_value.endswith(" "):
+			search_value = search_value.rstrip()
+		search_query = re.split(r"[\s\-/,_]+", search_value)
+		search_query = [x.lower() for x in search_query]
+
+		#search keyword in processes
+		processes_to_keep = []
+		for process in go_df["Process~name"]:
+			#force lowecase
+			process_lower = process.lower()
+			#check each keyword
+			for x in search_query:
+				#if it is a GO id, search for GO id
+				if x.startswith("go:"):
+					go_id = process_lower.split("~")[0]
+					if x == go_id:
+						if process not in processes_to_keep:
+							processes_to_keep.append(process)
+				#else, just search in the name og the GO category
+				else:
+					if x in process_lower.split("~")[1]:
+						processes_to_keep.append(process)
+						if process not in processes_to_keep:
+							processes_to_keep.append(process)
+
+		#filtering
+		go_df = go_df[go_df["Process~name"].isin(processes_to_keep)]
+
+		go_df = go_df.rename(columns={"Process~name": "GO biological process", "num_of_Genes": "DEGs", "gene_group": "Dataset genes", "percentage%": "Enrichment"})
+
+		link = go_df.to_csv(index=False, encoding="utf-8", sep="\t")
+		link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
+		file_name = "GO_human_{}_shown.xls".format(contrast)
 	else:
-		expression_or_abundance = "{} abundance".format(expression_dataset.split("_")[0])
+		link = ""
+		file_name = ""
+		disabled_status = True
 
-	children_dge = "Differential {expression_or_abundance} FDR {fdr}, {contrast}".format(expression_or_abundance=expression_or_abundance, contrast=contrast.replace("_", " ").replace("-", " "), fdr=fdr)
-	children_go = "Gene ontology enrichment plot, human transcriptome DGE FDR<1e-10, {contrast}".format(contrast=contrast.replace("_", " ").replace("-", " "))
+	return link, file_name, disabled_status
 
-	return children_dge, children_go
+### TABLES ###
+
+#metadata table
+@app.callback(
+	Output("metadata_table", "columns"),
+	Output("metadata_table", "data"),
+	Input("metadata_dropdown", "value")
+)
+def get_metadata_table(metadata):
+	#open tsv
+	umap_df = download_from_github("umap_human.tsv")
+	umap_df = pd.read_csv(umap_df, sep = "\t")
+
+	columns = [
+		{"name": "sample", "id":"sample"}, 
+		{"name": "group", "id":"group"},
+		{"name": "tissue", "id":"tissue"},
+		{"name": "source", "id":"source"},
+		{"name": "library_strategy", "id":"library_strategy"}
+	]
+
+	data = umap_df.to_dict("records")
+
+	return columns, data
 
 #dge table filtered by multidropdown
 @app.callback(
@@ -1167,6 +1226,164 @@ def display_go_table(contrast, search_value):
 	data = go_df.to_dict("records")
 
 	return columns, data
+
+### ELEMENTS CALLBACKS ###
+
+#gene/species dropdowns
+@app.callback(
+	#gene species dropdown
+	Output("gene_species_label", "children"),
+	Output("gene_species_dropdown", "options"),
+	Output("gene_species_dropdown", "value"),
+	Output("gene_species_multi_boxplots_dropdown", "options"),
+	Output("gene_species_multi_boxplots_dropdown", "placeholder"),
+	Output("multi_gene_dge_table_selection_dropdown", "options"),
+	Output("multi_gene_dge_table_selection_dropdown", "placeholder"),
+	#stringency
+	Output("stringency_dropdown", "value"),
+	#inputs
+	Input("expression_dataset_dropdown", "value"),
+	Input("ma_plot_graph", "clickData"),
+	State("gene_species_dropdown", "options"),
+)
+def find_genes_or_species(dataset, selected_point_ma_plot, current_dropdown_options):
+	#define contexts
+	ctx = dash.callback_context
+	trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+	#initial run: load all dataset
+	if trigger_id == "":
+		trigger_id = "expression_dataset_dropdown"
+
+	#dropdown label depends on selected dataset
+	if dataset == "human":
+		label = "Host gene"
+		stringency = 0.0000000001
+		placeholder_multiboxplots_dropdown = "Select host genes"
+		placeholder_multidropdown_dge_table = "Type here to search host genes"
+	elif dataset != "human":
+		label = dataset.split("_")[1]
+		label = label.capitalize()
+		stringency = 0.1
+		placeholder_multidropdown_dge_table = "Type here to search {}".format(dataset.replace("_", " ").replace("order", "orders").replace("family", "families"))
+		if label == "Species":
+			placeholder_multiboxplots_dropdown = "Select " + dataset.replace("_", " ")
+		if label == "Order":
+			placeholder_multiboxplots_dropdown = "Select " + dataset.split("_")[0] + " orders"
+		if label == "Family":
+			placeholder_multiboxplots_dropdown = "Select " + dataset.split("_")[0] + " families"
+
+	#if you click a gene, update only the dropdown value and keep the rest as it is
+	if trigger_id == "ma_plot_graph":
+		value = selected_point_ma_plot["points"][0]["customdata"][0].replace(" ", "_")
+		options = current_dropdown_options
+	#if you change the datast, load it and change options and values
+	elif trigger_id == "expression_dataset_dropdown":
+		if dataset == "human":
+			genes = download_from_github("genes_list.tsv")
+			genes = pd.read_csv(genes, sep = "\t", header=None, names=["genes"])
+			genes = genes["genes"].dropna().tolist()
+			options = [{"label": i, "value": i} for i in genes]
+			value="TNF"
+		else:
+			species = download_from_github("{}_list.tsv".format(dataset))
+			species = pd.read_csv(species, sep = "\t", header=None, names=["species"])
+			species = species["species"].dropna().tolist()
+			options = [{"label": i.replace("_", " ").replace("[", "").replace("]", ""), "value": i} for i in species]
+			value = species[0]
+
+	return label, options, value, options, placeholder_multiboxplots_dropdown, options, placeholder_multidropdown_dge_table, stringency
+
+#tissue filter callback
+@app.callback(
+	Output("tissue_filter_dropdown", "options"),
+	Output("tissue_filter_dropdown", "value"),
+	Input("expression_dataset_dropdown", "value")
+)
+def get_tissues_with_2_or_more_conditions(dataset):
+	#get all contrasts for dataset
+	contrasts = download_from_github("dge_list_{}.tsv".format(dataset))
+	contrasts = pd.read_csv(contrasts, sep = "\t", header=None, names=["contrast"])
+	contrasts = contrasts["contrast"].tolist()
+	#get all tissues for dataset
+	tissues = download_from_github("umap_{}.tsv".format(dataset.split("_")[0]))
+	tissues = pd.read_csv(tissues, sep = "\t")
+	tissues = tissues["tissue"].unique().tolist()
+
+	#loop over tissues and contrasts
+	filtered_tissues = []
+	for contrast in contrasts:
+		#define the two tiessues in the contrast
+		re_result = re.search(r"(\w+)_\w+-vs-(\w+)_\w+", contrast)
+		tissue_1 = re_result.group(1)
+		tissue_2 = re_result.group(2)
+		for tissue in tissues:
+			#check if they are the same
+			if tissue == tissue_1 and tissue == tissue_2:
+				if tissue not in filtered_tissues:
+					filtered_tissues.append(tissue)
+
+	#define default value and options
+	default_value_tissue = "All"
+	tissues_options = [{"label": i.replace("_", " "), "value": i} for i in ["All"] + filtered_tissues]
+
+	return tissues_options, default_value_tissue
+
+#contrast callback
+@app.callback(
+	Output("contrast_dropdown", "options"),
+	Output("contrast_dropdown", "value"),
+	Input("expression_dataset_dropdown", "value"),
+	Input("tissue_filter_dropdown", "value"),
+	State("contrast_dropdown", "value")
+)
+def filter_contrasts(dataset, tissue, contrast):
+	#get all contrasts for selected dataset
+	contrasts = download_from_github("dge_list_{}.tsv".format(dataset))
+	contrasts = pd.read_csv(contrasts, sep = "\t", header=None, names=["contrast"])
+	contrasts = contrasts["contrast"].dropna().tolist()
+
+	#if all, then do not filter
+	if tissue == "All":
+		filtered_contrasts = contrasts
+	else:
+		filtered_contrasts = []
+		for contrast in contrasts:
+			#define the two tiessues in the contrast
+			re_result = re.search(r"(\w+)_\w+-vs-(\w+)_\w+", contrast)
+			tissue_1 = re_result.group(1)
+			tissue_2 = re_result.group(2)
+			#check if they are the same
+			if tissue == tissue_1 and tissue == tissue_2:
+				filtered_contrasts.append(contrast)
+
+	#define contrast_value
+	if contrast in filtered_contrasts:
+		contrast_value = contrast
+	else:
+		contrast_value = filtered_contrasts[0]
+	contrasts = [{"label": i.replace("_", " ").replace("-", " "), "value": i} for i in filtered_contrasts]
+
+	return contrasts, contrast_value
+
+#title dge tab
+@app.callback(
+	Output("dge_table_title", "children"),
+	Output("go_table_title", "children"),
+	Input("expression_dataset_dropdown", "value"),
+	Input("contrast_dropdown", "value"),
+	Input("stringency_dropdown", "value")
+)
+def create_dge_tab_title(expression_dataset, contrast, fdr):
+	if expression_dataset == "human":
+		expression_or_abundance = "gene expression"
+	else:
+		expression_or_abundance = "{} abundance".format(expression_dataset.split("_")[0])
+
+	children_dge = "Differential {expression_or_abundance} FDR {fdr}, {contrast}".format(expression_or_abundance=expression_or_abundance, contrast=contrast.replace("_", " ").replace("-", " "), fdr=fdr)
+	children_go = "Gene ontology enrichment plot, human transcriptome DGE FDR<1e-10, {contrast}".format(contrast=contrast.replace("_", " ").replace("-", " "))
+
+	return children_dge, children_go
 
 #placeholder for multi_boxplots_text_area
 @app.callback(
@@ -1844,7 +2061,7 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 	#save annotations for button
 	up_genes_annotation = [dict(text = str(up) + " higher in<br>" + contrast.split("-vs-")[0].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.98, showarrow=False, font=dict(size=14, color="#DE2D26", family="Arial"))]
 	down_genes_annotation = [dict(text = str(down) + " higher in<br>" + contrast.split("-vs-")[1].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.02, showarrow=False, font=dict(size=14, color="#045A8D", family="Arial"))]
-	show_gene_annotaton = [dict(text = "Show gene stats", align="center", xref="paper", yref="paper", x=1.37, y=1, showarrow=False, font_size=12)]
+	show_gene_annotaton = [dict(text = "Show gene stats", align="center", xref="paper", yref="paper", x=1.4, y=1, showarrow=False, font_size=12)]
 	selected_gene_annotation = [dict(x=ma_plot_fig["data"][3]["x"][0], y=ma_plot_fig["data"][3]["y"][0], xref="x", yref="y", text=ma_plot_fig["data"][3]["customdata"][0][0] + "<br>Log2 avg expr: " +  str(round(selected_gene_log2_base_mean, 1)) + "<br>Log2 FC: " +  str(round(selected_gene_log2fc, 1)) + "<br>FDR: " + selected_gene_fdr, showarrow=True, font=dict(family="Arial", size=12, color="#252525"), align="center", arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="#525252", ax=-50, ay=-50, bordercolor="#525252", borderwidth=2, borderpad=4, bgcolor="#D9D9D9", opacity=0.7)]
 
 	#buttons
