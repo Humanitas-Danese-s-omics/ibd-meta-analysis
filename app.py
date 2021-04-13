@@ -81,6 +81,7 @@ padj_options = [{"label": "0.1", "value": 0.1},
 				{"label": "1e-09", "value": 0.000000001},
 				{"label": "1e-10", "value": 0.0000000001}]
 
+#snakey
 dataset_stats = download_from_github("stats.tsv")
 dataset_stats = pd.read_csv(dataset_stats, sep="\t")
 labels = download_from_github("labels_list.tsv")
@@ -104,6 +105,22 @@ snakey_fig = go.Figure(data=[go.Sankey(
 	)
 )])
 snakey_fig.update_layout(margin=dict(l=0, r=0, t=20, b=20))
+
+#metadata table data
+metadata_table = download_from_github("umap_human.tsv")
+metadata_table = pd.read_csv(metadata_table, sep = "\t")
+metadata_table = metadata_table[["sample", "group", "tissue", "source", "library_strategy"]]
+metadata_table["source"] = ["[{}](".format(source.split("_")[0]) + str("https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=") + source.split("_")[0] + ")" for source in metadata_table["source"]]
+metadata_table = metadata_table.rename(columns={"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy"})
+metadata_table_data = metadata_table.to_dict("records")
+#create a downloadable tsv file forced to excel by extension
+metadata_table = download_from_github("umap_human.tsv")
+metadata_table = pd.read_csv(metadata_table, sep = "\t")
+metadata_table = metadata_table[["sample", "group", "tissue", "source", "library_strategy"]]
+metadata_table["source"] = [source.split("_")[0] for source in metadata_table["source"]]
+metadata_table = metadata_table.rename(columns={"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy"})
+link = metadata_table.to_csv(index=False, encoding="utf-8", sep="\t")
+link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
 
 #external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 
@@ -423,6 +440,39 @@ app.layout = html.Div([
 								], style={"width": "100%", "display": "inline-block"})
 						], style=tab_style, selected_style=tab_selected_style),
 						dcc.Tab(label="Metadata", value="source_tab", children=[
+							html.Br(),
+
+							#info metadata table
+							html.Div([
+								html.Img(src="assets/info.png", alt="info", id="info_metadata_table", style={"width": 20, "height": 20}),
+								dbc.Tooltip(
+									children=[dcc.Markdown(
+										"""
+										Fill me!
+										""")
+									],
+									target="info_metadata_table",
+									style={"font-family": "arial", "font-size": 14}
+								),
+							], style={"width": "12%", "display": "inline-block", "vertical-align": "middle", "textAlign": "center"}),
+
+							#download button
+							html.Div([
+								dcc.Loading(
+									type = "circle",
+									color = "#33A02C",
+									children=[html.A(
+										id="download_metadata",
+										href=link,
+										download="TaMMa_metadata.xls",
+										target="_blank",
+										children = [html.Button("Download full table", id="download_metadata_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+										)
+									]
+								)
+							], style={"width": "20%", "display": "inline-block", "textAlign": "left", "vertical-align": "middle", 'color': 'black'}),
+							
+							#table
 							html.Div([
 								html.Br(),
 								dcc.Loading(
@@ -430,26 +480,39 @@ app.layout = html.Div([
 									color="#33A02C",
 									children=dash_table.DataTable(
 										id="metadata_table",
+										filter_action="native",
+										style_filter={
+											"text-align": "left"
+										},
+										style_table={
+											"text-align": "left"
+										},
 										style_cell={
 											"whiteSpace": "normal",
 											"height": "auto",
 											"fontSize": 12, 
 											"font-family": "arial",
-											"textAlign": "center"
+											"text-align": "left"
 										},
 										page_size=25,
 										sort_action="native",
 										style_header={
-											"textAlign": "center"
+											"text-align": "left"
 										},
-										style_cell_conditional=[],
-										style_data_conditional=[],
-										style_as_list_view=True
+										style_as_list_view=True,
+										data = metadata_table_data,
+										columns = [
+											{"name": "Sample", "id":"Sample"}, 
+											{"name": "Group", "id":"Group"},
+											{"name": "Tissue", "id":"Tissue"},
+											{"name": "Source", "id":"Source", "type": "text", "presentation": "markdown"},
+											{"name": "Library strategy", "id":"Library strategy"}
+										]
 									)
 								)
 							], style={"width": "100%", "font-family": "arial"}),
+							html.Br(),
 							html.Br()
-
 						], style=tab_style, selected_style=tab_selected_style),
 						#custom boxplots
 						dcc.Tab(label="Box plots", value="boxplots_tab", children=[
@@ -723,7 +786,7 @@ app.layout = html.Div([
 										id="download_go_partial",
 										href="",
 										target="_blank",
-										children = [html.Button("Download shown table", id="download_go_button_partial", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+										children = [html.Button("Download shown table", id="download_go_button_partial", disabled=True, style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
 										)
 									]
 								)
@@ -964,29 +1027,6 @@ def download_partial_go_table(n_clicks, contrast, search_value):
 	return link, file_name, disabled_status
 
 ### TABLES ###
-
-#metadata table
-@app.callback(
-	Output("metadata_table", "columns"),
-	Output("metadata_table", "data"),
-	Input("metadata_dropdown", "value")
-)
-def get_metadata_table(metadata):
-	#open tsv
-	umap_df = download_from_github("umap_human.tsv")
-	umap_df = pd.read_csv(umap_df, sep = "\t")
-
-	columns = [
-		{"name": "sample", "id":"sample"}, 
-		{"name": "group", "id":"group"},
-		{"name": "tissue", "id":"tissue"},
-		{"name": "source", "id":"source"},
-		{"name": "library_strategy", "id":"library_strategy"}
-	]
-
-	data = umap_df.to_dict("records")
-
-	return columns, data
 
 #dge table filtered by multidropdown
 @app.callback(
