@@ -7,6 +7,7 @@ import dash_bootstrap_components as dbc
 import dash_auth
 import dash_table
 from dash_table.Format import Format, Scheme
+from numpy.lib.twodim_base import tri
 import plotly.graph_objects as go
 import plotly.io as pio
 from plotly.subplots import make_subplots
@@ -246,12 +247,42 @@ app.layout = html.Div([
 											clearable=False,
 											options=padj_options,
 							)], style={"width": "8%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
-						], style={"width": "100%", "font-size": "12px"}
-						),
+						], style={"width": "100%", "font-size": "12px", "display": "inline-block"}),
+
+						#legend
+						html.Div([
+							#update button + contrast only switch
+							html.Div([
+								#button
+								html.Br(),
+								html.Div([
+									html.Button("Update plots", id="update_legend_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})
+								], style={"width": "100%", "display": "inline-block"}),
+								
+								#contrast only switch
+								html.Br(),
+								html.Br(),
+								html.Div([
+									daq.BooleanSwitch(id = "contrast_only_switch", on = False, color = "#33A02C", label = "Comparison only")
+								], style={"width": "100%", "display": "inline-block", "vertical-align": "middle"}),
+							], style={"width": "10%", "display": "inline-block", "vertical-align": "top"}),
+
+							#legend
+							html.Div([
+								dcc.Loading(
+									children = html.Div([
+										dcc.Graph(id="legend", style={"height": 240}, config={"displayModeBar": False}),
+									], id="legend_div", hidden=True),
+									type = "dot",
+									color = "#33A02C"
+								)
+							], style={"width": "85%", "display": "inline-block", "margin-bottom": -100}),
+						], style={"width":"100%", "display": "inline-block", "position":"relative", "z-index": -1}),
 
 						#UMAP switches and info
 						html.Div([
 							html.Br(),
+							#info and switch umap metadata
 							html.Div([
 								#info umap metadata
 								html.Div([
@@ -270,15 +301,12 @@ app.layout = html.Div([
 										target="info_umap_metadata",
 										style={"font-family": "arial", "font-size": 14}
 									),
-								], style={"width": "20%", "display": "inline-block", "vertical-align": "middle"}),
-								#contrast only switch
+								], style={"width": "25%", "display": "inline-block", "vertical-align": "middle"}),
+
+								#Show legend
 								html.Div([
-									daq.BooleanSwitch(id = "contrast_only_umap_metadata_switch", on = False, color = "#33A02C", label = "Comparison only")
-								], style={"width": "20%", "display": "inline-block", "vertical-align": "middle"}),
-								#hide unselected metadata switch
-								html.Div([
-									daq.BooleanSwitch(id = "hide_unselected_metadata_switch", on = False, color = "#33A02C", label = "Hide unselected")
-								], style={"width": "20%", "display": "inline-block", "vertical-align": "middle"})
+									daq.BooleanSwitch(id = "show_legend_metadata_switch", on = False, color = "#33A02C", label = "Show legend")
+								], style={"width": "25%", "display": "inline-block", "vertical-align": "middle"})
 							], style={"width": "50%", "display": "inline-block"}),
 							
 							#info umap expression
@@ -296,17 +324,17 @@ app.layout = html.Div([
 									style={"font-family": "arial", "font-size": 14}
 								),
 							], style={"width": "50%", "display": "inline-block", "vertical-align": "middle"}),
-						], style={"width":"100%"}),
+						], style={"width":"100%", "display": "inline-block", "position":"relative", "z-index": 1}),
 
 						#UMAP metadata plot 
 						html.Div([
 							dcc.Loading(
 								id = "loading_umap_metadata",
-								children = dcc.Graph(id="umap_metadata", style={"height": 600}),
+								children = dcc.Graph(id="umap_metadata", style={"height": 535}),
 								type = "dot",
 								color = "#33A02C"
 							)
-						], style={"width": "46.5%", "height": 600, "display": "inline-block"}),
+						], style={"width": "46.5%", "height": 535, "display": "inline-block"}),
 
 						#UMAP expression plot
 						html.Div([
@@ -316,36 +344,29 @@ app.layout = html.Div([
 								type = "dot",
 								color = "#33A02C"
 							)
-						], style={"width": "53.5%", "height": 600, "display": "inline-block"}),
+						], style={"width": "53.5%", "height": 535, "display": "inline-block"}),
 
 						#boxplots + MA-plot + go plot
 						html.Div([
 							#boxplots + MA-plot
 							html.Div([
-								#control switch and info boxplots
+
+								#info boxplots
 								html.Div([
-
-									#info boxplots
-									html.Div([
-										html.Img(src="assets/info.png", alt="info", id="info_boxplots", style={"width": 20, "height": 20}),
-										dbc.Tooltip(
-											children=[dcc.Markdown(
-												"""
-												Box plots showing gene/species/family/order expression/abundance in the different groups.
-												
-												Click the ___UMAP legend___ to choose which group you want to display.  
-												Click the ___Comparison only___ button to display only the samples from the two comparisons.
-												""")
-											],
-											target="info_boxplots",
-											style={"font-family": "arial", "font-size": 14}
-										),
-									], style={"width": "30%", "display": "inline-block", "vertical-align": "middle"}),
-
-									html.Div([
-										daq.BooleanSwitch(id = "contrast_only_boxplots_switch", on = False, color = "#33A02C", label = "Comparison only"),
-									], style={"width": "30%", "display": "inline-block", "textAlign": "left", "vertical-align": "middle"})
-								], style={"width": "100%", "display": "inline-block", "text-align":"center"}),
+									html.Img(src="assets/info.png", alt="info", id="info_boxplots", style={"width": 20, "height": 20}),
+									dbc.Tooltip(
+										children=[dcc.Markdown(
+											"""
+											Box plots showing gene/species/family/order expression/abundance in the different groups.
+											
+											Click the ___UMAP legend___ to choose which group you want to display.  
+											Click the ___Comparison only___ button to display only the samples from the two comparisons.
+											""")
+										],
+										target="info_boxplots",
+										style={"font-family": "arial", "font-size": 14}
+									),
+								], style={"width": "100%", "display": "inline-block", "vertical-align": "middle"}),
 
 								#boxplots 
 								html.Div([
@@ -649,7 +670,7 @@ app.layout = html.Div([
 										id="download_diffexp_partial",
 										href="",
 										target="_blank",
-										children = [html.Button("Download shown table", id="download_diffexp_button_partial", disabled=True, style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+										children = [html.Button("Download filtered table", id="download_diffexp_button_partial", disabled=True, style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
 										)
 									]
 								)
@@ -851,6 +872,38 @@ app.layout = html.Div([
 
 			], style={"width": "100%", "justify-content":"center", "display":"flex", "textAlign": "center"})
 
+### functions ###
+
+#go search function
+def serach_go(search_value, df):
+	#define search query if present
+	if search_value.endswith(" "):
+		search_value = search_value.rstrip()
+	search_query = re.split(r"[\s\-/,_]+", search_value)
+	search_query = [x.lower() for x in search_query]
+
+	#search keyword in processes
+	processes_to_keep = []
+	for process in df["Process~name"]:
+		#force lowecase
+		process_lower = process.lower()
+		#check each keyword
+		for x in search_query:
+			#if it is a GO id, search for GO id
+			if x.startswith("go:"):
+				go_id = process_lower.split("~")[0]
+				if x == go_id:
+					if process not in processes_to_keep:
+						processes_to_keep.append(process)
+			#else, just search in the name og the GO category
+			else:
+				if x in process_lower.split("~")[1]:
+					processes_to_keep.append(process)
+					if process not in processes_to_keep:
+						processes_to_keep.append(process)
+
+	return processes_to_keep
+
 ### DOWNLOAD CALLBACKS ###
 
 #download diffexp
@@ -876,7 +929,6 @@ def downlaod_diffexp_table(button_click, dataset, contrast):
 	#define dataset specific variables
 	if dataset == "human":
 		base_mean_label = "Average expression"
-		gene_column_name = "Gene"
 	else:
 		base_mean_label = "Average abundance"
 		gene_column_name = dataset.split("_")[1].capitalize()
@@ -885,6 +937,10 @@ def downlaod_diffexp_table(button_click, dataset, contrast):
 	#data carpentry and links
 	df = df.rename(columns={"Geneid": "Gene ID", "log2FoldChange": "log2 FC", "lfcSE": "log2 FC SE", "pvalue": "P-value", "padj": "FDR", "baseMean": base_mean_label})
 	df = df.sort_values(by=["FDR"])
+
+	#remove a geneid in non human dge
+	if dataset != "human":
+		df = df[[gene_column_name, "log2 FC", "log2 FC SE", "P-value", "FDR", base_mean_label]]
 
 	#create a downloadable tsv file forced to excel by extension
 	link = df.to_csv(index=False, encoding="utf-8", sep="\t")
@@ -929,7 +985,6 @@ def downlaod_diffexp_table_partial(button_click, dataset, contrast, dropdown_val
 		#define dataset specific variables
 		if dataset == "human":
 			base_mean_label = "Average expression"
-			gene_column_name = "Gene"
 		else:
 			base_mean_label = "Average abundance"
 			gene_column_name = dataset.split("_")[1].capitalize()
@@ -939,10 +994,14 @@ def downlaod_diffexp_table_partial(button_click, dataset, contrast, dropdown_val
 		df = df.rename(columns={"Geneid": "Gene ID", "log2FoldChange": "log2 FC", "lfcSE": "log2 FC SE", "pvalue": "P-value", "padj": "FDR", "baseMean": base_mean_label})
 		df = df.sort_values(by=["FDR"])
 
+		#remove a geneid in non human dge
+		if dataset != "human":
+			df = df[[gene_column_name, "log2 FC", "log2 FC SE", "P-value", "FDR", base_mean_label]]
+
 		#create a downloadable tsv file forced to excel by extension
 		link = df.to_csv(index=False, encoding="utf-8", sep="\t")
 		link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
-		file_name = "DGE_{}_{}_shown.xls".format(dataset, contrast)
+		file_name = "DGE_{}_{}_filtered.xls".format(dataset, contrast)
 
 	return link, file_name, disabled_status
 
@@ -986,30 +1045,7 @@ def download_partial_go_table(n_clicks, contrast, search_value):
 		go_df = pd.read_csv(go_df, sep="\t")
 		go_df = go_df[["DGE", "Genes", "Process~name", "num_of_Genes", "gene_group", "percentage%", "P-value"]]
 		
-		if search_value.endswith(" "):
-			search_value = search_value.rstrip()
-		search_query = re.split(r"[\s\-/,_]+", search_value)
-		search_query = [x.lower() for x in search_query]
-
-		#search keyword in processes
-		processes_to_keep = []
-		for process in go_df["Process~name"]:
-			#force lowecase
-			process_lower = process.lower()
-			#check each keyword
-			for x in search_query:
-				#if it is a GO id, search for GO id
-				if x.startswith("go:"):
-					go_id = process_lower.split("~")[0]
-					if x == go_id:
-						if process not in processes_to_keep:
-							processes_to_keep.append(process)
-				#else, just search in the name og the GO category
-				else:
-					if x in process_lower.split("~")[1]:
-						processes_to_keep.append(process)
-						if process not in processes_to_keep:
-							processes_to_keep.append(process)
+		processes_to_keep = serach_go(search_value, go_df)
 
 		#filtering
 		go_df = go_df[go_df["Process~name"].isin(processes_to_keep)]
@@ -1146,25 +1182,27 @@ def display_dge_table(contrast, dataset, fdr):
 	if dataset == "human":
 		base_mean_label = "Average expression"
 		gene_column_name = "Gene"
-		genes_with_links = []
-		for gene in table["Gene"]:
-			if gene is not np.nan:
-				genes_with_links.append("[{}](".format(gene) + str("https://www.genecards.org/cgi-bin/carddisp.pl?gene=") + gene + ")")
-			else:
-				genes_with_links.append("")
-		table["Gene"] = genes_with_links
+		#store genes and geneID without link formatting
+		table["gene_plain"] = table["Gene"]
+		table["gene_plain"] = table["gene_plain"].fillna("")
+		table["IBD exome browser"] = table["Geneid"]
+		#create links
+		table["Gene"] = ["[{}](".format(gene) + str("https://www.genecards.org/cgi-bin/carddisp.pl?gene=") + gene + ")" for gene in table["gene_plain"]]
+		table["Gene ID"] = ["[{}](".format(gene_id) + str("https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=") + gene_id + ")" for gene_id in table["Geneid"]]
+		table["IBD exome browser"] = ["[![DB](assets/db.png)](" + str("https://ibd.broadinstitute.org/gene/") + gene_id + ")" for gene_id in table["IBD exome browser"]]
+		table["GWAS Catalog"] = ["[![DB](assets/db.png)](" + str("https://www.ebi.ac.uk/gwas/genes/") + gene + ")" for gene in table["gene_plain"]]
+		#remove external resources where gene is not defined
+		table.loc[table["gene_plain"] == "", "IBD exome browser"] = ""
+		table.loc[table["gene_plain"] == "", "GWAS Catalog"] = ""
 	else:
 		base_mean_label = "Average abundance"
 		gene_column_name = dataset.split("_")[1].capitalize()
 		table = table.rename(columns={"Gene": gene_column_name})
 		table[gene_column_name] = ["[{}](".format(x.replace("_", " ").replace("[", "").replace("]", "")) + str("https://www.ncbi.nlm.nih.gov/genome/?term=") + x.replace(" ", "+") + ")" for x in table[gene_column_name]]
 
-	#data carpentry and links
-	table = table.rename(columns={"Geneid": "Gene ID", "log2FoldChange": "log2 FC", "lfcSE": "log2 FC SE", "pvalue": "P-value", "padj": "FDR", "baseMean": base_mean_label})
+	#data carpentry
+	table = table.rename(columns={"log2FoldChange": "log2 FC", "lfcSE": "log2 FC SE", "pvalue": "P-value", "padj": "FDR", "baseMean": base_mean_label})
 	table = table.sort_values(by=["FDR"])
-	table["IBD exome browser"] = table["Gene ID"]
-	table["Gene ID"] = ["[{}](".format(gene_id) + str("https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=") + gene_id + ")" for gene_id in table["Gene ID"]]
-	table["IBD exome browser"] = ["[![DB](assets/db.png)](" + str("https://ibd.broadinstitute.org/gene/") + gene_id + ")" for gene_id in table["IBD exome browser"]]
 	table["FDR"] = table["FDR"].fillna("NA")
 
 	#define data
@@ -1179,11 +1217,13 @@ def display_dge_table(contrast, dataset, fdr):
 		{"name": "log2 FC SE", "id":"log2 FC SE", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
 		{"name": "P-value", "id":"P-value", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
 		{"name": "FDR", "id":"FDR", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
+		{"name": "GWAS Catalog", "id":"GWAS Catalog", "type": "text", "presentation": "markdown"},
 		{"name": "IBD exome browser", "id":"IBD exome browser", "type": "text", "presentation": "markdown"},
 		]
 	#Gene ID column not useful for metatransciptomics data
 	if dataset != "human":
 		del columns[1]
+		del columns[-2]
 		del columns[-1]
 
 	#color rows by pvalue and up and down log2FC
@@ -1224,31 +1264,7 @@ def display_go_table(contrast, search_value):
 
 	#define search query if present
 	if search_value is not None and search_value != "":
-		if search_value.endswith(" "):
-			search_value = search_value.rstrip()
-		search_query = re.split(r"[\s\-/,_]+", search_value)
-		search_query = [x.lower() for x in search_query]
-
-		#search keyword in processes
-		processes_to_keep = []
-		for process in go_df["Process~name"]:
-			#force lowecase
-			process_lower = process.lower()
-			#check each keyword
-			for x in search_query:
-				#if it is a GO id, search for GO id
-				if x.startswith("go:"):
-					go_id = process_lower.split("~")[0]
-					if x == go_id:
-						if process not in processes_to_keep:
-							processes_to_keep.append(process)
-				#else, just search in the name og the GO category
-				else:
-					if x in process_lower.split("~")[1]:
-						processes_to_keep.append(process)
-						if process not in processes_to_keep:
-							processes_to_keep.append(process)
-
+		processes_to_keep = serach_go(search_value, go_df)
 		#filtering
 		go_df = go_df[go_df["Process~name"].isin(processes_to_keep)]
 
@@ -1528,15 +1544,102 @@ def serach_genes_in_text_area(n_clicks, expression_dataset, text, already_select
 
 ### PLOTS ###
 
+#legend plot
+@app.callback(
+	Output("legend", "figure"),
+	Output("legend_div", "hidden"),
+	Output("metadata_dropdown", "value"),
+	Output("contrast_only_switch", "on"),
+	Input("metadata_dropdown", "value"),
+	Input("contrast_only_switch", "on"),
+	Input("contrast_dropdown", "value"),
+	Input("update_legend_button", "n_clicks"),
+	State("umap_dataset_dropdown", "value"),
+	State("legend", "figure")
+)
+def legend(selected_metadata, contrast_switch, contrast, update_legend, dataset, legend_fig):
+	#define contexts
+	ctx = dash.callback_context
+	trigger_id = ctx.triggered[0]["prop_id"]
+
+	#function to create legend_fig from tsv
+	def rebuild_legend_fig_from_tsv(dataset, selected_metadata):
+		#open tsv
+		umap_df = download_from_github("umap_{}.tsv".format(dataset.split("_")[0]))
+		umap_df = pd.read_csv(umap_df, sep = "\t")
+		umap_df["UMAP1"] = None
+		umap_df["UMAP2"] = None
+
+		#prepare df
+		umap_df = umap_df.sort_values(by=[selected_metadata])
+		umap_df[selected_metadata] = [i.replace("_", " ") for i in umap_df[selected_metadata]]
+		label_to_value = {"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy", "condition": "Condition"}
+		umap_df = umap_df.rename(columns=label_to_value)
+
+		#create figure
+		legend_fig = go.Figure()
+		i = 0
+		metadata_fields_ordered = umap_df[label_to_value[selected_metadata]].unique().tolist()
+		metadata_fields_ordered.sort()
+		for metadata in metadata_fields_ordered:
+			filtered_umap_df = umap_df[umap_df[label_to_value[selected_metadata]] == metadata]
+			legend_fig.add_trace(go.Scatter(x=filtered_umap_df["UMAP1"], y=filtered_umap_df["UMAP2"], marker_color = colors[i], marker_size = 4, mode="markers", legendgroup = metadata, showlegend = True, name=metadata))
+			i += 1
+
+		#add titles to axis
+		legend_fig.update_layout(legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_itemsizing="constant", xaxis_visible=False, yaxis_visible=False, margin_t=0, margin_b=230)
+
+		#transparent paper background
+		legend_fig["layout"]["paper_bgcolor"]="rgba(0,0,0,0)"
+
+		return legend_fig
+
+	#change in metadata always means to update all the legend
+	if trigger_id == "metadata_dropdown.value" or legend_fig is None:
+		#if contrast only is true and you change metadata then it have to be set as false
+		if selected_metadata != "condition" and contrast_switch is True:
+			contrast_switch = False
+		legend_fig = rebuild_legend_fig_from_tsv(dataset, selected_metadata)
+		#all traces are visible
+		for trace in legend_fig["data"]:
+			trace["visible"] = True
+	else:
+		#false contrast switch
+		if contrast_switch is False:
+			#manually switch of will reset the legend to all true
+			if trigger_id == "contrast_only_switch.on":
+				for trace in legend_fig["data"]:
+					trace["visible"] = True
+		#true contrast switch
+		elif contrast_switch is True:
+			#find conditions
+			condition_1 = contrast.split("-vs-")[0].replace("_", " ")
+			condition_2 = contrast.split("-vs-")[1].replace("_", " ")
+			if trigger_id in ["contrast_only_switch.on", "contrast_dropdown.value"]:
+				#force condition in metadata dropdown
+				if selected_metadata != "condition":
+					selected_metadata = "condition"
+					legend_fig = rebuild_legend_fig_from_tsv(dataset, selected_metadata)
+				#setup "visible" only for the two conditions in contrast
+				for trace in legend_fig["data"]:
+					if trace["name"] in [condition_1, condition_2]:
+						trace["visible"] = True
+					else:
+						trace["visible"] = "legendonly"
+			#click on update plot
+			elif trigger_id == "update_legend_button.n_clicks":
+				for trace in legend_fig["data"]:
+					if trace["visible"] is True:
+						if trace["name"] not in [condition_1, condition_2]:
+							contrast_switch = False
+
+	return legend_fig, False, selected_metadata, contrast_switch
+
 #plot umap callback
 @app.callback(
 	#umaps
 	Output("umap_metadata", "figure"),
 	Output("umap_expression", "figure"),
-	#contrast only
-	Output("metadata_dropdown", "value"),
-	Output("contrast_only_umap_metadata_switch", "on"),
-	Output("contrast_only_boxplots_switch", "on"),
 	#config
 	Output("umap_metadata", "config"),
 	Output("umap_expression", "config"),
@@ -1545,40 +1648,22 @@ def serach_genes_in_text_area(n_clicks, expression_dataset, text, already_select
 	Input("metadata_dropdown", "value"),
 	Input("expression_dataset_dropdown", "value"),
 	Input("gene_species_dropdown", "value"),
-	Input("contrast_dropdown", "value"),
 	#zoom
 	Input("umap_metadata", "relayoutData"),
 	Input("umap_expression", "relayoutData"),
-	#contrast only and legend click
-	Input("contrast_only_umap_metadata_switch", "on"),
-	Input("contrast_only_boxplots_switch", "on"),
-	Input("hide_unselected_metadata_switch", "on"),
-	Input("umap_metadata", "restyleData"),
+	#legend switch and update plots
+	Input("show_legend_metadata_switch", "on"),
+	Input("update_legend_button", "n_clicks"),
 	#states
+	State("contrast_only_switch", "on"),
 	State("umap_metadata", "figure"),
-	State("umap_expression", "figure")
+	State("umap_expression", "figure"),
+	State("legend", "figure")
 )
-def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contrast, zoom_metadata, zoom_expression, contrast_switch_umap, contrast_switch_boxplot, hide_unselected_switch, metadata_legend_click, umap_metadata_fig, umap_expression_fig):
+def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_metadata, zoom_expression, show_legend_switch, update_plots, contrast_only_switch, umap_metadata_fig, umap_expression_fig, legend_fig):
 	#define contexts
 	ctx = dash.callback_context
 	trigger_id = ctx.triggered[0]["prop_id"]
-
-	#if one switch is changed, then update the other
-	if trigger_id == "contrast_only_umap_metadata_switch.on":
-		contrast_switch = contrast_switch_umap
-		contrast_switch_boxplot = contrast_switch_umap
-	elif trigger_id == "contrast_only_boxplots_switch.on":
-		contrast_switch = contrast_switch_boxplot
-		contrast_switch_umap = contrast_switch_boxplot
-	#else just take its value form one of the two
-	else:
-		contrast_switch = contrast_switch_umap
-
-	#changing metadata with something else then "condition" will switch off the switch; clicking umap metadata legend will have the same result
-	if trigger_id == "metadata_dropdown.value" and contrast_switch is True and metadata != "condition" or trigger_id == "umap_metadata.restyleData":
-		contrast_switch = False
-		contrast_switch_umap = False
-		contrast_switch_boxplot = False
 
 	#function for zoom synchronization
 	def synchronize_zoom(umap_to_update, reference_umap):
@@ -1592,7 +1677,7 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 	##### UMAP METADATA #####
 
 	#function for creating umap_metadata_fig from tsv file
-	def plot_umap_metadata(dataset, selected_metadata):
+	def plot_umap_metadata(dataset, selected_metadata, show_legend_switch):
 		#open tsv
 		umap_df = download_from_github("umap_{}.tsv".format(dataset.split("_")[0]))
 		umap_df = pd.read_csv(umap_df, sep = "\t")
@@ -1612,11 +1697,11 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 		for metadata in metadata_fields_ordered:
 			filtered_umap_df = umap_df[umap_df[label_to_value[selected_metadata]] == metadata]
 			custom_data = filtered_umap_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library strategy"]]
-			umap_metadata_fig.add_trace(go.Scatter(x=filtered_umap_df["UMAP1"], y=filtered_umap_df["UMAP2"], marker_opacity = 1, marker_color = colors[i], marker_size = 4, customdata = custom_data, mode="markers", legendgroup = metadata, showlegend = True, hovertemplate = hover_template, name=metadata))
+			umap_metadata_fig.add_trace(go.Scatter(x=filtered_umap_df["UMAP1"], y=filtered_umap_df["UMAP2"], marker_opacity = 1, marker_color = colors[i], marker_size = 4, customdata = custom_data, mode="markers", legendgroup = metadata, showlegend = show_legend_switch, hovertemplate = hover_template, name=metadata))
 			i += 1
 
 		#add titles to axis
-		umap_metadata_fig.update_layout(xaxis_title_text = "UMAP1", yaxis_title_text = "UMAP2", height=600, title_x=0.5, title_font_size=14, legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_xanchor="center", legend_x=0.5, legend_yanchor="top", legend_y=-0.15, legend_itemsizing="constant", xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", margin=dict(t=60, b=0, l=10, r=10))
+		umap_metadata_fig.update_layout(xaxis_title_text = "UMAP1", yaxis_title_text = "UMAP2", height=535, title_x=0.5, title_font_size=14, legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_xanchor="center", legend_x=0.5, legend_yanchor="top", legend_y=-0.15, legend_itemsizing="constant", legend_itemclick=False, legend_itemdoubleclick=False, xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", margin=dict(t=60, b=0, l=10, r=10))
 		
 		#umap_metadata_fig["layout"]["paper_bgcolor"]="LightSteelBlue"
 
@@ -1641,7 +1726,8 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 				#populate data
 				metadata_data["Sample"].append(dot[0])
 				metadata_data["Group"].append(dot[1])
-				metadata_data[metadata].append(dot[2])
+				if metadata not in ["Sample", "Group", "Source", "Library strategy"]:
+					metadata_data[metadata].append(dot[2])
 				metadata_data["Source"].append(dot[3])
 				metadata_data["Library strategy"].append(dot[4])
 			#data outside "customdata"
@@ -1662,32 +1748,20 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 			xaxis_range = umap_metadata_fig["layout"]["xaxis"]["range"]
 			yaxis_range = umap_metadata_fig["layout"]["yaxis"]["range"]
 			keep_old_zoom = True
-		if trigger_id in ["umap_dataset_dropdown.value", "metadata_dropdown.value"]:
+		if trigger_id in ["umap_dataset_dropdown.value", "metadata_dropdown.value"] and umap_metadata_fig is not None:
 			keep_old_zoom = False
 			umap_metadata_fig["layout"]["xaxis"]["autorange"] = True
 			umap_metadata_fig["layout"]["yaxis"]["autorange"] = True
-		if trigger_id == "umap_dataset_dropdown.value":
-			contrast_switch_umap = False
-			contrast_switch_boxplot = False
-
-		#keep legend selection if you change umap dataset dropdown
-		if trigger_id == "umap_dataset_dropdown.value":
-			traces_visibility = []
-			for trace in umap_metadata_fig["data"]:
-				traces_visibility.append(trace["visible"])
 
 		#create figure from tsv
-		umap_metadata_fig, umap_df = plot_umap_metadata(umap_dataset, metadata)
+		umap_metadata_fig, umap_df = plot_umap_metadata(umap_dataset, metadata, show_legend_switch)
 
-		#apply old trace visibility
-		if trigger_id == "umap_dataset_dropdown.value":
-			for i in range(0, len(umap_metadata_fig["data"])):
-				umap_metadata_fig["data"][i]["visible"] = traces_visibility[i]
-
-		#add "visible" key to all the traces if not present; these will be used by umap expression and boxplots
-		for trace in umap_metadata_fig["data"]:
-			if trace["visible"] is None:
-				trace["visible"] = True
+		#apply legend trace visibility
+		for i in range(0, len(legend_fig["data"])):
+			if legend_fig["data"][i]["visible"] is True:
+				umap_metadata_fig["data"][i]["visible"] = True
+			else:
+				umap_metadata_fig["data"][i]["visible"] = False
 
 		#apply old zoom if present
 		if keep_old_zoom:
@@ -1700,35 +1774,11 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 	elif trigger_id == "umap_expression.relayoutData":
 		umap_metadata_fig = synchronize_zoom(umap_metadata_fig, umap_expression_fig)
 
-	#click on contrast_only_switch. True = On, False = Off or change in contrast
-	elif trigger_id in ["contrast_only_umap_metadata_switch.on", "contrast_only_boxplots_switch.on", "contrast_dropdown.value"]:
-		#true means to select only sample in contrast
-		if contrast_switch is True:
-			#if metadfata is not "condition", umap_metadata_fig must be created from tsv by selecting condition as metadata
-			if metadata != "condition":
-				metadata = "condition"
-				umap_metadata_fig, umap_df = plot_umap_metadata(umap_dataset, metadata)
-			#if metadata is "condition" then just parse the figure to recreate the df
-			else:
-				umap_df = parse_old_metadata_fig_to_get_its_df(umap_metadata_fig, metadata)
-
-			#find condition and filter visibility in umap metadata legend
-			condition_1 = contrast.split("-vs-")[0].replace("_", " ")
-			condition_2 = contrast.split("-vs-")[1].replace("_", " ")
-			#setup "visible" only for the two conditions in contrast
-			for trace in umap_metadata_fig["data"]:
-				if trace["name"] in [condition_1, condition_2]:
-					trace["visible"] = True
-				else:
-					trace["visible"] = "legendonly"
-
-			umap_metadata_fig["layout"]["xaxis"]["autorange"] = True
-			umap_metadata_fig["layout"]["yaxis"]["autorange"] = True
-		else:
-			umap_metadata_fig, umap_df = plot_umap_metadata(umap_dataset, metadata)
-			for trace in umap_metadata_fig["data"]:
-				if trace["visible"] is None:
-					trace["visible"] = True
+	#get df and change visibility of traces
+	elif trigger_id == "update_legend_button.n_clicks":
+		umap_df = parse_old_metadata_fig_to_get_its_df(umap_metadata_fig, metadata)
+		for i in range(0, len(legend_fig["data"])):
+			umap_metadata_fig["data"][i]["visible"] = legend_fig["data"][i]["visible"]
 
 	#if you don't have to change umap_metadata_fig, just parse the old fig to get its dataframe
 	else:
@@ -1813,39 +1863,34 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 			umap_expression_fig["layout"]["yaxis"]["autorange"] = False
 	
 	#changes in umap metadata zoom and its legend
-	elif trigger_id in ["umap_metadata.relayoutData", "umap_metadata.restyleData", "contrast_only_umap_metadata_switch.on", "contrast_only_boxplots_switch.on", "contrast_dropdown.value", "hide_unselected_metadata_switch.on"]:
+	elif trigger_id in ["show_legend_metadata_switch.on", "update_legend_button.n_clicks", "umap_metadata.relayoutData"]:
 
 		#select samples to filter
-		if trigger_id in ["umap_metadata.restyleData", "contrast_only_umap_metadata_switch.on", "contrast_only_boxplots_switch.on", "contrast_dropdown.value", "hide_unselected_metadata_switch.on"]:
+		if trigger_id == "update_legend_button.n_clicks":
 			samples_to_keep = get_samples_to_keep(umap_metadata_fig)
 			#get new filtered umap_expression_fig
 			umap_expression_fig = plot_umap_expression(expression_dataset, gene_species, samples_to_keep, umap_df, metadata)
+			#give visible status to all traces
+			for i in range(0, len(legend_fig["data"])):
+				if legend_fig["data"][i]["visible"] is True:
+					umap_metadata_fig["data"][i]["visible"] = True
+				else:
+					umap_metadata_fig["data"][i]["visible"] = False
 			
-			#selected traces only if switch is true
-			if hide_unselected_switch is True:
-				#if legend is clicked while the hide_unselected_switch is on, then the clicked item should be hidden too
-				if trigger_id == "umap_metadata.restyleData":
-					trace_to_modify = metadata_legend_click[1][0]
-					umap_metadata_fig["data"][trace_to_modify]["visible"] = False
-				#change visibility of traces in case of click on both switches
-				elif trigger_id in ["hide_unselected_metadata_switch.on", "contrast_only_umap_metadata_switch.on", "contrast_only_boxplots_switch.on", "contrast_dropdown.value"]:
-					for trace in umap_metadata_fig["data"]:
-						if trace["visible"] == "legendonly":
-							trace["visible"] = False
-			#if is false, show all traces again
-			elif hide_unselected_switch is False:
-				for trace in umap_metadata_fig["data"]:
-					if trace["visible"] is False:
-						trace["visible"] = "legendonly"
+		#show legend switch has changed
+		if trigger_id == "show_legend_metadata_switch.on":
+			#show legend with only selected elements in the legend fig
+			if show_legend_switch is True:
+				for i in range(0, len(legend_fig["data"])):
+					umap_metadata_fig["data"][i]["showlegend"] = True
+			#hide legend
+			elif show_legend_switch is False:
+				for i in range(0, len(legend_fig["data"])):
+					umap_metadata_fig["data"][i]["showlegend"] = False
 
 		#update zoom from metadata
-		umap_expression_fig = synchronize_zoom(umap_expression_fig, umap_metadata_fig)			
+		umap_expression_fig = synchronize_zoom(umap_expression_fig, umap_metadata_fig)		
 		
-		#click on the legend will turn autorange False
-		if trigger_id == "umap_metadata.restyleData":
-			umap_expression_fig["layout"]["xaxis"]["autorange"] = False
-			umap_expression_fig["layout"]["yaxis"]["autorange"] = False
-
 	##### NUMBER OF DISPLAYED SAMPLES #####
 	def get_displayed_samples(figure_data):
 		x_range = figure_data["layout"]["xaxis"]["range"]
@@ -1898,7 +1943,7 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 	config_umap_metadata["toImageButtonOptions"]["filename"] = "TaMMA_umap_{umap_metadata}_colored_by_{metadata}".format(umap_metadata = umap_dataset, metadata = metadata)
 	config_umap_expression["toImageButtonOptions"]["filename"] = "TaMMA_umap_{umap_metadata}_colored_by_{gene_species}_{expression_abundance}".format(umap_metadata = umap_dataset, gene_species = gene_species, expression_abundance = "expression" if expression_dataset == "human" else "abundance")
 
-	return umap_metadata_fig, umap_expression_fig, metadata, contrast_switch_umap, contrast_switch_boxplot, config_umap_metadata, config_umap_expression
+	return umap_metadata_fig, umap_expression_fig, config_umap_metadata, config_umap_expression
 
 #plot boxplots callback
 @app.callback(
@@ -1907,11 +1952,11 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, contras
 	Input("expression_dataset_dropdown", "value"),
 	Input("gene_species_dropdown", "value"),
 	Input("metadata_dropdown", "value"),
-	Input("umap_metadata", "restyleData"),
+	Input("update_legend_button", "n_clicks"),
+	State("legend", "figure"),
 	State("boxplots_graph", "figure"),
-	State("umap_metadata", "figure")
 )
-def plot_boxplots(expression_dataset, gene, metadata_field, umap_legend_click, boxplots_figure, umap_metadata_figure):
+def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, legend_fig, box_fig):
 	#define contexts
 	ctx = dash.callback_context
 	trigger_id = ctx.triggered[0]["prop_id"]
@@ -1922,15 +1967,8 @@ def plot_boxplots(expression_dataset, gene, metadata_field, umap_legend_click, b
 	else:
 		expression_or_abundance = "expression"
 
-	#get counts for a specific gene
-	if trigger_id == "umap_metadata.restyleData":
-		number_of_changes = len(umap_legend_click[1])
-		traces_to_change = umap_legend_click[1]
-		settings_to_apply = umap_legend_click[0]["visible"]
-		for n in range(0, number_of_changes):
-			boxplots_figure["data"][traces_to_change[n]]["visible"] = settings_to_apply[n]
-		box_fig = boxplots_figure
-	elif trigger_id in ["expression_dataset_dropdown.value", "gene_species_dropdown.value", "metadata_dropdown.value"]:
+	#in case of dropdown changes must plot again
+	if trigger_id in ["expression_dataset_dropdown.value", "gene_species_dropdown.value", "metadata_dropdown.value"] or box_fig is None:
 		counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset.split("_")[0], gene))
 		counts = pd.read_csv(counts, sep = "\t")
 		#open metadata and select only the desired column
@@ -1960,9 +1998,14 @@ def plot_boxplots(expression_dataset, gene, metadata_field, umap_legend_click, b
 		box_fig.update_traces(marker_size=4, showlegend=False)
 		box_fig.update_layout(title = {"text": gene.replace("_", " ").replace("[", "").replace("]", "") + " {} profiles per ".format(expression_or_abundance) + metadata_field_label, "x": 0.5, "font_size": 14}, legend_title_text = metadata_field_label, yaxis_title = "Log2 {}".format(expression_or_abundance), xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", height=400, margin=dict(t=30, b=30, l=5, r=10))
 
+		#define visible status
+		for trace in box_fig["data"]:
+			trace["visible"] = True
+
 	#syncronyze legend status with umap metadata
-	for trace in range(0, len(umap_metadata_figure["data"])):
-		box_fig["data"][trace]["visible"] = umap_metadata_figure["data"][trace]["visible"]
+	if legend_fig is not None:
+		for i in range(0, len(legend_fig["data"])):
+			box_fig["data"][i]["visible"] = legend_fig["data"][i]["visible"]
 
 	#box_fig["layout"]["paper_bgcolor"] = "#BCBDDC"
 
@@ -2155,41 +2198,17 @@ def plot_go_plot(contrast, search_value):
 	go_df = pd.read_csv(go_df, sep = "\t")
 	#filter out useless columns and rename the one to keep
 	go_df = go_df[["DGE", "Process~name", "P-value", "percentage%"]]
-	go_df = go_df.rename(columns={"Process~name": "Process", "percentage%": "Enrichment", "P-value": "GO p-value"})
 	#remove duplicate GO categories for up and down
-	go_df.drop_duplicates(subset ="Process", keep = False, inplace = True)
+	go_df.drop_duplicates(subset ="Process~name", keep = False, inplace = True)
 
 	#define search query if present
 	if search_value is not None and search_value != "":
-		if search_value.endswith(" "):
-			search_value = search_value.rstrip()
-		search_query = re.split(r"[\s\-/,_]+", search_value)
-		search_query = [x.lower() for x in search_query]
-
-		#search keyword in processes
-		processes_to_keep = []
-		for process in go_df["Process"]:
-			#force lowecase
-			process_lower = process.lower()
-			#check each keyword
-			for x in search_query:
-				#if it is a GO id, search for GO id
-				if x.startswith("go:"):
-					go_id = process_lower.split("~")[0]
-					if x == go_id:
-						if process not in processes_to_keep:
-							processes_to_keep.append(process)
-				#else, just search in the name og the GO category
-				else:
-					if x in process_lower.split("~")[1]:
-						processes_to_keep.append(process)
-						if process not in processes_to_keep:
-							processes_to_keep.append(process)
-
+		processes_to_keep = serach_go(search_value, go_df)
 		#filtering
-		go_df = go_df[go_df["Process"].isin(processes_to_keep)]
+		go_df = go_df[go_df["Process~name"].isin(processes_to_keep)]
 
 	#crop too long process name
+	go_df = go_df.rename(columns={"Process~name": "Process", "percentage%": "Enrichment", "P-value": "GO p-value"})
 	processes = []
 	for process in go_df["Process"]:
 		if len(process) > 80:
@@ -2316,17 +2335,17 @@ def plot_go_plot(contrast, search_value):
 	Output("multi_boxplots_graph", "config"),
 	Output("multi_boxplots_div", "hidden"),
 	Output("popover_plot_multiboxplots", "is_open"),
+	Input("update_legend_button", "n_clicks"),
 	Input("update_multixoplot_plot_button", "n_clicks"),
 	Input("metadata_dropdown", "value"),
-	Input("umap_metadata", "restyleData"),
 	State("gene_species_multi_boxplots_dropdown", "value"),
 	State("expression_dataset_dropdown", "value"),
-	State("umap_metadata", "figure"),
+	State("legend", "figure"),
 	State("multi_boxplots_graph", "figure"),
 	State("multi_boxplots_div", "hidden"),
 	prevent_initial_call=True
 )
-def plot_multiboxplots(n_clicks, metadata_field, umap_metadata_legend_click, selected_genes_species, expression_dataset, metadata_fig, box_fig, hidden_status):
+def plot_multiboxplots(n_clicks_general, n_clicks_multiboxplots, metadata_field, selected_genes_species, expression_dataset, legend_fig, box_fig, hidden_status):
 	# CIT; NDC80; AURKA; PPP1R12A; XRCC2; RGS14; ENSA; AKAP8; BUB1B; TADA3
 	#define contexts
 	ctx = dash.callback_context
@@ -2343,25 +2362,19 @@ def plot_multiboxplots(n_clicks, metadata_field, umap_metadata_legend_click, sel
 	#filled dropdown
 	else:
 		#click umap legend
-		if trigger_id == "umap_metadata.restyleData":	
+		if trigger_id == "update_legend_button.n_clicks":
 			popover_status = False
-			#identify how many changes have to be applyed
-			number_of_changes = len(umap_metadata_legend_click[1])
-			#identify which traces have to be changed
-			traces_to_change = umap_metadata_legend_click[1]
-			#identify which settings have to be applied to each changed trace
-			settings_to_apply = umap_metadata_legend_click[0]["visible"]
 			#identify how many plots there are
 			n_plots = len(selected_genes_species)
 			i = 0
 			for plot in range(0, n_plots):
-				actual_traces_to_change = [trace + i for trace in traces_to_change]
+				actual_traces_to_change = [trace + i for trace in range(0, len(legend_fig["data"]))]
 				#apply each change
-				for n in range(0, number_of_changes):
-					box_fig["data"][actual_traces_to_change[n]]["visible"] = settings_to_apply[n]
-				i += len(metadata_fig["data"])
+				for n in range(0, len(legend_fig["data"])):
+					box_fig["data"][actual_traces_to_change[n]]["visible"] = legend_fig["data"][n]["visible"]
+				i += len(legend_fig["data"])
 		#any other change
-		elif trigger_id != "umap_metadata.restyleData":
+		elif trigger_id != "update_legend_button.n_clicks":
 			#up to 10 elements to plot
 			if len(selected_genes_species) < 11:
 
@@ -2420,7 +2433,7 @@ def plot_multiboxplots(n_clicks, metadata_field, umap_metadata_legend_click, sel
 					#visible traces in umap metadata legend are the one to plot
 					visible_traces = []
 					#find visible traces
-					for trace in metadata_fig["data"]:
+					for trace in legend_fig["data"]:
 						if trace["visible"] is True:
 							visible_traces.append(trace["name"])
 
