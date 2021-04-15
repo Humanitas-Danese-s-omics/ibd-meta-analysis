@@ -7,6 +7,7 @@ import dash_bootstrap_components as dbc
 import dash_auth
 import dash_table
 from dash_table.Format import Format, Scheme
+from dash.exceptions import PreventUpdate
 import plotly.graph_objects as go
 import plotly.io as pio
 from plotly.subplots import make_subplots
@@ -703,11 +704,7 @@ app.layout = html.Div([
 										},
 										style_cell_conditional=[
 											{
-												"if": {"column_id": ["Gene", "Order", "Family", "Species", "Gene ID"]},
-												"textAlign": "left"
-											},
-											{
-												"if": {"column_id": "IBD exome browser"},
+												"if": {"column_id": "External resources"},
 												"width": "12%"
 											}
 										],
@@ -905,6 +902,74 @@ def serach_go(search_value, df):
 
 	return processes_to_keep
 
+#dge table rendering
+def dge_table_operations(table, dataset, fdr):
+	#define dataset specific variables and link
+	if dataset == "human":
+		base_mean_label = "Average expression"
+		gene_column_name = "Gene"
+		table = table.rename(columns={"Geneid": "Gene ID"})
+		#store genes and geneID without link formatting
+		table["Gene"] = table["Gene"].fillna("")
+		#create links
+		table["External resources"] = "[![NCBI](assets/icon_ncbi.png 'NCBI')](https://www.ncbi.nlm.nih.gov/gene/?term=" + table["Gene ID"] + ") " + "[![Ensembl](assets/icon_ensembl.png 'Ensembl')](https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=" + table["Gene ID"] + ") " + "[![GeneCards](assets/icon_genecards.png 'GeneCards')](https://www.genecards.org/cgi-bin/carddisp.pl?gene=" + table["Gene ID"] + ") " + "[![IBD exome browser](assets/icon_ibd_exome.png 'IBD exome browser')](https://ibd.broadinstitute.org/gene/" + table["Gene ID"] + ")" + "[![GWAS catalog](assets/icon_gwas_catalog.png 'GWAS catalog')](https://www.ebi.ac.uk/gwas/genes/" + table["Gene"] + ") " + "[![GTEx](assets/icon_gtex.png 'GTEx')](https://www.gtexportal.org/home/gene/" + table["Gene"] + ") "
+		#remove external resources where gene is not defined
+		table.loc[table["Gene"] == "", "External resources"] = "[![NCBI](assets/icon_ncbi.png 'NCBI')](https://www.ncbi.nlm.nih.gov/gene/?term=" + table["Gene ID"] + ") " + "[![Ensembl](assets/icon_ensembl.png 'Ensembl')](https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=" + table["Gene ID"] + ") " + "[![GeneCards](assets/icon_genecards.png 'GeneCards')](https://www.genecards.org/cgi-bin/carddisp.pl?gene=" + table["Gene ID"] + ") " + "[![IBD exome browser](assets/icon_ibd_exome.png 'IBD exome browser')](https://ibd.broadinstitute.org/gene/" + table["Gene ID"] + ")"
+	else:
+		base_mean_label = "Average abundance"
+		gene_column_name = dataset.split("_")[1].capitalize()
+		table = table.rename(columns={"Gene": gene_column_name})
+		table[gene_column_name] = [x.replace("_", " ").replace("[", "").replace("]", "") for x in table[gene_column_name]]
+		table["External resources"] = ["[![NCBI](assets/icon_ncbi.png 'NCBI')](https://www.ncbi.nlm.nih.gov/genome/?term=" + x.replace(" ", "+") + ")" for x in table[gene_column_name]]
+
+	#data carpentry
+	table["id"] = table[gene_column_name]
+	table = table.rename(columns={"log2FoldChange": "log2 FC", "lfcSE": "log2 FC SE", "pvalue": "P-value", "padj": "FDR", "baseMean": base_mean_label})
+	table = table.sort_values(by=["FDR"])
+	table["FDR"] = table["FDR"].fillna("NA")
+
+	#define data
+	data = table.to_dict("records")
+
+	#define columns
+	columns = [
+		{"name": gene_column_name, "id": gene_column_name}, 
+		{"name": "Gene ID", "id":"Gene ID"},
+		{"name": base_mean_label, "id": base_mean_label, "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
+		{"name": "log2 FC", "id":"log2 FC", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
+		{"name": "log2 FC SE", "id":"log2 FC SE", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
+		{"name": "P-value", "id":"P-value", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
+		{"name": "FDR", "id":"FDR", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
+		{"name": "External resources", "id":"External resources", "type": "text", "presentation": "markdown"}
+		]
+	#Gene ID column not useful for metatransciptomics data
+	if dataset != "human":
+		del columns[1]
+
+	#color rows by pvalue and up and down log2FC
+	style_data_conditional = [
+		{
+			"if": {
+				"filter_query": '{FDR} = "NA"'
+			},
+			"backgroundColor": "white"
+		},
+		{
+			"if": {
+				"filter_query": "{FDR} < {threshold}".format(FDR="{FDR}", threshold=fdr) + " && {log2 FC} < 0"
+			},
+			"backgroundColor": "#E6F0FF"
+		},
+		{
+			"if": {
+				"filter_query": "{FDR} < {threshold}".format(FDR="{FDR}", threshold=fdr) + " && {log2 FC} > 0"
+			},
+			"backgroundColor": "#FFE6E6"
+		}
+	]
+
+	return columns, data, style_data_conditional
+
 ### DOWNLOAD CALLBACKS ###
 
 #download diffexp
@@ -1097,68 +1162,7 @@ def get_filtered_dge_table(dropdown_values, contrast, dataset, fdr):
 			dropdown_values = [value.replace("_", " ").replace("[", "").replace("]", "") for value in dropdown_values]
 		table = table[table["Gene"].isin(dropdown_values)]
 
-		#define dataset specific variables
-		if dataset == "human":
-			base_mean_label = "Average expression"
-			gene_column_name = "Gene"
-			table = table.rename(columns={"Geneid": "Gene ID"})
-			#store genes and geneID without link formatting
-			table["Gene"] = table["Gene"].fillna("")
-			#create links
-			table["External resources"] = "[![NCBI](assets/icon_ncbi.png 'NCBI')](https://www.ncbi.nlm.nih.gov/gene/?term=" + table["Gene ID"] + ") " + "[![Ensembl](assets/icon_ensembl.png 'Ensembl')](https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=" + table["Gene ID"] + ") " + "[![GeneCards](assets/icon_genecards.png 'GeneCards')](https://www.genecards.org/cgi-bin/carddisp.pl?gene=" + table["Gene ID"] + ") " + "[![IBD exome browser](assets/icon_ibd_exome.png 'IBD exome browser')](https://ibd.broadinstitute.org/gene/" + table["Gene ID"] + ")" + "[![GWAS catalog](assets/icon_gwas_catalog.png 'GWAS catalog')](https://www.ebi.ac.uk/gwas/genes/" + table["Gene"] + ") " + "[![GTEx](assets/icon_gtex.png 'GTEx')](https://www.gtexportal.org/home/gene/" + table["Gene"] + ") "
-			#remove external resources where gene is not defined
-			table.loc[table["Gene"] == "", "External resources"] = "[![NCBI](assets/icon_ncbi.png 'NCBI')](https://www.ncbi.nlm.nih.gov/gene/?term=" + table["Gene ID"] + ") " + "[![Ensembl](assets/icon_ensembl.png 'Ensembl')](https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=" + table["Gene ID"] + ") " + "[![GeneCards](assets/icon_genecards.png 'GeneCards')](https://www.genecards.org/cgi-bin/carddisp.pl?gene=" + table["Gene ID"] + ") " + "[![IBD exome browser](assets/icon_ibd_exome.png 'IBD exome browser')](https://ibd.broadinstitute.org/gene/" + table["Gene ID"] + ")"
-		else:
-			base_mean_label = "Average abundance"
-			gene_column_name = dataset.split("_")[1].capitalize()
-			table = table.rename(columns={"Gene": gene_column_name})
-			table[gene_column_name] = [x.replace("_", " ").replace("[", "").replace("]", "") for x in table[gene_column_name]]
-			table["External resources"] = ["[![NCBI](assets/icon_ncbi.png 'NCBI')](https://www.ncbi.nlm.nih.gov/genome/?term=" + x.replace(" ", "+") + ")" for x in table[gene_column_name]]
-
-		#data carpentry
-		table = table.rename(columns={"log2FoldChange": "log2 FC", "lfcSE": "log2 FC SE", "pvalue": "P-value", "padj": "FDR", "baseMean": base_mean_label})
-		table = table.sort_values(by=["FDR"])
-		table["FDR"] = table["FDR"].fillna("NA")
-
-		#define data
-		data = table.to_dict("records")
-
-		#define columns
-		columns = [
-			{"name": gene_column_name, "id": gene_column_name}, 
-			{"name": "Gene ID", "id":"Gene ID"},
-			{"name": base_mean_label, "id": base_mean_label, "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
-			{"name": "log2 FC", "id":"log2 FC", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
-			{"name": "log2 FC SE", "id":"log2 FC SE", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
-			{"name": "P-value", "id":"P-value", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
-			{"name": "FDR", "id":"FDR", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
-			{"name": "External resources", "id":"External resources", "type": "text", "presentation": "markdown"}
-			]
-		#Gene ID column not useful for metatransciptomics data
-		if dataset != "human":
-			del columns[1]
-
-		#color rows by pvalue and up and down log2FC
-		style_data_conditional = [
-			{
-				"if": {
-					"filter_query": '{FDR} = "NA"'
-				},
-				"backgroundColor": "white"
-			},
-			{
-				"if": {
-					"filter_query": "{FDR} < {threshold}".format(FDR="{FDR}", threshold=fdr) + " && {log2 FC} < 0"
-				},
-				"backgroundColor": "#E6F0FF"
-			},
-			{
-				"if": {
-					"filter_query": "{FDR} < {threshold}".format(FDR="{FDR}", threshold=fdr) + " && {log2 FC} > 0"
-				},
-				"backgroundColor": "#FFE6E6"
-			}
-		]
+		columns, data, style_data_conditional = dge_table_operations(table, dataset, fdr)
 
 	return columns, data, style_data_conditional, hidden_div
 
@@ -1175,68 +1179,8 @@ def display_dge_table(contrast, dataset, fdr):
 	#open tsv
 	table = download_from_github("dge/{}/{}.diffexp.tsv".format(dataset, contrast))
 	table = pd.read_csv(table, sep = "\t")
-	#define dataset specific variables
-	if dataset == "human":
-		base_mean_label = "Average expression"
-		gene_column_name = "Gene"
-		table = table.rename(columns={"Geneid": "Gene ID"})
-		#store genes and geneID without link formatting
-		table["Gene"] = table["Gene"].fillna("")
-		#create links
-		table["External resources"] = "[![NCBI](assets/icon_ncbi.png 'NCBI')](https://www.ncbi.nlm.nih.gov/gene/?term=" + table["Gene ID"] + ") " + "[![Ensembl](assets/icon_ensembl.png 'Ensembl')](https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=" + table["Gene ID"] + ") " + "[![GeneCards](assets/icon_genecards.png 'GeneCards')](https://www.genecards.org/cgi-bin/carddisp.pl?gene=" + table["Gene ID"] + ") " + "[![IBD exome browser](assets/icon_ibd_exome.png 'IBD exome browser')](https://ibd.broadinstitute.org/gene/" + table["Gene ID"] + ")" + "[![GWAS catalog](assets/icon_gwas_catalog.png 'GWAS catalog')](https://www.ebi.ac.uk/gwas/genes/" + table["Gene"] + ") " + "[![GTEx](assets/icon_gtex.png 'GTEx')](https://www.gtexportal.org/home/gene/" + table["Gene"] + ") "
-		#remove external resources where gene is not defined
-		table.loc[table["Gene"] == "", "External resources"] = "[![NCBI](assets/icon_ncbi.png 'NCBI')](https://www.ncbi.nlm.nih.gov/gene/?term=" + table["Gene ID"] + ") " + "[![Ensembl](assets/icon_ensembl.png 'Ensembl')](https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=" + table["Gene ID"] + ") " + "[![GeneCards](assets/icon_genecards.png 'GeneCards')](https://www.genecards.org/cgi-bin/carddisp.pl?gene=" + table["Gene ID"] + ") " + "[![IBD exome browser](assets/icon_ibd_exome.png 'IBD exome browser')](https://ibd.broadinstitute.org/gene/" + table["Gene ID"] + ")"
-	else:
-		base_mean_label = "Average abundance"
-		gene_column_name = dataset.split("_")[1].capitalize()
-		table = table.rename(columns={"Gene": gene_column_name})
-		table[gene_column_name] = [x.replace("_", " ").replace("[", "").replace("]", "") for x in table[gene_column_name]]
-		table["External resources"] = ["[![NCBI](assets/icon_ncbi.png 'NCBI')](https://www.ncbi.nlm.nih.gov/genome/?term=" + x.replace(" ", "+") + ")" for x in table[gene_column_name]]
-
-	#data carpentry
-	table = table.rename(columns={"log2FoldChange": "log2 FC", "lfcSE": "log2 FC SE", "pvalue": "P-value", "padj": "FDR", "baseMean": base_mean_label})
-	table = table.sort_values(by=["FDR"])
-	table["FDR"] = table["FDR"].fillna("NA")
-
-	#define data
-	data = table.to_dict("records")
-
-	#define columns
-	columns = [
-		{"name": gene_column_name, "id": gene_column_name}, 
-		{"name": "Gene ID", "id":"Gene ID"},
-		{"name": base_mean_label, "id": base_mean_label, "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
-		{"name": "log2 FC", "id":"log2 FC", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
-		{"name": "log2 FC SE", "id":"log2 FC SE", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
-		{"name": "P-value", "id":"P-value", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
-		{"name": "FDR", "id":"FDR", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
-		{"name": "External resources", "id":"External resources", "type": "text", "presentation": "markdown"}
-		]
-	#Gene ID column not useful for metatransciptomics data
-	if dataset != "human":
-		del columns[1]
-
-	#color rows by pvalue and up and down log2FC
-	style_data_conditional = [
-		{
-			"if": {
-				"filter_query": '{FDR} = "NA"'
-			},
-			"backgroundColor": "white"
-		},
-		{
-			"if": {
-				"filter_query": "{FDR} < {threshold}".format(FDR="{FDR}", threshold=fdr) + " && {log2 FC} < 0"
-			},
-			"backgroundColor": "#E6F0FF"
-		},
-		{
-			"if": {
-				"filter_query": "{FDR} < {threshold}".format(FDR="{FDR}", threshold=fdr) + " && {log2 FC} > 0"
-			},
-			"backgroundColor": "#FFE6E6"
-		}
-	]
+	
+	columns, data, style_data_conditional = dge_table_operations(table, dataset, fdr)
 
 	return columns, data, style_data_conditional
 
@@ -1277,7 +1221,6 @@ def display_go_table(contrast, search_value):
 
 #gene/species dropdowns
 @app.callback(
-	#gene species dropdown
 	Output("gene_species_label", "children"),
 	Output("gene_species_dropdown", "options"),
 	Output("gene_species_dropdown", "value"),
@@ -1285,21 +1228,37 @@ def display_go_table(contrast, search_value):
 	Output("gene_species_multi_boxplots_dropdown", "placeholder"),
 	Output("multi_gene_dge_table_selection_dropdown", "options"),
 	Output("multi_gene_dge_table_selection_dropdown", "placeholder"),
-	#stringency
 	Output("stringency_dropdown", "value"),
 	#inputs
 	Input("expression_dataset_dropdown", "value"),
 	Input("ma_plot_graph", "clickData"),
+	Input("dge_table", "active_cell"),
+	Input("dge_table_filtered", "active_cell"),
 	State("gene_species_dropdown", "options"),
 )
-def find_genes_or_species(dataset, selected_point_ma_plot, current_dropdown_options):
+def find_genes_or_species(dataset, selected_point_ma_plot, active_cell_full, active_cell_filtered, current_dropdown_options):
 	#define contexts
 	ctx = dash.callback_context
-	trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+	trigger_id = ctx.triggered[0]["prop_id"]
 
 	#initial run: load all dataset
-	if trigger_id == "":
-		trigger_id = "expression_dataset_dropdown"
+	if trigger_id == ".":
+		trigger_id = "expression_dataset_dropdown.value"
+
+	#active cell in dge_table
+	if trigger_id in ["dge_table.active_cell", "dge_table_filtered.active_cell"]:
+		#find out which active table to use
+		if trigger_id == "dge_table.active_cell":
+			active_cell = active_cell_full
+		else:
+			active_cell = active_cell_filtered
+		#prevent update for click on wrong column or empty gene
+		if active_cell["column_id"] != "Gene" or active_cell["column_id"] == "Gene" and active_cell["row_id"] == "":
+			raise PreventUpdate
+		#return values
+		else:
+			value = active_cell["row_id"]
+			options = current_dropdown_options
 
 	#dropdown label depends on selected dataset
 	if dataset == "human":
@@ -1320,11 +1279,11 @@ def find_genes_or_species(dataset, selected_point_ma_plot, current_dropdown_opti
 			placeholder_multiboxplots_dropdown = "Select " + dataset.split("_")[0] + " families"
 
 	#if you click a gene, update only the dropdown value and keep the rest as it is
-	if trigger_id == "ma_plot_graph":
+	if trigger_id == "ma_plot_graph.clickData":
 		value = selected_point_ma_plot["points"][0]["customdata"][0].replace(" ", "_")
 		options = current_dropdown_options
 	#if you change the datast, load it and change options and values
-	elif trigger_id == "expression_dataset_dropdown":
+	elif trigger_id == "expression_dataset_dropdown.value":
 		if dataset == "human":
 			genes = download_from_github("genes_list.tsv")
 			genes = pd.read_csv(genes, sep = "\t", header=None, names=["genes"])
@@ -2120,29 +2079,31 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 		custom_data = filtered_table[[gene_or_species, "padj"]]
 		hover_template = "Log2 average expression: %{x}<br>Log2 fold change: %{y}<br>" + gene_or_species + ": %{customdata[0]}<br>Padj: %{customdata[1]}<extra></extra>"
 		ma_plot_fig.add_trace(go.Scattergl(x=filtered_table["log2_baseMean"], y=filtered_table["log2FoldChange"], marker_opacity = 1, marker_color = colors[i], marker_symbol = 2, marker_size = 5, customdata = custom_data, mode="markers", hovertemplate = hover_template))
+		#special marker for selected gene
+		if deg_status == "selected_gene":
+			ma_plot_fig["data"][i]["marker"] = {"color": "#D9D9D9", "size": 9, "symbol": 2, "line": {"color": "#525252", "width": 2}}
 		i += 1
 
-	#title and no legend
+	#title and y = 0 line
 	ma_plot_fig.update_layout(title={"text": "Differential {} FDR<".format(expression_or_abundance) + "{:.0e}".format(fdr) + "<br>" + contrast.replace("_", " ").replace("-", " ").replace("Control", "Control"), "xref": "paper", "x": 0.5, "font_size": 14}, xaxis_automargin=True, xaxis_title=xaxis_title, yaxis_automargin=True, yaxis_title="Log2 fold change", font_family="Arial", height=359, margin=dict(t=50, b=0, l=5, r=130), showlegend = False)
 	#line at y=0
 	ma_plot_fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=0, line=dict(color="black", width=3), xref="paper", layer="below")
-	#add annotation with number of up and down degs and show selected gene text
-	ma_plot_fig.add_annotation(text = str(up) + " higher in<br>" + contrast.split("-vs-")[0].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.98, showarrow=False, font_size=14, font_color="#DE2D26", font_family="Arial")
-	ma_plot_fig.add_annotation(text = str(down) + " higher in<br>" + contrast.split("-vs-")[1].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.02, showarrow=False, font_size=14, font_color="#045A8D", font_family="Arial")
-	ma_plot_fig.add_annotation(text = "Show gene stats", align="center", xref="paper", yref="paper", x=1.4, y=1, showarrow=False, font_size=12, font_family="Arial")
 
-	#save annotations for button
+	#define annotations
 	up_genes_annotation = [dict(text = str(up) + " higher in<br>" + contrast.split("-vs-")[0].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.98, showarrow=False, font=dict(size=14, color="#DE2D26", family="Arial"))]
 	down_genes_annotation = [dict(text = str(down) + " higher in<br>" + contrast.split("-vs-")[1].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.02, showarrow=False, font=dict(size=14, color="#045A8D", family="Arial"))]
 	show_gene_annotaton = [dict(text = "Show gene stats", align="center", xref="paper", yref="paper", x=1.4, y=1, showarrow=False, font_size=12)]
-	selected_gene_annotation = [dict(x=ma_plot_fig["data"][3]["x"][0], y=ma_plot_fig["data"][3]["y"][0], xref="x", yref="y", text=ma_plot_fig["data"][3]["customdata"][0][0] + "<br>Log2 avg expr: " +  str(round(selected_gene_log2_base_mean, 1)) + "<br>Log2 FC: " +  str(round(selected_gene_log2fc, 1)) + "<br>FDR: " + selected_gene_fdr, showarrow=True, font=dict(family="Arial", size=12, color="#252525"), align="center", arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="#525252", ax=-50, ay=-50, bordercolor="#525252", borderwidth=2, borderpad=4, bgcolor="#D9D9D9", opacity=0.7)]
+	selected_gene_annotation = [dict(x=ma_plot_fig["data"][3]["x"][0], y=ma_plot_fig["data"][3]["y"][0], xref="x", yref="y", text=ma_plot_fig["data"][3]["customdata"][0][0] + "<br>Log2 avg expr: " +  str(round(selected_gene_log2_base_mean, 1)) + "<br>Log2 FC: " +  str(round(selected_gene_log2fc, 1)) + "<br>FDR: " + selected_gene_fdr, showarrow=True, font=dict(family="Arial", size=12, color="#252525"), align="center", arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="#525252", ax=50, ay=50, bordercolor="#525252", borderwidth=2, borderpad=4, bgcolor="#D9D9D9", opacity=0.9)]
+
+	#add default annotations
+	ma_plot_fig["layout"]["annotations"] = up_genes_annotation + down_genes_annotation + show_gene_annotaton + selected_gene_annotation
 
 	#buttons
 	ma_plot_fig.update_layout(updatemenus=[
 		dict(
 			type="buttons",
             direction="right",
-            active=1,
+            active=0,
             x=1.42,
             y=0.9,
             buttons=list([
