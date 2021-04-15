@@ -1,3 +1,4 @@
+from logging import disable
 import dash
 from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
@@ -122,6 +123,8 @@ metadata_table["source"] = [source.split("_")[0] for source in metadata_table["s
 metadata_table = metadata_table.rename(columns={"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy"})
 link = metadata_table.to_csv(index=False, encoding="utf-8", sep="\t")
 link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
+
+tissues = metadata_table["Tissue"].unique().tolist()
 
 #external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 
@@ -366,7 +369,28 @@ app.layout = html.Div([
 										target="info_boxplots",
 										style={"font-family": "arial", "font-size": 14}
 									),
-								], style={"width": "100%", "display": "inline-block", "vertical-align": "middle"}),
+								], style={"width": "22%", "display": "inline-block", "vertical-align": "middle"}),
+
+								#group by "group"
+								html.Div([
+									daq.BooleanSwitch(id = "group_by_group_boxplots_switch", on = False, color = "#33A02C", label = "Group by tissue", disabled=False)
+								], style={"width": "22%", "display": "inline-block", "vertical-align": "middle"}),
+
+								#tissue checkbox for when the switch is on
+								html.Div(id="tissue_checkboxes_div", hidden=False, children=[
+									html.Br(),
+									dbc.FormGroup(
+										[
+											dbc.Checklist(
+												options=[{"label": tissue.replace("_", " "), "value": tissue} for tissue in tissues],
+												value=tissues,
+												id="tissue_checkboxes",
+												inline=True,
+												#labelCheckedStyle={"color": "#BDBDBD"}
+											),
+										]
+									)
+								], style={"width": "56%", "display": "inline-block", "vertical-align": "middle", "font-size": 11}),
 
 								#boxplots 
 								html.Div([
@@ -1371,6 +1395,31 @@ def filter_contrasts(dataset, tissue, contrast):
 
 	return contrasts, contrast_value
 
+#group tissues switch abilitation
+@app.callback(
+	Output("group_by_group_boxplots_switch", "disabled"),
+	Output("group_by_group_boxplots_switch", "on"),
+	Input("metadata_dropdown", "value")
+)
+def abilitate_switch(metadata):
+	on = False
+	if metadata == "condition":
+		disabled = False
+	else:
+		disabled = True
+	
+	return disabled, on
+
+#show checkboxes
+@app.callback(
+	Output("tissue_checkboxes_div", "hidden"),
+	Input("group_by_group_boxplots_switch", "on")
+)
+def show_checkboxes(on):
+	#options=[{"label": tissue.replace("_", " "), "value": tissue} for tissue in tissues],
+	#return not on
+	return True
+
 #title dge tab
 @app.callback(
 	Output("dge_table_title", "children"),
@@ -1902,14 +1951,16 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 	Input("gene_species_dropdown", "value"),
 	Input("metadata_dropdown", "value"),
 	Input("update_legend_button", "n_clicks"),
+	Input("group_by_group_boxplots_switch", "on"),
 	State("legend", "figure"),
 	State("boxplots_graph", "figure"),
 )
-def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, legend_fig, box_fig):
+def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, group_switch, legend_fig, box_fig):
 	#define contexts
 	ctx = dash.callback_context
 	trigger_id = ctx.triggered[0]["prop_id"]
 
+	#labels
 	if expression_dataset != "human":
 		expression_dataset = expression_dataset.split("_")[0]
 		expression_or_abundance = "abundance"
@@ -1917,7 +1968,7 @@ def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, legend
 		expression_or_abundance = "expression"
 
 	#in case of dropdown changes must plot again
-	if trigger_id in ["expression_dataset_dropdown.value", "gene_species_dropdown.value", "metadata_dropdown.value"] or box_fig is None:
+	if trigger_id in ["expression_dataset_dropdown.value", "gene_species_dropdown.value", "metadata_dropdown.value", "group_by_group_boxplots_switch.on"] or box_fig is None or trigger_id == "update_legend_button.n_clicks" and len(box_fig["data"]) != len(legend_fig["data"]):
 		counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset.split("_")[0], gene))
 		counts = pd.read_csv(counts, sep = "\t")
 		#open metadata and select only the desired column
@@ -1927,12 +1978,25 @@ def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, legend
 		metadata_df = metadata_df.merge(counts, how="left", on="sample")
 		metadata_df["Log2 counts"] = np.log2(metadata_df["counts"])
 		metadata_df["Log2 counts"].replace(to_replace = -np.inf, value = 0, inplace=True)
-		#sort by metadata and clean it
+		#sort by metadata and clean the selected metadata values
 		metadata = metadata_df.sort_values(by=[metadata_field])
 		metadata_df[metadata_field] = [i.replace("_", " ") for i in metadata_df[metadata_field]]
 
-		#label for dropdown
-		metadata_field_label = metadata_field.replace("_", " ")
+		#group switch parameters
+		if metadata_field == "condition" and group_switch is True:
+			metadata_field = "group"
+			x = "tissue"
+			metadata_df[x] = [tissue.replace("_", " ") for tissue in metadata_df[x]]
+			boxmode = "group"
+			showlegend = True
+			top_margin = 50
+			title_text = gene.replace("_", " ").replace("[", "").replace("]", "") + " {} profiles per ".format(expression_or_abundance) + "tissue, colored by group"
+		else:
+			x = metadata_field
+			boxmode = "overlay"
+			showlegend = False
+			top_margin = 30
+			title_text = gene.replace("_", " ").replace("[", "").replace("]", "") + " {} profiles per ".format(expression_or_abundance) + metadata_field
 
 		#create figure
 		box_fig = go.Figure()
@@ -1942,17 +2006,17 @@ def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, legend
 		for metadata in metadata_fields_ordered:
 			filtered_metadata = metadata_df[metadata_df[metadata_field] == metadata]
 			hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library strategy: " + filtered_metadata["library_strategy"]
-			box_fig.add_trace(go.Box(y=filtered_metadata["Log2 counts"], name = metadata, marker_color = colors[i], boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text"))
+			box_fig.add_trace(go.Box(y=filtered_metadata["Log2 counts"], x=filtered_metadata[x], name = metadata, marker_color = colors[i], boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text"))
 			i += 1
-		box_fig.update_traces(marker_size=4, showlegend=False)
-		box_fig.update_layout(title = {"text": gene.replace("_", " ").replace("[", "").replace("]", "") + " {} profiles per ".format(expression_or_abundance) + metadata_field_label, "x": 0.5, "font_size": 14}, legend_title_text = metadata_field_label, yaxis_title = "Log2 {}".format(expression_or_abundance), xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", height=400, margin=dict(t=30, b=30, l=5, r=10))
+		box_fig.update_traces(marker_size=4, showlegend=showlegend)
+		box_fig.update_layout(title = {"text": title_text, "x": 0.5, "font_size": 14, "y": 1}, legend_title_text = None, yaxis_title = "Log2 {}".format(expression_or_abundance), xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", height=400, margin=dict(t=top_margin, b=30, l=5, r=10), boxmode=boxmode, legend_orientation="h", legend_yanchor="bottom", legend_y=1.02, legend_xanchor="center", legend_x=0.45)
 
 		#define visible status
 		for trace in box_fig["data"]:
 			trace["visible"] = True
 
 	#syncronyze legend status with umap metadata
-	if legend_fig is not None:
+	if legend_fig is not None and group_switch is False:
 		for i in range(0, len(legend_fig["data"])):
 			box_fig["data"][i]["visible"] = legend_fig["data"][i]["visible"]
 
