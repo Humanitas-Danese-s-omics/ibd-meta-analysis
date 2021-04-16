@@ -89,7 +89,7 @@ dataset_stats = pd.read_csv(dataset_stats, sep="\t")
 labels = download_from_github("labels_list.tsv")
 labels = pd.read_csv(labels, sep = "\t", header=None, names=["labels"])
 labels = labels["labels"].dropna().tolist()
-labels = [label.replace("_", " ") for label in labels]
+labels = [label.split("_")[0] for label in labels]
 
 snakey_fig = go.Figure(data=[go.Sankey(
 	node = dict(
@@ -402,7 +402,7 @@ app.layout = html.Div([
 										color = "#33A02C"
 									),
 									html.Br()
-								], style={"width": "100%", "display": "inline-block"}),
+								], style={"width": "100%", "display": "inline-block", "position":"relative", "z-index": 1}),
 
 								#info MA-plot
 								html.Div([
@@ -621,7 +621,29 @@ app.layout = html.Div([
 									html.Br(),
 
 									#genes not found area
-									html.Div(id="genes_not_found_multi_boxplots_div", children=[], hidden=True, style={"font-size": "12px", "text-align": "center"})
+									html.Div(id="genes_not_found_multi_boxplots_div", children=[], hidden=True, style={"font-size": "12px", "text-align": "center"}), 
+
+									html.Br(),
+
+									#group by "group"
+									html.Div([
+										daq.BooleanSwitch(id = "group_by_group_multiboxplots_switch", on = False, color = "#33A02C", label = "Group by tissue", disabled=False)
+									], style={"width": "33%", "display": "inline-block", "vertical-align": "middle"}),
+
+									#tissue checkbox for when the switch is on
+									html.Div(id="tissue_checkboxes_multiboxplots_div", hidden=False, children=[
+										html.Br(),
+										dbc.FormGroup(
+											[
+												dbc.Checklist(
+													options=[{"label": tissue.replace("_", " "), "value": tissue} for tissue in tissues],
+													value=tissues,
+													id="tissue_checkboxes_multiboxplots",
+													inline=True
+												),
+											]
+										)
+									], style={"width": "67%", "display": "inline-block", "vertical-align": "middle", "font-size": 11})
 								], style={"width": "25%", "display": "inline-block", "vertical-align": "top"}),
 
 								#graph
@@ -636,7 +658,7 @@ app.layout = html.Div([
 										], hidden=True)
 									])
 								], style={"height": 600, "width": "75%", "display": "inline-block"})
-							], style={"height": 600})
+							], style={"height": 700})
 						], style=tab_style, selected_style=tab_selected_style),
 						#dge table tab
 						dcc.Tab(label="DGE table", value="dge_tab", children=[
@@ -1399,6 +1421,8 @@ def filter_contrasts(dataset, tissue, contrast):
 @app.callback(
 	Output("group_by_group_boxplots_switch", "disabled"),
 	Output("group_by_group_boxplots_switch", "on"),
+	Output("group_by_group_multiboxplots_switch", "disabled"),
+	Output("group_by_group_multiboxplots_switch", "on"),
 	Input("metadata_dropdown", "value")
 )
 def abilitate_switch(metadata):
@@ -1408,13 +1432,23 @@ def abilitate_switch(metadata):
 	else:
 		disabled = True
 	
-	return disabled, on
+	return disabled, on, disabled, on
 
-#show checkboxes
+#show checkboxes boxplots
 @app.callback(
 	Output("tissue_checkboxes_div", "hidden"),
 	Output("tissue_checkboxes", "value"),
 	Input("group_by_group_boxplots_switch", "on")
+)
+def show_checkboxes(on):
+	value = tissues
+	return not on, value
+
+#show checkboxes multiboxplots
+@app.callback(
+	Output("tissue_checkboxes_multiboxplots_div", "hidden"),
+	Output("tissue_checkboxes_multiboxplots", "value"),
+	Input("group_by_group_multiboxplots_switch", "on")
 )
 def show_checkboxes(on):
 	value = tissues
@@ -1474,7 +1508,7 @@ def serach_genes_in_text_area(n_clicks, expression_dataset, text, already_select
 		log_hidden_status = True
 	else:
 		#text is none, do almost anything
-		if text is None:
+		if text is None or text == "":
 			if expression_dataset == "human":
 				log_div = [html.Br(), "No host genes in the search area!"]
 			else:
@@ -1586,7 +1620,7 @@ def legend(selected_metadata, contrast_switch, contrast, update_legend, dataset,
 			legend_fig.add_trace(go.Scatter(x=filtered_umap_df["UMAP1"], y=filtered_umap_df["UMAP2"], marker_color = colors[i], marker_size = 4, mode="markers", legendgroup = metadata, showlegend = True, name=metadata))
 			i += 1
 
-		#add titles to axis
+		#update layout
 		legend_fig.update_layout(legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_itemsizing="constant", xaxis_visible=False, yaxis_visible=False, margin_t=0, margin_b=230)
 
 		#transparent paper background
@@ -1996,7 +2030,7 @@ def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, group_
 			#other parameters
 			boxmode = "group"
 			showlegend = True
-			top_margin = 50
+			top_margin = 60
 			title_text = gene.replace("_", " ").replace("[", "").replace("]", "") + " {} profiles per ".format(expression_or_abundance) + "tissue, colored by group"
 		else:
 			x = metadata_field
@@ -2016,7 +2050,7 @@ def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, group_
 			box_fig.add_trace(go.Box(y=filtered_metadata["Log2 counts"], x=filtered_metadata[x], name = metadata, marker_color = colors[i], boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text"))
 			i += 1
 		box_fig.update_traces(marker_size=4, showlegend=showlegend)
-		box_fig.update_layout(title = {"text": title_text, "x": 0.5, "font_size": 14, "y": 1}, legend_title_text = None, yaxis_title = "Log2 {}".format(expression_or_abundance), xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", height=400, margin=dict(t=top_margin, b=30, l=5, r=10), boxmode=boxmode, legend_orientation="h", legend_yanchor="bottom", legend_y=1.02, legend_xanchor="center", legend_x=0.45)
+		box_fig.update_layout(title = {"text": title_text, "x": 0.5, "font_size": 14, "y": 0.99}, legend_title_text = None, yaxis_title = "Log2 {}".format(expression_or_abundance), xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", height=400, margin=dict(t=top_margin, b=30, l=5, r=10), boxmode=boxmode, legend_orientation="h", legend_yanchor="bottom", legend_y=1.02, legend_xanchor="center", legend_x=0.45)
 
 		#define visible status
 		for trace in box_fig["data"]:
@@ -2360,6 +2394,8 @@ def plot_go_plot(contrast, search_value):
 	Input("update_legend_button", "n_clicks"),
 	Input("update_multixoplot_plot_button", "n_clicks"),
 	Input("metadata_dropdown", "value"),
+	Input("group_by_group_multiboxplots_switch", "on"),
+	Input("tissue_checkboxes_multiboxplots", "value"),
 	State("gene_species_multi_boxplots_dropdown", "value"),
 	State("expression_dataset_dropdown", "value"),
 	State("legend", "figure"),
@@ -2367,7 +2403,7 @@ def plot_go_plot(contrast, search_value):
 	State("multi_boxplots_div", "hidden"),
 	prevent_initial_call=True
 )
-def plot_multiboxplots(n_clicks_general, n_clicks_multiboxplots, metadata_field, selected_genes_species, expression_dataset, legend_fig, box_fig, hidden_status):
+def plot_multiboxplots(n_clicks_general, n_clicks_multiboxplots, metadata_field, group_switch, multicheckbox_value, selected_genes_species, expression_dataset, legend_fig, box_fig, hidden_status):
 	# CIT; NDC80; AURKA; PPP1R12A; XRCC2; RGS14; ENSA; AKAP8; BUB1B; TADA3
 	#define contexts
 	ctx = dash.callback_context
@@ -2383,7 +2419,7 @@ def plot_multiboxplots(n_clicks_general, n_clicks_multiboxplots, metadata_field,
 		popover_status = False
 	#filled dropdown
 	else:
-		#click umap legend
+		#change umap legend
 		if trigger_id == "update_legend_button.n_clicks":
 			popover_status = False
 			#identify how many plots there are
@@ -2410,14 +2446,23 @@ def plot_multiboxplots(n_clicks_general, n_clicks_multiboxplots, metadata_field,
 					n_rows = int(len(selected_genes_species)/2) + 1
 				n_rows = int(n_rows)
 
-				#vertical spacing
+				#vertical spacing and legend positioning
 				if n_rows > 3:
 					vertical_spacing = 0.04
+					if n_rows == 5:
+						legend_y=1.05
+					elif n_rows == 4:
+						legend_y=1.07
 				elif n_rows == 3:
 					vertical_spacing = 0.07
+					legend_y=1.10
 				elif n_rows < 3:
+					if n_rows == 2:
+						legend_y=1.15
+					elif n_rows == 1:
+						legend_y = 1.26
 					vertical_spacing = 0.1
-				
+
 				#define specs for subplot
 				specs = []
 				for i in range(0, n_rows):
@@ -2432,32 +2477,56 @@ def plot_multiboxplots(n_clicks_general, n_clicks_multiboxplots, metadata_field,
 				else:
 					expression_or_abundance = "abundance"
 				box_fig = make_subplots(rows=n_rows, cols=2, specs=specs, subplot_titles=[gene.replace("[", "").replace("]", "").replace("_", " ") for gene in selected_genes_species], shared_xaxes=True, vertical_spacing=vertical_spacing, y_title="Log2 {}".format(expression_or_abundance))
+				
+				#open metadata
+				metadata_df_original = download_from_github("umap_{}.tsv".format(expression_dataset.split("_")[0]))
+				metadata_df_original = pd.read_csv(metadata_df_original, sep = "\t")
 
+				#parameters for group by switch
+				if metadata_field == "condition" and group_switch is True or trigger_id == "tissue_checkboxes.value":
+					grouped_boxplots = True
+					metadata_field = "group"
+					tissues = metadata_df_original[metadata_field].unique().tolist()
+					x = "tissue"
+					boxmode = "group"
+					showlegend=True
+					margin_t = 110
+				else:
+					grouped_boxplots = False
+					x = metadata_field
+					boxmode = "overlay"
+					showlegend=False
+					margin_t = 75
+
+				#loop 1 plot per gene
 				working_row = 1
 				working_col = 1
 				for gene in selected_genes_species:
+					#open counts
 					counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset.split("_")[0], gene))
 					counts = pd.read_csv(counts, sep = "\t")
-					#open metadata and select only the desired column
-					metadata_df = download_from_github("umap_{}.tsv".format(expression_dataset.split("_")[0]))
-					metadata_df = pd.read_csv(metadata_df, sep = "\t")
 					#merge and compute log2 and replace inf with 0
-					metadata_df = metadata_df.merge(counts, how="left", on="sample")
+					metadata_df = metadata_df_original.merge(counts, how="left", on="sample")
 					metadata_df["Log2 counts"] = np.log2(metadata_df["counts"])
 					metadata_df["Log2 counts"].replace(to_replace = -np.inf, value = 0, inplace=True)
-					#sort by metadata and clean it
-					metadata = metadata_df.sort_values(by=[metadata_field])
+					#clean metadata field column
 					metadata_df[metadata_field] = [i.replace("_", " ") for i in metadata_df[metadata_field]]
-
-					#label for dropdown
-					metadata_field_label = metadata_field.replace("_", " ")
-
-					#visible traces in umap metadata legend are the one to plot
+					
+					#group by switch operations
 					visible_traces = []
-					#find visible traces
-					for trace in legend_fig["data"]:
-						if trace["visible"] is True:
-							visible_traces.append(trace["name"])
+					if grouped_boxplots is True:
+						#filter tissues for selected checkboxes 
+						metadata_df = metadata_df[metadata_df[x].isin(multicheckbox_value)]
+						metadata_df[x] = [i.replace("_", " ") for i in metadata_df[x]]
+						#sort by tissue
+						metadata_df = metadata_df.sort_values(by=[x])
+						for tissue in tissues:
+							visible_traces.append(tissue)
+					#visible traces in umap metadata legend are the one to plot
+					else:
+						for trace in legend_fig["data"]:
+							if trace["visible"] is True:
+								visible_traces.append(trace["name"])
 
 					#plot
 					metadata_fields_ordered = metadata_df[metadata_field].unique().tolist()
@@ -2472,8 +2541,12 @@ def plot_multiboxplots(n_clicks_general, n_clicks_multiboxplots, metadata_field,
 						
 						filtered_metadata = metadata_df[metadata_df[metadata_field] == metadata]
 						hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library strategy: " + filtered_metadata["library_strategy"]
-						box_fig.add_trace(go.Box(y=filtered_metadata["Log2 counts"], name = metadata, marker_color = colors[i], boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text", visible = visible_status), row = int(working_row), col = working_col)
+						box_fig.add_trace(go.Box(x=filtered_metadata[x], y=filtered_metadata["Log2 counts"], name=metadata, marker_color=colors[i], boxpoints="all", hovertext=hovertext_labels, hoverinfo="y+text", visible=visible_status, legendgroup=metadata, showlegend=showlegend, offsetgroup=metadata), row=int(working_row), col=working_col)
 						i += 1
+
+					#just one legend for trece showed is enough
+					if showlegend is True:
+						showlegend = False
 
 					#row and column count
 					working_row += 0.5
@@ -2482,19 +2555,25 @@ def plot_multiboxplots(n_clicks_general, n_clicks_multiboxplots, metadata_field,
 					elif working_col == 2:
 						working_col = 1
 
-				#update all traces markers and remove legend
-				box_fig.update_traces(marker_size=4, showlegend=False)
+				#update all traces markers
+				box_fig.update_traces(marker_size=4)
 				#compute height
 				if n_rows == 1:
 					height_fig = 450
 				else:
 					height_fig = n_rows*300
 				#add title and set height
-				if expression_dataset == "human":
-					title_text = "Host gene expression profiles per "
+				if grouped_boxplots is True:
+					metadata_field = "tissue"
+					extra_text = ", colored by group"
 				else:
-					title_text = "{} abundance profiles per ".format(expression_dataset.replace("_", " ").replace("viruses", "viral").capitalize())
-				box_fig.update_layout(height=height_fig, title = {"text": title_text + metadata_field_label, "x": 0.5, "font_size": 14}, font_family="Arial", margin_r=10)
+					extra_text = ""
+				if expression_dataset == "human":
+					title_text = "Host gene expression profiles per " + metadata_field.replace("_", " ")
+				else:
+					title_text = "{} abundance profiles per ".format(expression_dataset.replace("_", " ").replace("viruses", "viral").capitalize()) + metadata_field.replace("_", " ")
+				#update layout
+				box_fig.update_layout(height=height_fig, title = {"text": title_text + extra_text, "x": 0.5, "y": 0.98, "font_size": 14}, font_family="Arial", margin_r=10, boxmode=boxmode, legend_orientation="h", legend_y=legend_y, legend_xanchor="center", legend_x=0.47, margin_t=margin_t)
 
 				popover_status = False
 				hidden_status = False
