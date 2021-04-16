@@ -125,6 +125,7 @@ link = metadata_table.to_csv(index=False, encoding="utf-8", sep="\t")
 link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
 
 tissues = metadata_table["Tissue"].unique().tolist()
+tissues.sort()
 
 #external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 
@@ -133,7 +134,7 @@ VALID_USERNAME_PASSWORD_PAIRS = {
 }
 
 #layout
-app = dash.Dash(__name__, title="IBD TaMMA", external_stylesheets=[dbc.themes.MINTY])
+app = dash.Dash(__name__, title="IBD TaMMA", external_stylesheets=[dbc.themes.FLATLY])
 server = app.server
 auth = dash_auth.BasicAuth(
 	app,
@@ -385,8 +386,7 @@ app.layout = html.Div([
 												options=[{"label": tissue.replace("_", " "), "value": tissue} for tissue in tissues],
 												value=tissues,
 												id="tissue_checkboxes",
-												inline=True,
-												#labelCheckedStyle={"color": "#BDBDBD"}
+												inline=True
 											),
 										]
 									)
@@ -1413,12 +1413,12 @@ def abilitate_switch(metadata):
 #show checkboxes
 @app.callback(
 	Output("tissue_checkboxes_div", "hidden"),
+	Output("tissue_checkboxes", "value"),
 	Input("group_by_group_boxplots_switch", "on")
 )
 def show_checkboxes(on):
-	#options=[{"label": tissue.replace("_", " "), "value": tissue} for tissue in tissues],
-	#return not on
-	return True
+	value = tissues
+	return not on, value
 
 #title dge tab
 @app.callback(
@@ -1570,6 +1570,8 @@ def legend(selected_metadata, contrast_switch, contrast, update_legend, dataset,
 
 		#prepare df
 		umap_df = umap_df.sort_values(by=[selected_metadata])
+		if tab_selected_style == "source":
+			umap_df["source"] = [source.split("_")[0] for source in umap_df["source"]]
 		umap_df[selected_metadata] = [i.replace("_", " ") for i in umap_df[selected_metadata]]
 		label_to_value = {"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy", "condition": "Condition"}
 		umap_df = umap_df.rename(columns=label_to_value)
@@ -1952,10 +1954,11 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 	Input("metadata_dropdown", "value"),
 	Input("update_legend_button", "n_clicks"),
 	Input("group_by_group_boxplots_switch", "on"),
+	Input("tissue_checkboxes", "value"),
 	State("legend", "figure"),
 	State("boxplots_graph", "figure"),
 )
-def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, group_switch, legend_fig, box_fig):
+def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, group_switch, checkbox_value, legend_fig, box_fig):
 	#define contexts
 	ctx = dash.callback_context
 	trigger_id = ctx.triggered[0]["prop_id"]
@@ -1968,7 +1971,7 @@ def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, group_
 		expression_or_abundance = "expression"
 
 	#in case of dropdown changes must plot again
-	if trigger_id in ["expression_dataset_dropdown.value", "gene_species_dropdown.value", "metadata_dropdown.value", "group_by_group_boxplots_switch.on"] or box_fig is None or trigger_id == "update_legend_button.n_clicks" and len(box_fig["data"]) != len(legend_fig["data"]):
+	if trigger_id in ["expression_dataset_dropdown.value", "gene_species_dropdown.value", "metadata_dropdown.value", "group_by_group_boxplots_switch.on", "tissue_checkboxes.value"] or box_fig is None or trigger_id == "update_legend_button.n_clicks" and len(box_fig["data"]) != len(legend_fig["data"]):
 		counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset.split("_")[0], gene))
 		counts = pd.read_csv(counts, sep = "\t")
 		#open metadata and select only the desired column
@@ -1978,15 +1981,19 @@ def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, group_
 		metadata_df = metadata_df.merge(counts, how="left", on="sample")
 		metadata_df["Log2 counts"] = np.log2(metadata_df["counts"])
 		metadata_df["Log2 counts"].replace(to_replace = -np.inf, value = 0, inplace=True)
-		#sort by metadata and clean the selected metadata values
-		metadata = metadata_df.sort_values(by=[metadata_field])
 		metadata_df[metadata_field] = [i.replace("_", " ") for i in metadata_df[metadata_field]]
 
 		#group switch parameters
-		if metadata_field == "condition" and group_switch is True:
+		if metadata_field == "condition" and group_switch is True or trigger_id == "tissue_checkboxes.value":
+			#traces will be group and on the x axis we plot tissues
 			metadata_field = "group"
 			x = "tissue"
+			#filter tissues for selected checkboxes 
+			metadata_df = metadata_df[metadata_df[x].isin(checkbox_value)]
+			#sort by tissue and remove "_"
+			metadata_df = metadata_df.sort_values(by=[x])
 			metadata_df[x] = [tissue.replace("_", " ") for tissue in metadata_df[x]]
+			#other parameters
 			boxmode = "group"
 			showlegend = True
 			top_margin = 50
