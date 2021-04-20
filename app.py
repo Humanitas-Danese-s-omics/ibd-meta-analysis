@@ -83,12 +83,11 @@ padj_options = [{"label": "0.1", "value": 0.1},
 				{"label": "1e-10", "value": 0.0000000001}]
 
 evidence_options = [
+	{"label": "Housekeeping gene examples", "value": "housekeeping"},
 	{"label": "Pro-inflammatory signals in IBD", "value": "pro_inflammatory"},
 	{"label": "Bacteriome overview", "value": "bacteriome_overview"},
 	{"label": "Bacteriome in IBD", "value": "bacteriome_ibd"},
-	{"label": "Virome in IBD", "value": "Virome_ibd"},
-	{"label": "Mycome in IBD", "value": "mycome_ibd"},
-	{"label": "Archaeome in IBD", "value": "archaeome_ibd"}
+	{"label": "Virome in IBD", "value": "Virome_ibd"}
 	#{"label": "", "value": ""}
 ]
 
@@ -2284,7 +2283,7 @@ def plot_go_plot(contrast, search_value):
 	#open df
 	go_df = download_from_github("go/{}.merged_go.tsv".format(contrast))
 	go_df = pd.read_csv(go_df, sep = "\t")
-	#filter out useless columns and rename the one to keep
+	#filter out useless columns
 	go_df = go_df[["DGE", "Process~name", "P-value", "percentage%"]]
 	#remove duplicate GO categories for up and down
 	go_df.drop_duplicates(subset ="Process~name", keep = False, inplace = True)
@@ -2295,8 +2294,9 @@ def plot_go_plot(contrast, search_value):
 		#filtering
 		go_df = go_df[go_df["Process~name"].isin(processes_to_keep)]
 
-	#crop too long process name
+	#rename columns
 	go_df = go_df.rename(columns={"Process~name": "Process", "percentage%": "Enrichment", "P-value": "GO p-value"})
+	#crop too long process name
 	processes = []
 	for process in go_df["Process"]:
 		if len(process) > 80:
@@ -2322,14 +2322,6 @@ def plot_go_plot(contrast, search_value):
 	#apply function
 	go_df_up = select_go_categories(go_df_up)
 	go_df_down = select_go_categories(go_df_down)
-
-	#function for hover text
-	def create_hover_text(df):
-		hover_text = []
-		for index, row in df.iterrows():
-			hover_text.append(('DGE: {dge}<br>' + 'Process: {process}<br>' + 'Enrichment: {enrichment}<br>' + 'GO p-value: {pvalue}').format(dge=row["DGE"], process=row['Process'], enrichment=row['Enrichment'], pvalue=row['GO p-value']))
-
-		return hover_text
 
 	#find out max enrichment for this dataset
 	all_enrichments = go_df_up["Enrichment"].append(go_df_down["Enrichment"], ignore_index=True)
@@ -2358,6 +2350,14 @@ def plot_go_plot(contrast, search_value):
 	go_plot_fig = go.Figure()
 	#create subplots
 	go_plot_fig = make_subplots(rows=7, cols=2, specs=[[{"rowspan": 7}, {"rowspan": 2}], [None, None], [None, None], [None, {"rowspan": row_span_colorbar}], [None, None], [None, None], [None, None]], column_widths=[0.78, 0.2], subplot_titles=(None, "GO p-value", "Enrichment"))
+
+	#function for hover text
+	def create_hover_text(df):
+		hover_text = []
+		for index, row in df.iterrows():
+			hover_text.append(('DGE: {dge}<br>' + 'Process: {process}<br>' + 'Enrichment: {enrichment}<br>' + 'GO p-value: {pvalue}').format(dge=row["DGE"], process=row['Process'], enrichment=row['Enrichment'], pvalue=row['GO p-value']))
+
+		return hover_text
 
 	#up trace
 	hover_text = create_hover_text(go_df_up)
@@ -2637,12 +2637,14 @@ def populate_evidence(validation):
 
 		return card
 
+	#setup literature bodies
+	literature_body = []
+	tamma_body = []
+
 	#validations
 	if validation == "bacteriome_overview":
 		### LITERATURE ###
 
-		#setup literature body
-		literature_body = []
 		#markdown
 		literature_markdown = dcc.Markdown(
 			"""
@@ -2654,9 +2656,13 @@ def populate_evidence(validation):
 		literature_body.append(literature_markdown)
 		
 		### TaMMA ###
-
-		#setup tamma body
-		tamma_body = []
+		
+		#tamma markdown
+		tamma_markdown = dcc.Markdown(
+			"""
+			Markdown relative abundance TODO.
+			"""
+		)
 
 		#open tsv
 		bacteria_phylum = download_from_github("validation/bacteria_phylum.tsv")
@@ -2679,7 +2685,7 @@ def populate_evidence(validation):
 		for condition in conditions:
 			phyla_dict[condition] = {}
 			#filter tsv and get percentage
-			filtered_tsv = bacteria_phylum[bacteria_phylum["condition"] == condition]
+			filtered_tsv = bacteria_phylum.loc[bacteria_phylum["condition"] == condition, :]
 			filtered_tsv["counts"] = filtered_tsv["counts"] / filtered_tsv["counts"].sum()
 			filtered_tsv = filtered_tsv.set_index(["phylum"])
 			#get percentage of counts for each phylum
@@ -2700,14 +2706,7 @@ def populate_evidence(validation):
 			i += 1
 
 		#update layout
-		fig.update_layout(barmode="relative", xaxis_title_text="Relative phylum abundance", title_text="TITLE TODO", title_x=0.5, margin_t=40)
-
-		#tamma markdown
-		tamma_markdown = dcc.Markdown(
-			"""
-			Markdown TODO.
-			"""
-		)
+		fig.update_layout(barmode="relative", xaxis_title_text="Relative phylum abundance", title_x=0.5, margin_t=40)
 
 		#populate html components
 		graph = dcc.Graph(figure=fig)
@@ -2715,9 +2714,340 @@ def populate_evidence(validation):
 		tamma_body.append(html.Br())
 		tamma_body.append(graph)
 		tamma_body.append(html.Br())
-	else:
-		literature_body = ""
-		tamma_body = ""
+	elif validation == "pro_inflammatory":
+		### LITERATURE ###
+
+		#markdown
+		literature_markdown = dcc.Markdown(
+			"""
+			An increasing number of transcriptomic studies on IBD-derived samples has been performed. These studies have vastly improved the characterization of the cytokine microenvironment inside the inflamed tissue, where several cytokines are consistently upregulated in the inflamed tissue of both UC and CD ([Van Dullemen et al., 1995](https://pubmed.ncbi.nlm.nih.gov/7797011/); [Hanauer et al., 2002](https://pubmed.ncbi.nlm.nih.gov/12047962/); [Rutgeerts et al., 2006](https://pubmed.ncbi.nlm.nih.gov/17067595/); [Colombel et al., 2007](https://pubmed.ncbi.nlm.nih.gov/17241859/); [Reinish et al., 2010](https://pubmed.ncbi.nlm.nih.gov/19637334/); [Schreiber et al., 2011](https://pubmed.ncbi.nlm.nih.gov/21083671/); [Feagan et al., 2013](https://pubmed.ncbi.nlm.nih.gov/23964932/); [Sandborn et al., 2013](https://pubmed.ncbi.nlm.nih.gov/23964933/); [Akobeng et al., 2014](https://pubmed.ncbi.nlm.nih.gov/25299543/); [Stidham et al., 2014](https://pubmed.ncbi.nlm.nih.gov/24506179/); [Sandborn et al., 2014](https://pubmed.ncbi.nlm.nih.gov/23735746/); [Ding et al., 2016](https://pubmed.ncbi.nlm.nih.gov/26515897/); [West et al., 2017](https://pubmed.ncbi.nlm.nih.gov/28368383/); [Argollo et al., 2020](https://pubmed.ncbi.nlm.nih.gov/32879465/); [Leppkes et al., 2020](https://pubmed.ncbi.nlm.nih.gov/32416212/)).
+			"""
+		)
+
+		#append to body
+		literature_body.append(literature_markdown)
+
+		### TaMMA ###
+		
+		#tamma markdown
+		tamma_markdown_boxplots = dcc.Markdown(
+			"""
+			Markdown boxplots TODO.
+			"""
+		)
+		
+		#boxplots
+		genes = ["TNF", "IFNG", "IL12B", "ITGA4", "ITGB7"]
+		tissues = ["Colon", "Ileum", "Rectum"]
+
+		#create figure
+		box_fig = go.Figure()
+		
+		box_fig = make_subplots(rows=2, cols=3, specs=[[{}, {}, {}], [{}, {}, None]], subplot_titles=genes, shared_xaxes=True, y_title="Log2 expression")
+
+		#metadata
+		metadata_df_original = download_from_github("umap_human.tsv")
+		metadata_df_original = pd.read_csv(metadata_df_original, sep = "\t")
+		working_row = 1
+		working_col = 1
+		showlegend = True
+		for gene in genes:
+			#open counts
+			counts = download_from_github("counts/human/{}.tsv".format(gene))
+			counts = pd.read_csv(counts, sep = "\t")
+			#merge and compute log2 and replace inf with 0
+			metadata_df = metadata_df_original.merge(counts, how="left", on="sample")
+			metadata_df["Log2 counts"] = np.log2(metadata_df["counts"])
+			metadata_df["Log2 counts"].replace(to_replace = -np.inf, value = 0, inplace=True)
+			#clean condition column
+			metadata_df["condition"] = [i.replace("_", " ") for i in metadata_df["condition"]]
+			#filter tissues
+			metadata_df = metadata_df[metadata_df["tissue"].isin(tissues)]
+			metadata_df["tissue"] = [i.replace("_", " ") for i in metadata_df["tissue"]]
+			#sort by tissue
+			metadata_df = metadata_df.sort_values(by=["tissue"])
+
+			#plot
+			i = 0
+			specific_colors = ["#F8666D", "#00BA38", "#619CFF"]
+			for group in ["CD", "Control", "UC"]:
+				filtered_metadata = metadata_df[metadata_df["group"] == group]
+				hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library strategy: " + filtered_metadata["library_strategy"]
+				box_fig.add_trace(go.Box(x=filtered_metadata["tissue"], y=filtered_metadata["Log2 counts"], name=group, marker_color=specific_colors[i], boxpoints="all", hovertext=hovertext_labels, hoverinfo="y+text", legendgroup=group, showlegend=showlegend, offsetgroup=group), row=int(working_row), col=working_col)
+				i += 1
+
+			#row and column count
+			working_col += 1
+			if working_col == 4:
+				working_row = 2
+				working_col = 1
+
+			#only 1 legend item for all the plot
+			if showlegend:
+				showlegend = False
+
+		#update traces and layout
+		box_fig.update_traces(marker_size=4)
+		box_fig.update_layout(font_family="Arial", margin_r=10, boxmode="group", legend_orientation="h", legend_y=1.25, legend_xanchor="center", legend_x=0.47, margin_t=80)
+		
+		## go plots ##
+
+		#markdown
+		tamma_markdown_go_plots = dcc.Markdown(
+			"""
+			Markdown GO plots TODO.
+			"""
+		)
+
+		go_plot_fig = go.Figure()
+		contrasts = {"Colon_CD-vs-Colon_Control": ["GO:0042531"], "Colon_UC-vs-Colon_Control": ["GO:0046426", "GO:0042531"], "Rectum_CD-vs-Rectum_Control": ["GO:0060770", "GO:0046426", "GO:0042531"], "Rectum_UC-vs-Rectum_Control": ["GO:0060743"]}
+		contrasts_for_titles = [contrast.replace("_", " ").replace("-", " ") for contrast in contrasts.keys()]
+		#create subplots
+		specs = [
+			[{"rowspan": 1}, None],
+			[{"rowspan": 2}, {"rowspan": 2}], 
+			[None, None], 
+			[{"rowspan": 3}, None], 
+			[None, {"rowspan": 3}], 
+			[None, None],
+			[{"rowspan": 1}, None]
+		]
+		go_plot_fig = make_subplots(rows=7, cols=2, specs=specs, horizontal_spacing=0.3, vertical_spacing=0.11, row_heights=[0.1, 0.01, 0.01, 0.01, 0.01, 0.01, 0.1], subplot_titles=(contrasts_for_titles[0], contrasts_for_titles[1], "GO p-value", contrasts_for_titles[2], "Enrichment", contrasts_for_titles[3]))
+		
+		#function used in the loop
+
+		#function to select top GO categories
+		def select_go_categories(df):
+			#sort by pvalue
+			df = df.sort_values(by=["GO p-value"])
+			#take top ten
+			df = df.head(15)
+			#sort by enrichment
+			df = df.sort_values(by=["Enrichment"])
+
+			return df
+
+		#function for hover text
+		def create_hover_text(df):
+			hover_text = []
+			for index, row in df.iterrows():
+				hover_text.append(('DGE: {dge}<br>' + 'Process: {process}<br>' + 'Enrichment: {enrichment}<br>' + 'GO p-value: {pvalue}').format(dge=row["DGE"], process=row['Process'], enrichment=row['Enrichment'], pvalue=row['GO p-value']))
+
+			return hover_text
+
+		#plots
+		all_enrichments = []
+		working_row = 1
+		working_col = 1
+		for contrast in contrasts:
+			#open df
+			go_df = download_from_github("go/{}.merged_go.tsv".format(contrast))
+			go_df = pd.read_csv(go_df, sep = "\t")
+			#filter out useless columns
+			go_df = go_df[["DGE", "Process~name", "P-value", "percentage%"]]
+			#remove duplicate GO categories for up and down
+			go_df.drop_duplicates(subset ="Process~name", keep = False, inplace = True)
+			go_df["go_id"] = [go_id.split("~")[0] for go_id in go_df["Process~name"]]
+			go_df = go_df[go_df["go_id"].isin(contrasts[contrast])]
+			#rename columns
+			go_df = go_df.rename(columns={"Process~name": "Process", "percentage%": "Enrichment", "P-value": "GO p-value"})
+			#crop too long process name
+			processes = []
+			for process in go_df["Process"]:
+				if len(process) > 80:
+					process = process[0:79] + " ..."
+				processes.append(process)
+			go_df["Process"] = processes
+			
+			#divide up and down GO categories
+			go_df_up = go_df[go_df["DGE"] == "up"]
+			go_df_down = go_df[go_df["DGE"] == "down"]
+
+			#find out max enrichment for this dataset (will be used for legend size)
+			all_enrichments.extend(go_df_up["Enrichment"].tolist())
+			all_enrichments.extend(go_df_down["Enrichment"].tolist())
+
+			#apply function
+			go_df_up = select_go_categories(go_df_up)
+			go_df_down = select_go_categories(go_df_down)
+
+			#up trace
+			hover_text = create_hover_text(go_df_up)
+			go_plot_fig.add_trace(go.Scatter(x=go_df_up["DGE"], y=go_df_up["Process"], marker_size=go_df_up["Enrichment"], marker_opacity = 1, marker_color = go_df_up["GO p-value"], marker_colorscale=["#D7301F", "#FCBBA1"], marker_showscale=False, marker_cmax=0.05, marker_cmin=0, mode="markers", hovertext = hover_text, hoverinfo = "text", marker_sizeref = 4.081632653061225), row = working_row, col = working_col)
+			#down trace
+			hover_text = create_hover_text(go_df_down)
+			go_plot_fig.add_trace(go.Scatter(x=go_df_down["DGE"], y=go_df_down["Process"], marker_size=go_df_down["Enrichment"], marker_opacity = 1, marker_color = go_df_down["GO p-value"], marker_colorscale=["#045A8D", "#C6DBEF"], marker_showscale=False, marker_cmax=0.05, marker_cmin=0, mode="markers", hovertext = hover_text, hoverinfo = "text", marker_sizeref = 4.081632653061225), row = working_row, col = working_col)
+
+			#row and col count
+			if contrast == "Colon_CD-vs-Colon_Control":
+				working_row +=1
+			elif contrast == "Colon_UC-vs-Colon_Control":
+				working_row += 2
+			elif contrast == "Rectum_CD-vs-Rectum_Control":
+				working_row += 3
+
+		#colorbar trace
+		go_plot_fig.add_trace(go.Scatter(x = [None], y = [None], marker_showscale=True, marker_color = [0], marker_colorscale=["#737373", "#D9D9D9"], marker_cmax=0.05, marker_cmin=0, marker_colorbar = dict(thicknessmode="pixels", thickness=20, lenmode="pixels", len=150, y=0.60, x=0.75)), row = 2, col = 2)
+
+		legend_sizes = [round(min(all_enrichments)), round(np.average([max(all_enrichments), min(all_enrichments)])), round(max(all_enrichments))]
+		sizeref = 2. * max(all_enrichments)/(7 ** 2)
+		go_plot_fig.add_trace(go.Scatter(x = [1, 1, 1], y = [10, 45, 80], marker_size = legend_sizes, marker_sizeref = sizeref, marker_color = "#737373", mode="markers+text", text=["min", "mid", "max"], hoverinfo="text", hovertext=legend_sizes, textposition="top center"), row = 5, col = 2)
+		go_plot_fig.update_traces(showlegend=False)
+		
+		go_plot_fig.update_layout(height=600,
+								#margins,
+								margin=dict(t=50, b=0, r=0),
+								#fixed range for enrichment legend
+								yaxis5_range=[0, 100],
+								#no zoom
+								xaxis_fixedrange=True, 
+								xaxis2_fixedrange=True, 
+								xaxis3_fixedrange=True,
+								xaxis4_fixedrange=True,
+								xaxis5_fixedrange=True,
+								xaxis6_fixedrange=True,
+								yaxis_fixedrange=True,
+								yaxis2_fixedrange=True, 
+								yaxis3_fixedrange=True,
+								yaxis4_fixedrange=True,
+								yaxis5_fixedrange=True,
+								yaxis6_fixedrange=True,
+								#hide axis of legends
+								xaxis3_visible=False,
+								xaxis5_visible=False,
+								yaxis3_visible=False, 
+								yaxis5_visible=False)
+		#go_plot_fig["layout"]["paper_bgcolor"] = "#FDE0DD"
+
+		#populate html components
+		tamma_body.append(tamma_markdown_boxplots)
+		tamma_body.append(html.Br())
+		tamma_body.append(dcc.Graph(figure=box_fig))
+		tamma_body.append(html.Br())
+		tamma_body.append(tamma_markdown_go_plots)
+		tamma_body.append(html.Br())
+		tamma_body.append(dcc.Graph(figure=go_plot_fig))
+		tamma_body.append(html.Br())
+	elif validation == "housekeeping":
+		### LITERATURE ###
+		
+		#markdown
+		literature_markdown = dcc.Markdown(
+			"""
+			TODO [Eisenberg and Levanon, 2013](http://www.ncbi.nlm.nih.gov/pubmed/23810203).
+			"""
+		)
+
+		literature_body.append(literature_markdown)
+
+		### TaMMA ###
+		tamma_markdown = dcc.Markdown(
+			"""
+			Markdown TODO.
+			"""
+		)
+
+		#boxplots
+		genes = ["ACTB", "GAPDH", "GPI", "VPS29"]
+		tissues = ["Colon", "Ileum", "Rectum"]
+
+		#create figure
+		box_fig = go.Figure()
+		
+		box_fig = make_subplots(rows=2, cols=2, specs=[[{}, {}], [{}, {}]], subplot_titles=genes, shared_xaxes=True, y_title="Log2 expression")
+
+		#metadata
+		metadata_df_original = download_from_github("umap_human.tsv")
+		metadata_df_original = pd.read_csv(metadata_df_original, sep = "\t")
+		working_row = 1
+		working_col = 1
+		showlegend = True
+		for gene in genes:
+			#open counts
+			counts = download_from_github("counts/human/{}.tsv".format(gene))
+			counts = pd.read_csv(counts, sep = "\t")
+			#merge and compute log2 and replace inf with 0
+			metadata_df = metadata_df_original.merge(counts, how="left", on="sample")
+			metadata_df["Log2 counts"] = np.log2(metadata_df["counts"])
+			metadata_df["Log2 counts"].replace(to_replace = -np.inf, value = 0, inplace=True)
+			#clean condition column
+			metadata_df["condition"] = [i.replace("_", " ") for i in metadata_df["condition"]]
+			#filter tissues
+			metadata_df = metadata_df[metadata_df["tissue"].isin(tissues)]
+			metadata_df["tissue"] = [i.replace("_", " ") for i in metadata_df["tissue"]]
+			#sort by tissue
+			metadata_df = metadata_df.sort_values(by=["tissue"])
+
+			#plot
+			i = 0
+			specific_colors = ["#F8666D", "#00BA38", "#619CFF"]
+			for group in ["CD", "Control", "UC"]:
+				filtered_metadata = metadata_df[metadata_df["group"] == group]
+				hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library strategy: " + filtered_metadata["library_strategy"]
+				box_fig.add_trace(go.Box(x=filtered_metadata["tissue"], y=filtered_metadata["Log2 counts"], name=group, marker_color=specific_colors[i], boxpoints="all", hovertext=hovertext_labels, hoverinfo="y+text", legendgroup=group, showlegend=showlegend, offsetgroup=group), row=int(working_row), col=working_col)
+				i += 1
+
+			#row and column count
+			working_col += 1
+			if working_col == 3:
+				working_row = 2
+				working_col = 1
+
+			#only 1 legend item for all the plot
+			if showlegend:
+				showlegend = False
+
+		#update traces and layout
+		box_fig.update_traces(marker_size=4)
+		box_fig.update_layout(font_family="Arial", margin_r=10, boxmode="group", legend_orientation="h", legend_y=1.25, legend_xanchor="center", legend_x=0.47, margin_t=80)
+
+		#populate html components
+		tamma_body.append(tamma_markdown)
+		tamma_body.append(html.Br())
+		tamma_body.append(dcc.Graph(figure=box_fig))
+		tamma_body.append(html.Br())
+	elif validation == "bacteriome_ibd":
+		### LITERATURE ###
+		
+		#markdown
+		literature_markdown = dcc.Markdown(
+			"""
+			Markdown TODO.
+			"""
+		)
+
+		literature_body.append(literature_markdown)
+
+		### TaMMA ###
+		tamma_markdown = dcc.Markdown(
+			"""
+			Markdown TODO.
+			"""
+		)
+
+		#create subplots
+		violins_fig = make_subplots(rows=1, cols=3, specs=[[{}, {}, {}]], subplot_titles=["Stools", "Colon", "Ileum"], y_title="Shannon diversity index")
+		
+		#open diversity tsv
+		specific_colors = ["#F8666D", "#00BA38", "#619CFF"]
+		i = 1
+		for tissue in ["stools", "colon", "ileum"]:
+			diversity_df = download_from_github("validation/diversity_{}.tsv".format(tissue))
+			diversity_df = pd.read_csv(diversity_df, sep="\t")
+			diversity_df["condition"] = [condition.split(" ")[1] for condition in diversity_df["condition"]]
+			conditions = diversity_df["condition"].unique().tolist()
+			conditions.sort()
+			j = 0
+			for condition in conditions:
+				violins_fig.add_trace(go.Violin(x=diversity_df["condition"][diversity_df["condition"] == condition], y=diversity_df["diversity"][diversity_df["condition"] == condition], name=condition, box_visible=True, meanline_visible=True, marker_color=specific_colors[j]), row=1, col=i)
+				j += 1
+			i += 1
+			
+
+		tamma_body.append(tamma_markdown)
+		tamma_body.append(html.Br())
+		tamma_body.append(dcc.Graph(figure=violins_fig))
+		tamma_body.append(html.Br())
 
 	#append cards to div
 	div_children = html.Div([
