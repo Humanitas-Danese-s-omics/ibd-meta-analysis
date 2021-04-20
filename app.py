@@ -51,7 +51,6 @@ umap_datasets_options = [{"label": "Human", "value": "human"},
 					{"label": "Eukaryota", "value": "eukaryota"},
 					{"label": "Viruses", "value": "viruses"}]
 
-#dropdown options
 expression_datasets_options = [{"label": "Human", "value": "human"},
 					{"label": "Archaea by order", "value": "archaea_order"},
 					{"label": "Archaea by family", "value": "archaea_family"},
@@ -82,6 +81,16 @@ padj_options = [{"label": "0.1", "value": 0.1},
 				{"label": "1e-08", "value": 0.00000001},
 				{"label": "1e-09", "value": 0.000000001},
 				{"label": "1e-10", "value": 0.0000000001}]
+
+evidence_options = [
+	{"label": "Pro-inflammatory signals in IBD", "value": "pro_inflammatory"},
+	{"label": "Bacteriome overview", "value": "bacteriome_overview"},
+	{"label": "Bacteriome in IBD", "value": "bacteriome_ibd"},
+	{"label": "Virome in IBD", "value": "Virome_ibd"},
+	{"label": "Mycome in IBD", "value": "mycome_ibd"},
+	{"label": "Archaeome in IBD", "value": "archaeome_ibd"}
+	#{"label": "", "value": ""}
+]
 
 #snakey
 dataset_stats = download_from_github("stats.tsv")
@@ -275,12 +284,12 @@ app.layout = html.Div([
 							html.Div([
 								dcc.Loading(
 									children = html.Div([
-										dcc.Graph(id="legend", style={"height": 240}, config={"displayModeBar": False}),
+										dcc.Graph(id="legend", style={"height": 350}, config={"displayModeBar": False}),
 									], id="legend_div", hidden=True),
 									type = "dot",
 									color = "#33A02C"
 								)
-							], style={"width": "85%", "display": "inline-block", "margin-bottom": -100}),
+							], style={"width": "85%", "display": "inline-block", "margin-bottom": -180}),
 						], style={"width":"100%", "display": "inline-block", "position":"relative", "z-index": -1}),
 
 						#UMAP switches and info
@@ -907,7 +916,30 @@ app.layout = html.Div([
 						#literature tab
 						dcc.Tab(label="Literature", value="validation_tab", children=[
 							html.Br(),
-							html.Div(["Validation examples will be here!"]),
+							html.Div([
+								#input section
+								html.Div([
+									html.Br(),
+									#dropdown
+									dcc.Dropdown(id="validation_dropdown", placeholder="Search evidence", options=evidence_options, style={"textAlign": "left", "font-size": "12px"}),
+								], style={"width": "25%", "display": "inline-block", "vertical-align": "top"}),
+
+								#spacer
+								html.Div([], style={"width": "1.5%", "display": "inline-block"}),
+
+								#graphs
+								html.Div([
+									dcc.Loading(
+										id="evidence_div",
+										type="dot",
+										color="#33A02C",
+										children=[]
+									)
+								], style={"height": 600, "width": "70%", "display": "inline-block"}),
+
+								#spacer
+								html.Div([], style={"width": "1.5%", "display": "inline-block"}),
+							]),
 							html.Br()
 						], style=tab_style, selected_style=tab_selected_style)
 					], style= {"height": 40}),
@@ -1621,7 +1653,7 @@ def legend(selected_metadata, contrast_switch, contrast, update_legend, dataset,
 			i += 1
 
 		#update layout
-		legend_fig.update_layout(legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_itemsizing="constant", xaxis_visible=False, yaxis_visible=False, margin_t=0, margin_b=230)
+		legend_fig.update_layout(legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_itemsizing="constant", xaxis_visible=False, yaxis_visible=False, margin_t=0, margin_b=340)
 
 		#transparent paper background
 		legend_fig["layout"]["paper_bgcolor"]="rgba(0,0,0,0)"
@@ -2587,6 +2619,115 @@ def plot_multiboxplots(n_clicks_general, n_clicks_multiboxplots, metadata_field,
 
 	return box_fig, config_multi_boxplots, hidden_status, popover_status
 
+#evidence callback
+@app.callback(
+	Output("evidence_div", "children"),
+	Input("validation_dropdown", "value")
+)
+def populate_evidence(validation):
+	
+	#function for card
+	def card(header, body):
+		card = dbc.Card(
+			[
+				dbc.CardHeader(header),
+				dbc.CardBody(body),
+			],
+		)
+
+		return card
+
+	#validations
+	if validation == "bacteriome_overview":
+		### LITERATURE ###
+
+		#setup literature body
+		literature_body = []
+		#markdown
+		literature_markdown = dcc.Markdown(
+			"""
+			Healthy human gut microbiota has been found to primarily consist of a few dominant bacterial phyla, _Bacteroidetes_, _Firmicutes_, _Proteobacteria_, _Actinobacteria_, and _Verrucomicrobia_ ([Eckburg et al., 2005](https://pubmed.ncbi.nlm.nih.gov/15831718/); [Frank et al., 2007](https://pubmed.ncbi.nlm.nih.gov/17699621/); [Qin et al., 2010](https://pubmed.ncbi.nlm.nih.gov/20203603/); [Gregory et al., 2020](https://pubmed.ncbi.nlm.nih.gov/32841606/)).
+			"""
+		)
+		
+		#append to body
+		literature_body.append(literature_markdown)
+		
+		### TaMMA ###
+
+		#setup tamma body
+		tamma_body = []
+
+		#open tsv
+		bacteria_phylum = download_from_github("validation/bacteria_phylum.tsv")
+		bacteria_phylum = pd.read_csv(bacteria_phylum, sep = "\t")
+
+		#get others
+		bacteria_phylum.loc[~bacteria_phylum["phylum"].isin(["Actinobacteria", "Firmicutes", "Proteobacteria", "Bacteroidetes", "Verrucomicrobia"]), "phylum"] = "Others"
+		bacteria_phylum = bacteria_phylum.groupby(["condition", "phylum"], as_index=False).sum()
+		#get all conditions and phyla
+		conditions = bacteria_phylum["condition"].unique().tolist()
+		conditions.sort()
+		phyla = bacteria_phylum["phylum"].unique().tolist()
+		phyla.sort()
+		
+		#compute data and add bar
+		fig = go.Figure()
+		
+		#get percentage of counts for each phylum
+		phyla_dict = {}
+		for condition in conditions:
+			phyla_dict[condition] = {}
+			#filter tsv and get percentage
+			filtered_tsv = bacteria_phylum[bacteria_phylum["condition"] == condition]
+			filtered_tsv["counts"] = filtered_tsv["counts"] / filtered_tsv["counts"].sum()
+			filtered_tsv = filtered_tsv.set_index(["phylum"])
+			#get percentage of counts for each phylum
+			for phylum in phyla:
+				phylum_counts = filtered_tsv.loc[phylum, "counts"]
+				phyla_dict[condition][phylum] = phylum_counts
+
+		#add traces
+		conditions = []
+		i=0
+		for phylum in phyla:
+			percentages = []
+			for condition in phyla_dict:
+				if condition not in conditions:
+					conditions.append(condition)
+				percentages.append(phyla_dict[condition][phylum]*100)
+			fig.add_bar(x=percentages, y=conditions, orientation="h", name = phylum, marker_color=colors[i], hoverinfo="x", hovertemplate="%{x:.2f} %")
+			i += 1
+
+		#update layout
+		fig.update_layout(barmode="relative", xaxis_title_text="Relative phylum abundance", title_text="TITLE TODO", title_x=0.5, margin_t=40)
+
+		#tamma markdown
+		tamma_markdown = dcc.Markdown(
+			"""
+			Markdown TODO.
+			"""
+		)
+
+		#populate html components
+		graph = dcc.Graph(figure=fig)
+		tamma_body.append(tamma_markdown)
+		tamma_body.append(html.Br())
+		tamma_body.append(graph)
+		tamma_body.append(html.Br())
+	else:
+		literature_body = ""
+		tamma_body = ""
+
+	#append cards to div
+	div_children = html.Div([
+		card("Evidence from the literature", literature_body),
+		html.Br(),
+		card("Evidence from TaMMA", tamma_body),
+		html.Br()
+	])
+
+	return div_children
 
 if __name__ == "__main__":
 	import os.path
