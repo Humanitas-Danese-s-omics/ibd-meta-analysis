@@ -921,15 +921,15 @@ app.layout = html.Div([
 									html.Br(),
 									#dropdown
 									dcc.Dropdown(id="validation_dropdown", placeholder="Search evidence", options=evidence_options, style={"textAlign": "left", "font-size": "12px"}),
-								], style={"width": "25%", "display": "inline-block", "vertical-align": "top"}),
+								], style={"height": 350, "width": "25%", "display": "inline-block", "vertical-align": "top"}),
 
 								#spacer
 								html.Div([], style={"width": "1.5%", "display": "inline-block"}),
 
 								#graphs
-								html.Div([
+								html.Div(id="evidence_div", children=[
 									dcc.Loading(
-										id="evidence_div",
+										id="evidence_div_loading",
 										type="dot",
 										color="#33A02C",
 										children=[]
@@ -2621,7 +2621,8 @@ def plot_multiboxplots(n_clicks_general, n_clicks_multiboxplots, metadata_field,
 
 #evidence callback
 @app.callback(
-	Output("evidence_div", "children"),
+	Output("evidence_div_loading", "children"),
+	Output("evidence_div", "hidden"),
 	Input("validation_dropdown", "value")
 )
 def populate_evidence(validation):
@@ -2640,6 +2641,7 @@ def populate_evidence(validation):
 	#setup literature bodies
 	literature_body = []
 	tamma_body = []
+	hidden = False
 
 	#validations
 	if validation == "bacteriome_overview":
@@ -2648,7 +2650,7 @@ def populate_evidence(validation):
 		#markdown
 		literature_markdown = dcc.Markdown(
 			"""
-			Healthy human gut microbiota has been found to primarily consist of a few dominant bacterial phyla, _Bacteroidetes_, _Firmicutes_, _Proteobacteria_, _Actinobacteria_, and _Verrucomicrobia_ ([Eckburg et al., 2005](https://pubmed.ncbi.nlm.nih.gov/15831718/); [Frank et al., 2007](https://pubmed.ncbi.nlm.nih.gov/17699621/); [Qin et al., 2010](https://pubmed.ncbi.nlm.nih.gov/20203603/); [Gregory et al., 2020](https://pubmed.ncbi.nlm.nih.gov/32841606/)).
+			Healthy human gut microbiota has been found to primarily consist of a few dominant bacterial phyla, _Bacteroidetes_, _Firmicutes_, _Proteobacteria_, _Actinobacteria_, and _Verrucomicrobia_ ([Eckburg et al., 2005](https://pubmed.ncbi.nlm.nih.gov/15831718/); [Frank et al., 2007](https://pubmed.ncbi.nlm.nih.gov/17699621/); [Qin et al., 2010](https://pubmed.ncbi.nlm.nih.gov/20203603/); [Ungaro et al., 2019](http://www.ncbi.nlm.nih.gov/pubmed/31662858); [Gregory et al., 2020](https://pubmed.ncbi.nlm.nih.gov/32841606/)).
 			"""
 		)
 		
@@ -2660,7 +2662,7 @@ def populate_evidence(validation):
 		#tamma markdown
 		tamma_markdown = dcc.Markdown(
 			"""
-			Markdown relative abundance TODO.
+			Metatranscriptomics performed on IBD and healthy stools parallels previous metagenomics analysis, confirming the _Bacteroidetes_ and _Firmicutes phyla_, followed by the _Actinobacteria_ and _Proteobacteria_, as the main colonizers of the fecal microbiota. IBD TaMMA also highlights IBD and healthy intestinal samples to be colonized by the same _phyla_, although with different proportions.
 			"""
 		)
 
@@ -2706,14 +2708,11 @@ def populate_evidence(validation):
 			i += 1
 
 		#update layout
-		fig.update_layout(barmode="relative", xaxis_title_text="Relative phylum abundance", title_x=0.5, margin_t=40, font_family="Arial")
+		fig.update_layout(barmode="relative", xaxis_title_text="Relative phylum abundance", title_x=0.5, margin_t=40, font_family="Arial", height=450)
 
 		#populate html components
-		graph = dcc.Graph(figure=fig)
 		tamma_body.append(tamma_markdown)
-		tamma_body.append(html.Br())
-		tamma_body.append(graph)
-		tamma_body.append(html.Br())
+		tamma_body.append(dcc.Graph(figure=fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "bacteriome_overview.png"}}))
 	elif validation == "pro_inflammatory":
 		### LITERATURE ###
 
@@ -2732,7 +2731,7 @@ def populate_evidence(validation):
 		#tamma markdown
 		tamma_markdown_boxplots = dcc.Markdown(
 			"""
-			Markdown boxplots TODO.
+			IBD-specific features, well-established in the field, are confirmed. Among these, Tumor Necrosis Factor-α (_TNF_), Interferon γ (_IFNG_), Interleukin (IL) 12β (_IL12B_), and Integrin (ITG) α4 and β7 (_ITGA4_, _ITGB7_) which are some of the hallmarks of chronic inflammation already exploited as therapeutic targets IBD patients, are dysregulated in IBD-derived intestinal samples by comparison with the healthy tissues. Of note, while _TNF_ and _IFNG_ are upregulated in ileum, colon and rectum from UC and CD by comparison with the healthy counterparts, the other factors display specific tissue- and disease-dependent modulations.
 			"""
 		)
 		
@@ -2743,7 +2742,7 @@ def populate_evidence(validation):
 		#create figure
 		box_fig = go.Figure()
 		
-		box_fig = make_subplots(rows=2, cols=3, specs=[[{}, {}, {}], [{}, {}, None]], subplot_titles=genes, shared_xaxes=True, y_title="Log2 expression")
+		box_fig = make_subplots(rows=2, cols=3, specs=[[{}, {}, {}], [{}, {}, None]], subplot_titles=genes, shared_xaxes=True, y_title="Log2 expression", vertical_spacing=0.2)
 
 		#metadata
 		metadata_df_original = download_from_github("umap_human.tsv")
@@ -2788,31 +2787,26 @@ def populate_evidence(validation):
 
 		#update traces and layout
 		box_fig.update_traces(marker_size=4)
-		box_fig.update_layout(font_family="Arial", margin_r=10, boxmode="group", legend_orientation="h", legend_y=1.25, legend_xanchor="center", legend_x=0.47, margin_t=80)
+		box_fig.update_layout(font_family="Arial", margin_r=10, boxmode="group", legend_orientation="h", legend_y=1.25, legend_xanchor="center", legend_x=0.47, margin_t=80, height=500)
 		
 		## go plots ##
 
 		#markdown
 		tamma_markdown_go_plots = dcc.Markdown(
 			"""
-			Markdown GO plots TODO.
+			Similarly, JAK-STAT pathway activation, known to be targeted for approved treatments (Tofacitinib), occurs in UC colon by comparison with the healthy (control).
 			"""
 		)
 
 		go_plot_fig = go.Figure()
-		contrasts = {"Colon_CD-vs-Colon_Control": ["GO:0042531"], "Colon_UC-vs-Colon_Control": ["GO:0046426", "GO:0042531"], "Rectum_CD-vs-Rectum_Control": ["GO:0060770", "GO:0046426", "GO:0042531"], "Rectum_UC-vs-Rectum_Control": ["GO:0060743"]}
+		contrasts = {"Colon_UC-vs-Colon_Control": ["GO:0046426", "GO:0042531"]}
 		contrasts_for_titles = [contrast.replace("_", " ").replace("-", " ") for contrast in contrasts.keys()]
 		#create subplots
 		specs = [
-			[{"rowspan": 1}, None],
-			[{"rowspan": 2}, {"rowspan": 2}], 
-			[None, None], 
-			[{"rowspan": 3}, None], 
-			[None, {"rowspan": 3}], 
-			[None, None],
-			[{"rowspan": 1}, None]
+			[None, {}],
+			[{}, {}]
 		]
-		go_plot_fig = make_subplots(rows=7, cols=2, specs=specs, horizontal_spacing=0.3, vertical_spacing=0.11, row_heights=[0.1, 0.01, 0.01, 0.01, 0.01, 0.01, 0.1], subplot_titles=(contrasts_for_titles[0], contrasts_for_titles[1], "GO p-value", contrasts_for_titles[2], "Enrichment", contrasts_for_titles[3]))
+		go_plot_fig = make_subplots(rows=2, cols=2, specs=specs, horizontal_spacing=0.3, row_heights=[0.3, 0.7], subplot_titles=(contrasts_for_titles[0], "GO p-value", "Enrichment"))
 		
 		#function used in the loop
 
@@ -2873,69 +2867,55 @@ def populate_evidence(validation):
 
 			#up trace
 			hover_text = create_hover_text(go_df_up)
-			go_plot_fig.add_trace(go.Scatter(x=go_df_up["DGE"], y=go_df_up["Process"], marker_size=go_df_up["Enrichment"], marker_opacity = 1, marker_color = go_df_up["GO p-value"], marker_colorscale=["#D7301F", "#FCBBA1"], marker_showscale=False, marker_cmax=0.05, marker_cmin=0, mode="markers", hovertext = hover_text, hoverinfo = "text", marker_sizeref = 4.081632653061225), row = working_row, col = working_col)
+			go_plot_fig.add_trace(go.Scatter(x=go_df_up["DGE"], y=go_df_up["Process"], marker_size=go_df_up["Enrichment"], marker_opacity = 1, marker_color = go_df_up["GO p-value"], marker_colorscale=["#D7301F", "#FCBBA1"], marker_showscale=False, marker_cmax=0.05, marker_cmin=0, mode="markers", hovertext = hover_text, hoverinfo = "text", marker_sizeref = 4.081632653061225), row = 1, col = 2)
 			#down trace
 			hover_text = create_hover_text(go_df_down)
-			go_plot_fig.add_trace(go.Scatter(x=go_df_down["DGE"], y=go_df_down["Process"], marker_size=go_df_down["Enrichment"], marker_opacity = 1, marker_color = go_df_down["GO p-value"], marker_colorscale=["#045A8D", "#C6DBEF"], marker_showscale=False, marker_cmax=0.05, marker_cmin=0, mode="markers", hovertext = hover_text, hoverinfo = "text", marker_sizeref = 4.081632653061225), row = working_row, col = working_col)
-
-			#row and col count
-			if contrast == "Colon_CD-vs-Colon_Control":
-				working_row +=1
-			elif contrast == "Colon_UC-vs-Colon_Control":
-				working_row += 2
-			elif contrast == "Rectum_CD-vs-Rectum_Control":
-				working_row += 3
+			go_plot_fig.add_trace(go.Scatter(x=go_df_down["DGE"], y=go_df_down["Process"], marker_size=go_df_down["Enrichment"], marker_opacity = 1, marker_color = go_df_down["GO p-value"], marker_colorscale=["#045A8D", "#C6DBEF"], marker_showscale=False, marker_cmax=0.05, marker_cmin=0, mode="markers", hovertext = hover_text, hoverinfo = "text", marker_sizeref = 4.081632653061225), row = 1, col = 2)
 
 		#colorbar trace
-		go_plot_fig.add_trace(go.Scatter(x = [None], y = [None], marker_showscale=True, marker_color = [0], marker_colorscale=["#737373", "#D9D9D9"], marker_cmax=0.05, marker_cmin=0, marker_colorbar = dict(thicknessmode="pixels", thickness=20, lenmode="pixels", len=150, y=0.60, x=0.75)), row = 2, col = 2)
+		go_plot_fig.add_trace(go.Scatter(x = [None], y = [None], marker_showscale=True, marker_color = [0], marker_colorscale=["#737373", "#D9D9D9"], marker_cmax=0.05, marker_cmin=0, marker_colorbar = dict(thicknessmode="pixels", thickness=20, lenmode="pixels", len=175, y=0.26, x=0.15)), row = 2, col = 1)
 
+		#enrichment size legend trace
 		legend_sizes = [round(min(all_enrichments)), round(np.average([max(all_enrichments), min(all_enrichments)])), round(max(all_enrichments))]
 		sizeref = 2. * max(all_enrichments)/(7 ** 2)
-		go_plot_fig.add_trace(go.Scatter(x = [1, 1, 1], y = [10, 45, 80], marker_size = legend_sizes, marker_sizeref = sizeref, marker_color = "#737373", mode="markers+text", text=["min", "mid", "max"], hoverinfo="text", hovertext=legend_sizes, textposition="top center"), row = 5, col = 2)
+		go_plot_fig.add_trace(go.Scatter(x = [1, 1, 1], y = [10, 45, 80], marker_size = legend_sizes, marker_sizeref = sizeref, marker_color = "#737373", mode="markers+text", text=["min", "mid", "max"], hoverinfo="text", hovertext=legend_sizes, textposition="top center"), row = 2, col = 2)
 		go_plot_fig.update_traces(showlegend=False)
 		
-		go_plot_fig.update_layout(height=600,
+		go_plot_fig.update_layout(height=400,
 								font_family="Arial",
 								#margins,
-								margin=dict(t=50, b=0, r=0),
+								margin=dict(t=50, r=50, b=10),
+								#linecolors
+								xaxis_linecolor="rgb(255,255,255)",
+								yaxis_linecolor="rgb(255,255,255)",
 								#fixed range for enrichment legend
-								yaxis5_range=[0, 100],
+								yaxis3_range=[0, 100],
 								#no zoom
 								xaxis_fixedrange=True, 
 								xaxis2_fixedrange=True, 
 								xaxis3_fixedrange=True,
-								xaxis4_fixedrange=True,
-								xaxis5_fixedrange=True,
-								xaxis6_fixedrange=True,
 								yaxis_fixedrange=True,
 								yaxis2_fixedrange=True, 
 								yaxis3_fixedrange=True,
-								yaxis4_fixedrange=True,
-								yaxis5_fixedrange=True,
-								yaxis6_fixedrange=True,
 								#hide axis of legends
 								xaxis3_visible=False,
-								xaxis5_visible=False,
+								xaxis2_visible=False,
 								yaxis3_visible=False, 
-								yaxis5_visible=False)
+								yaxis2_visible=False)
 		#go_plot_fig["layout"]["paper_bgcolor"] = "#FDE0DD"
 
 		#populate html components
 		tamma_body.append(tamma_markdown_boxplots)
-		tamma_body.append(html.Br())
-		tamma_body.append(dcc.Graph(figure=box_fig))
-		tamma_body.append(html.Br())
+		tamma_body.append(dcc.Graph(figure=box_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "pro_inflammatory_boxes.png"}}))
 		tamma_body.append(tamma_markdown_go_plots)
-		tamma_body.append(html.Br())
-		tamma_body.append(dcc.Graph(figure=go_plot_fig))
-		tamma_body.append(html.Br())
+		tamma_body.append(dcc.Graph(figure=go_plot_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "pro_inflammatory_go.png"}}))
 	elif validation == "housekeeping":
 		### LITERATURE ###
 		
 		#markdown
 		literature_markdown = dcc.Markdown(
 			"""
-			TODO [Eisenberg and Levanon, 2013](http://www.ncbi.nlm.nih.gov/pubmed/23810203).
+			Housekeeping genes are instrumental for calibration in many biotechnological applications and genomic studies, lately benchmarked for constant levels of gene expression ([Eisenberg and Levanon, 2013](http://www.ncbi.nlm.nih.gov/pubmed/23810203)).
 			"""
 		)
 
@@ -2944,7 +2924,7 @@ def populate_evidence(validation):
 		### TaMMA ###
 		tamma_markdown = dcc.Markdown(
 			"""
-			Markdown TODO.
+			The successful data harmonization in TaMMA is confirmed by the housekeeping gene expression levels, found to be comparable across the different tissues and conditions.
 			"""
 		)
 
@@ -2955,7 +2935,7 @@ def populate_evidence(validation):
 		#create figure
 		box_fig = go.Figure()
 		
-		box_fig = make_subplots(rows=2, cols=2, specs=[[{}, {}], [{}, {}]], subplot_titles=genes, shared_xaxes=True, y_title="Log2 expression")
+		box_fig = make_subplots(rows=2, cols=2, specs=[[{}, {}], [{}, {}]], subplot_titles=genes, shared_xaxes=True, y_title="Log2 expression", vertical_spacing=0.1)
 
 		#metadata
 		metadata_df_original = download_from_github("umap_human.tsv")
@@ -3000,20 +2980,18 @@ def populate_evidence(validation):
 
 		#update traces and layout
 		box_fig.update_traces(marker_size=4)
-		box_fig.update_layout(font_family="Arial", margin_r=10, boxmode="group", legend_orientation="h", legend_y=1.25, legend_xanchor="center", legend_x=0.47, margin_t=80)
+		box_fig.update_layout(height=600, font_family="Arial", margin_r=10, boxmode="group", legend_orientation="h", legend_y=1.25, legend_xanchor="center", legend_x=0.47, margin_t=80)
 
 		#populate html components
 		tamma_body.append(tamma_markdown)
-		tamma_body.append(html.Br())
-		tamma_body.append(dcc.Graph(figure=box_fig))
-		tamma_body.append(html.Br())
+		tamma_body.append(dcc.Graph(figure=box_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "housekeeping_examples.png"}}))
 	elif validation == "bacteriome_ibd":
 		### LITERATURE ###
 		
 		#markdown
 		literature_markdown = dcc.Markdown(
 			"""
-			Markdown TODO.
+			Seminal studies in humans evidenced the persistent imbalance of the gut microbiome in IBD, where the decreased bacteriome diversity is a well-known feature ([Glassner et al., 2020](https://pubmed.ncbi.nlm.nih.gov/31910984/); [Aldars-Garcìa et al., 2021](http://www.ncbi.nlm.nih.gov/pubmed/33802883)).
 			"""
 		)
 
@@ -3022,7 +3000,7 @@ def populate_evidence(validation):
 		### TaMMA ###
 		tamma_markdown = dcc.Markdown(
 			"""
-			Markdown TODO.
+			Decreased intestinal microbiota diversity is confirmed in IBD stools as compared to the healthy, paralleled by the decreased diversity also in colon and ileum from UC and in the colon from CD. Unexpectedly, the CD ileum shows increased microbiota diversity compared to the other groups, providing a novel insight for further studies elucidating the microbiota composition in CD patients depending on disease location.
 			"""
 		)
 
@@ -3053,16 +3031,14 @@ def populate_evidence(validation):
 		violins_fig.update_layout(font_family="Arial", legend_orientation="h", legend_yanchor="bottom", legend_y=1.1, legend_xanchor="center", legend_x=0.52, margin_t=40)
 
 		tamma_body.append(tamma_markdown)
-		tamma_body.append(html.Br())
-		tamma_body.append(dcc.Graph(figure=violins_fig))
-		tamma_body.append(html.Br())
+		tamma_body.append(dcc.Graph(figure=violins_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "bacteriome_ibd_violins.png"}}))
 	elif validation == "virome_ibd":
 		### LITERATURE ###
 		
 		#markdown
 		literature_markdown = dcc.Markdown(
 			"""
-			Markdown TODO.
+			Evidence from the literature: even if at its infancy, the virome dysbiosis has been recently pointed out to feature the IBD pathogenesis, at both fecal and mucosal level ([Reyes et al., 2012](http://www.ncbi.nlm.nih.gov/pubmed/22864264); [Virgin, 2014](http://www.ncbi.nlm.nih.gov/pubmed/24679532); [Wang et al., 2015](https://pubmed.ncbi.nlm.nih.gov/25939040/); [Norman et al., 2015](https://pubmed.ncbi.nlm.nih.gov/25619688/); [Aggarwala et al., 2017](http://www.ncbi.nlm.nih.gov/pubmed/29026445); [Mirzaei and Maurice, 2017](http://www.ncbi.nlm.nih.gov/pubmed/28461690); [Guerin et al., 2018](http://www.ncbi.nlm.nih.gov/pubmed/30449316); [Zuo et al., 2019](https://pubmed.ncbi.nlm.nih.gov/30842211/); [Fernandes et al., 2019](https://pubmed.ncbi.nlm.nih.gov/30169455/); [Ungaro et al., 2019](https://pubmed.ncbi.nlm.nih.gov/30252582/); [Ungaro et al., 2019](https://pubmed.ncbi.nlm.nih.gov/31662858/)).
 			"""
 		)
 
@@ -3071,7 +3047,7 @@ def populate_evidence(validation):
 		### TaMMA ###
 		tamma_markdown_caudovirales = dcc.Markdown(
 			"""
-			Markdown TODO.
+			IBD TaMMA confirms the virome dysbiosis with the increased levels of _Herpesviridae_ family in IBD-derived samples and of the _Hepadnaviridae_ family in the UC ileum, along with the expansion of _Caudovirales_ in both pediatric IBD and UC samples as compared to the healthy.
 			"""
 		)
 
@@ -3115,12 +3091,6 @@ def populate_evidence(validation):
 		
 		## herpesviridae and hepadnaviridae ##
 
-		tamma_markdown_herpesviridae_hepadnaviridae = dcc.Markdown(
-			"""
-			Markdown TODO.
-			"""
-		)
-
 		#open tsv and data carpentry
 		df = download_from_github("validation/virus_families.tsv")
 		df = pd.read_csv(df, sep="\t", low_memory=False)
@@ -3154,13 +3124,10 @@ def populate_evidence(validation):
 		herpes_hepadna_box_fig.update_layout(font_family="Arial", margin_r=10, boxmode="group", legend_orientation="h", legend_y=1.25, legend_xanchor="center", legend_x=0.47, margin_t=80)
 
 		tamma_body.append(tamma_markdown_caudovirales)
-		tamma_body.append(html.Br())
-		tamma_body.append(dcc.Graph(figure=caudovirales_box_fig))
-		tamma_body.append(html.Br())
-		tamma_body.append(tamma_markdown_herpesviridae_hepadnaviridae)
-		tamma_body.append(html.Br())
-		tamma_body.append(dcc.Graph(figure=herpes_hepadna_box_fig))
-		tamma_body.append(html.Br())
+		tamma_body.append(dcc.Graph(figure=caudovirales_box_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "virome_ibd_caudovirales.png"}}))
+		tamma_body.append(dcc.Graph(figure=herpes_hepadna_box_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "virome_ibd_herpes_hepadna.png"}}))
+	else:
+		hidden = True
 
 	#append cards to div
 	div_children = html.Div([
@@ -3170,7 +3137,7 @@ def populate_evidence(validation):
 		html.Br()
 	])
 
-	return div_children
+	return div_children, hidden
 
 if __name__ == "__main__":
 	import os.path
