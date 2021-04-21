@@ -39,10 +39,8 @@ def download_from_github(file_url):
 #default template
 pio.templates.default = "simple_white"
 
-colors = ["#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C", "#FDBF6F", "#FF7F00", "#CAB2D6", "#6A3D9A", "#B15928", "#8DD3C7", "#BEBADA", 
-		"#FB8072", "#80B1D3", "#FDB462", "#B3DE69", "#FCCDE5", "#D9D9D9", "#BC80BD", "#CCEBC5", "#FFED6F", "#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C", 
-		"#FDBF6F", "#FF7F00", "#CAB2D6", "#6A3D9A", "#B15928", "#8DD3C7", "#BEBADA","#FB8072", "#80B1D3", "#FDB462", "#B3DE69", "#FCCDE5", "#D9D9D9", 
-		"#BC80BD", "#CCEBC5", "#FFED6F"]
+#palette
+colors = ["#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C", "#FDBF6F", "#FF7F00", "#CAB2D6", "#6A3D9A", "#B15928", "#8DD3C7", "#BEBADA", "#FB8072", "#80B1D3", "#FDB462", "#B3DE69", "#FCCDE5", "#D9D9D9", "#BC80BD", "#CCEBC5", "#FFED6F", "#5A5156", "#F6222E", "#3283FE", "#FEAF16", "#B00068", "#90AD1C", "#DEA0FD", "#F8A19F", "#325A9B", "#C4451C", "#1C8356", "#85660D", "#B10DA1", "#FBE426", "#1CBE4F", "#FA0087", "#F7E1A0", "#C075A6", "#AAF400", "#BDCDFF", "#822E1C", "#B5EFB5", "#7ED7D1", "#1C7F93", "#683B79", "#66B0FF"]
 
 #dropdown options
 umap_datasets_options = [{"label": "Human", "value": "human"},
@@ -308,6 +306,8 @@ app.layout = html.Div([
 											Click the ___UMAP dataset___ dropdown to change multidimensional scaling.  
 											Click the ___Metadata___ dropdown to change sample colors.  
 											Click the ___Comparison only___ button to display only the samples from the two comparisons.
+
+											Click the ___Show legend___ button to display the legend under the plot as well.
 											""")
 										],
 										target="info_umap_metadata",
@@ -501,7 +501,12 @@ app.layout = html.Div([
 								dbc.Tooltip(
 									children=[dcc.Markdown(
 										"""
-										Fill me!
+										Sample metadata table showing all variables used in TaMMA.
+										Batch correction was performed using the study as possible source of variation (batch effect), and the Tissue of origin as source of covariation.
+
+										Click on headers/subheaders to reorder/filter the table, respectively.
+
+										Click on a study ID to see its specifications within its native hosting repository.
 										""")
 									],
 									target="info_metadata_table",
@@ -558,7 +563,7 @@ app.layout = html.Div([
 											{"name": "Sample", "id":"Sample"}, 
 											{"name": "Group", "id":"Group"},
 											{"name": "Tissue", "id":"Tissue"},
-											{"name": "Source", "id":"Source", "type": "text", "presentation": "markdown"},
+											{"name": "Study", "id":"Source", "type": "text", "presentation": "markdown"},
 											{"name": "Library strategy", "id":"Library strategy"}
 										]
 									)
@@ -687,11 +692,8 @@ app.layout = html.Div([
 			
 										Click on headers to reorder the table.
 
-										Click on a host Gene to see its info in GeneCards (___www.genecards.org___).
-										Click on a Ensembl Gene ID to see its info in Ensembl (___www.ensembl.org___).
-										Click on a database icon to see its info in IBD Exome Browser (___ibd.broadinstitute.org___).
-
-										Click on a Species/Family/Order to see its info in NCBI Genome (___www.ncbi.nlm.nih.gov/genome___).
+										Click on a row will highlight the feature in the MA plot.
+										Click on an icon in the last column to open external resources.
 										""")
 									],
 									target="info_dge_table",
@@ -818,6 +820,8 @@ app.layout = html.Div([
 									children=[dcc.Markdown(
 										"""
 										Table showing the differentially enriched gene ontology biological processes between the two conditions, unless filtered otherwise.
+
+										Use the ___search bar___ above the GO plot to filter the processes.
 
 										Click on headers to reorder the table.
 										Click on a GO dataset name to see its specifics in AmiGO 2 (___Ashburner et al. 2000, PMID 10802651___).
@@ -2731,7 +2735,7 @@ def populate_evidence(validation):
 		#tamma markdown
 		tamma_markdown_boxplots = dcc.Markdown(
 			"""
-			IBD-specific features, well-established in the field, are confirmed. Among these, Tumor Necrosis Factor-α (_TNF_), Interferon γ (_IFNG_), Interleukin (IL) 12β (_IL12B_), and Integrin (ITG) α4 and β7 (_ITGA4_, _ITGB7_) which are some of the hallmarks of chronic inflammation already exploited as therapeutic targets IBD patients, are dysregulated in IBD-derived intestinal samples by comparison with the healthy tissues. Of note, while _TNF_ and _IFNG_ are upregulated in ileum, colon and rectum from UC and CD by comparison with the healthy counterparts, the other factors display specific tissue- and disease-dependent modulations.
+			IBD-specific features, well-established in the field, are confirmed. Among these, Tumor Necrosis Factor α (_TNF_), Interferon γ (_IFNG_), Interleukin 12β (_IL12B_), and Integrin α4/β7 (_ITGA4_, _ITGB7_) which are some of the hallmarks of chronic inflammation already exploited as therapeutic targets IBD patients, are dysregulated in IBD-derived intestinal samples by comparison with the healthy tissues. Of note, while _TNF_ and _IFNG_ are upregulated in ileum, colon and rectum from UC and CD by comparison with the healthy counterparts, the other factors display specific tissue- and disease-dependent modulations.
 			"""
 		)
 		
