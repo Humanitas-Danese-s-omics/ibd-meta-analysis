@@ -87,7 +87,7 @@ evidence_options = [
 	{"label": "Pro-inflammatory signals in IBD", "value": "pro_inflammatory"},
 	{"label": "Bacteriome overview", "value": "bacteriome_overview"},
 	{"label": "Bacteriome in IBD", "value": "bacteriome_ibd"},
-	{"label": "Virome in IBD", "value": "Virome_ibd"}
+	{"label": "Virome in IBD", "value": "virome_ibd"}
 	#{"label": "", "value": ""}
 ]
 
@@ -2706,7 +2706,7 @@ def populate_evidence(validation):
 			i += 1
 
 		#update layout
-		fig.update_layout(barmode="relative", xaxis_title_text="Relative phylum abundance", title_x=0.5, margin_t=40)
+		fig.update_layout(barmode="relative", xaxis_title_text="Relative phylum abundance", title_x=0.5, margin_t=40, font_family="Arial")
 
 		#populate html components
 		graph = dcc.Graph(figure=fig)
@@ -2895,6 +2895,7 @@ def populate_evidence(validation):
 		go_plot_fig.update_traces(showlegend=False)
 		
 		go_plot_fig.update_layout(height=600,
+								font_family="Arial",
 								#margins,
 								margin=dict(t=50, b=0, r=0),
 								#fixed range for enrichment legend
@@ -3030,6 +3031,7 @@ def populate_evidence(validation):
 		
 		#open diversity tsv
 		specific_colors = ["#F8666D", "#00BA38", "#619CFF"]
+		showlegend=True
 		i = 1
 		for tissue in ["stools", "colon", "ileum"]:
 			diversity_df = download_from_github("validation/diversity_{}.tsv".format(tissue))
@@ -3039,14 +3041,125 @@ def populate_evidence(validation):
 			conditions.sort()
 			j = 0
 			for condition in conditions:
-				violins_fig.add_trace(go.Violin(x=diversity_df["condition"][diversity_df["condition"] == condition], y=diversity_df["diversity"][diversity_df["condition"] == condition], name=condition, box_visible=True, meanline_visible=True, marker_color=specific_colors[j]), row=1, col=i)
+				#scalemode="count", bandwidth=0.5
+				violins_fig.add_trace(go.Violin(x=diversity_df["condition"][diversity_df["condition"] == condition], y=diversity_df["diversity"][diversity_df["condition"] == condition], name=condition, box_visible=False, meanline_visible=True, marker_color=specific_colors[j], marker_size=4, line=None, showlegend=showlegend, legendgroup=condition, points=False), row=1, col=i)
 				j += 1
 			i += 1
-			
+
+			if showlegend is True:
+				showlegend=False
+
+		#update layout
+		violins_fig.update_layout(font_family="Arial", legend_orientation="h", legend_yanchor="bottom", legend_y=1.1, legend_xanchor="center", legend_x=0.52, margin_t=40)
 
 		tamma_body.append(tamma_markdown)
 		tamma_body.append(html.Br())
 		tamma_body.append(dcc.Graph(figure=violins_fig))
+		tamma_body.append(html.Br())
+	elif validation == "virome_ibd":
+		### LITERATURE ###
+		
+		#markdown
+		literature_markdown = dcc.Markdown(
+			"""
+			Markdown TODO.
+			"""
+		)
+
+		literature_body.append(literature_markdown)
+
+		### TaMMA ###
+		tamma_markdown_caudovirales = dcc.Markdown(
+			"""
+			Markdown TODO.
+			"""
+		)
+
+		## Caudovirales ##
+
+		#create df
+		df = download_from_github("validation/viruses_orders.tsv")
+		df = pd.read_csv(df, sep="\t")
+		df = df[df["order"] == "Caudovirales"]
+		metadata = download_from_github("umap_human.tsv")
+		metadata = pd.read_csv(metadata, sep="\t")
+		metadata = metadata[["sample", "group", "tissue"]]
+		df = df.merge(metadata, how="inner", on="sample")
+		
+		#define tissues
+		tissues = ["Colon", "Ileum", "Stools"]
+		df = df[df["tissue"].isin(tissues)]
+
+		#plot
+		caudovirales_box_fig = go.Figure()
+		caudovirales_box_fig = make_subplots(rows=1, cols=3, specs=[[{}, {}, {}]], y_title="Relative abundance")
+		specific_colors = {"CD": "#F8766D", "Control": "#7CAE00", "PIBD": "#00BFC4", "UC": "#C77CFF"}
+		showlegend = True
+		working_col = 1
+		for tissue in tissues:
+			tissue_filtered_metadata = df[df["tissue"] == tissue]
+			groups = tissue_filtered_metadata["group"].unique().tolist()
+			groups.sort()
+			for group in groups:
+				filtered_metadata = tissue_filtered_metadata[tissue_filtered_metadata["group"] == group]
+				hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"]
+				caudovirales_box_fig.add_trace(go.Box(x=filtered_metadata["tissue"], y=filtered_metadata["counts"], name=group, marker_color=specific_colors[group], boxpoints="all", hovertext=hovertext_labels, hoverinfo="y+text", legendgroup=group, showlegend=showlegend, offsetgroup=group), row=1, col=working_col)
+			
+			if showlegend is True:
+				showlegend = False
+			working_col += 1
+
+		#update traces layout
+		caudovirales_box_fig.update_traces(marker_size=4)
+		caudovirales_box_fig.update_layout(title_text = "Caudovirales", title_x = 0.5, title_y = 0.89, font_family="Arial", margin_r=10, boxmode="group", legend_orientation="h", legend_y=1.25, legend_xanchor="center", legend_x=0.47, margin_t=80)
+		
+		## herpesviridae and hepadnaviridae ##
+
+		tamma_markdown_herpesviridae_hepadnaviridae = dcc.Markdown(
+			"""
+			Markdown TODO.
+			"""
+		)
+
+		#open tsv and data carpentry
+		df = download_from_github("validation/virus_families.tsv")
+		df = pd.read_csv(df, sep="\t", low_memory=False)
+		df = df[["family", "sample", "tissue", "group", "counts"]]
+		tissues = ["Colon", "Ileum"]
+		groups = ["CD", "Control", "UC"]
+		df = df[df["tissue"].isin(tissues)]
+
+		herpes_hepadna_box_fig = go.Figure()
+		viruses = ["Herpesviridae", "Hepadnaviridae"]
+		herpes_hepadna_box_fig = make_subplots(rows=1, cols=2, specs=[[{}, {}]], subplot_titles=viruses, y_title="Relative abundance")
+
+		#plot
+		working_col = 1
+		showlegend = True
+		specific_colors = ["#F8666D", "#00BA38", "#619CFF"]
+		for virus in viruses:
+			virus_filtered_metadata = df[df["family"] == virus]
+			i = 0
+			for group in groups:
+				filtered_metadata = virus_filtered_metadata[virus_filtered_metadata["group"] == group]
+				hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"]
+				herpes_hepadna_box_fig.add_trace(go.Box(x=filtered_metadata["tissue"], y=filtered_metadata["counts"], name=group, marker_color=specific_colors[i], boxpoints="all", hovertext=hovertext_labels, hoverinfo="y+text", legendgroup=group, showlegend=showlegend, offsetgroup=group), row=1, col=working_col)
+				i += 1
+			
+			showlegend = False
+			working_col += 1
+
+		#update traces and layout
+		herpes_hepadna_box_fig.update_traces(marker_size=4)
+		herpes_hepadna_box_fig.update_layout(font_family="Arial", margin_r=10, boxmode="group", legend_orientation="h", legend_y=1.25, legend_xanchor="center", legend_x=0.47, margin_t=80)
+
+		tamma_body.append(tamma_markdown_caudovirales)
+		tamma_body.append(html.Br())
+		tamma_body.append(dcc.Graph(figure=caudovirales_box_fig))
+		tamma_body.append(html.Br())
+		tamma_body.append(tamma_markdown_herpesviridae_hepadnaviridae)
+		tamma_body.append(html.Br())
+		tamma_body.append(dcc.Graph(figure=herpes_hepadna_box_fig))
 		tamma_body.append(html.Br())
 
 	#append cards to div
