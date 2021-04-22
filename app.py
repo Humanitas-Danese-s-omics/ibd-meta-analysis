@@ -2995,7 +2995,7 @@ def populate_evidence(validation):
 		#markdown
 		literature_markdown = dcc.Markdown(
 			"""
-			Seminal studies in humans evidenced the persistent imbalance of the gut microbiome in IBD, where the decreased bacteriome diversity is a well-known feature ([Glassner et al., 2020](https://pubmed.ncbi.nlm.nih.gov/31910984/); [Aldars-Garcìa et al., 2021](http://www.ncbi.nlm.nih.gov/pubmed/33802883)).
+			Seminal studies in humans evidenced the persistent imbalance of the gut microbiome in IBD, where the decreased bacteriome diversity is a well-known feature ([Gong et al., 2016](https://pubmed.ncbi.nlm.nih.gov/28074093/); [Pascal et al., 2017](https://pubmed.ncbi.nlm.nih.gov/28179361/); [Glassner et al., 2020](https://pubmed.ncbi.nlm.nih.gov/31910984/); [Aldars-Garcìa et al., 2021](http://www.ncbi.nlm.nih.gov/pubmed/33802883)).
 			"""
 		)
 
