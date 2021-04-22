@@ -94,8 +94,8 @@ dataset_stats = download_from_github("stats.tsv")
 dataset_stats = pd.read_csv(dataset_stats, sep="\t")
 labels = download_from_github("labels_list.tsv")
 labels = pd.read_csv(labels, sep = "\t", header=None, names=["labels"])
-labels = labels["labels"].dropna().tolist()
-labels = [label.split("_")[0] for label in labels]
+labels["labels"] = labels["labels"].dropna()
+labels = labels["labels"].str.replace("_", " ").str.replace(" UCB", "").str.replace(" Pfizer", "").tolist()
 
 snakey_fig = go.Figure(data=[go.Sankey(
 	node = dict(
@@ -281,7 +281,7 @@ app.layout = html.Div([
 							html.Div([
 								dcc.Loading(
 									children = html.Div([
-										dcc.Graph(id="legend", style={"height": 350}, config={"displayModeBar": False}),
+										dcc.Graph(id="legend", style={"height": 300, "width": 1150}, config={"displayModeBar": False}),
 									], id="legend_div", hidden=True),
 									type = "dot",
 									color = "#33A02C"
@@ -1656,7 +1656,7 @@ def legend(selected_metadata, contrast_switch, contrast, update_legend, dataset,
 			i += 1
 
 		#update layout
-		legend_fig.update_layout(legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_itemsizing="constant", xaxis_visible=False, yaxis_visible=False, margin_t=0, margin_b=340)
+		legend_fig.update_layout(legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_itemsizing="constant", legend_tracegroupgap = 0.05, legend_title_side="top", xaxis_visible=False, yaxis_visible=False, margin_t=0, margin_b=340)
 
 		#transparent paper background
 		legend_fig["layout"]["paper_bgcolor"]="rgba(0,0,0,0)"
@@ -1769,8 +1769,8 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 			umap_metadata_fig.add_trace(go.Scatter(x=filtered_umap_df["UMAP1"], y=filtered_umap_df["UMAP2"], marker_opacity = 1, marker_color = colors[i], marker_size = 4, customdata = custom_data, mode="markers", legendgroup = metadata, showlegend = show_legend_switch, hovertemplate = hover_template, name=metadata))
 			i += 1
 
-		#add titles to axis
-		umap_metadata_fig.update_layout(xaxis_title_text = "UMAP1", yaxis_title_text = "UMAP2", height=535, title_x=0.5, title_font_size=14, legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_xanchor="center", legend_x=0.5, legend_yanchor="top", legend_y=-0.15, legend_itemsizing="constant", legend_itemclick=False, legend_itemdoubleclick=False, xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", margin=dict(t=60, b=0, l=10, r=10))
+		#update layout
+		umap_metadata_fig.update_layout(xaxis_title_text = "UMAP1", yaxis_title_text = "UMAP2", height=535, title_x=0.5, title_font_size=14, legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_xanchor="center", legend_x=0.5, legend_yanchor="top", legend_y=-0.15, legend_itemsizing="constant", legend_tracegroupgap = 0.05, legend_title_side="top", legend_itemclick=False, legend_itemdoubleclick=False, xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", margin=dict(t=60, b=0, l=10, r=10))
 		
 		#umap_metadata_fig["layout"]["paper_bgcolor"]="LightSteelBlue"
 
