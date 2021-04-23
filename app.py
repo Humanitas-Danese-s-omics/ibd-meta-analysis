@@ -41,6 +41,10 @@ pio.templates.default = "simple_white"
 
 #palette
 colors = ["#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C", "#FDBF6F", "#FF7F00", "#CAB2D6", "#6A3D9A", "#B15928", "#8DD3C7", "#BEBADA", "#FB8072", "#80B1D3", "#FDB462", "#B3DE69", "#FCCDE5", "#D9D9D9", "#BC80BD", "#CCEBC5", "#FFED6F", "#5A5156", "#F6222E", "#3283FE", "#FEAF16", "#B00068", "#90AD1C", "#DEA0FD", "#F8A19F", "#325A9B", "#C4451C", "#1C8356", "#85660D", "#B10DA1", "#FBE426", "#1CBE4F", "#FA0087", "#F7E1A0", "#C075A6", "#AAF400", "#BDCDFF", "#822E1C", "#B5EFB5", "#7ED7D1", "#1C7F93", "#683B79", "#66B0FF"]
+#
+gender_colors = ["#FA9FB5", "#9ECAE1"]
+#NA color
+na_color = "#E6E6E6"
 
 #dropdown options
 umap_datasets_options = [{"label": "Human", "value": "human"},
@@ -67,7 +71,13 @@ metadata_umap_options = [{"label": "Condition", "value": "condition"},
 						{"label": "Group", "value": "group"},
 						{"label": "Tissue", "value": "tissue"},
 						{"label": "Source", "value": "source"},
-						{"label": "Library strategy", "value": "library_strategy"}]
+						{"label": "Library strategy", "value": "library_strategy"},
+						{"label": "Age", "value": "age"},
+						{"label": "Age at diagnosis", "value": "age_at_diagnosis"},
+						{"label": "Gender", "value": "gender"},
+						{"label": "Ancestry", "value": "ancestry"},
+						{"label": "Paris classification", "value": "paris_classification"}]
+label_to_value = {"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy", "condition": "Condition", "age": "Age", "age_at_diagnosis": "Age at diagnosis", "gender": "Gender", "ancestry": "Ancestry", "paris_classification": "Paris classification"}
 
 padj_options = [{"label": "0.1", "value": 0.1},
 				{"label": "0.01", "value": 0.01},
@@ -86,7 +96,6 @@ evidence_options = [
 	{"label": "Bacteriome overview", "value": "bacteriome_overview"},
 	{"label": "Bacteriome in IBD", "value": "bacteriome_ibd"},
 	{"label": "Virome in IBD", "value": "virome_ibd"}
-	#{"label": "", "value": ""}
 ]
 
 #snakey
@@ -95,7 +104,7 @@ dataset_stats = pd.read_csv(dataset_stats, sep="\t")
 labels = download_from_github("labels_list.tsv")
 labels = pd.read_csv(labels, sep = "\t", header=None, names=["labels"])
 labels["labels"] = labels["labels"].dropna()
-labels = labels["labels"].str.replace("_", " ").str.replace(" UCB", "").str.replace(" Pfizer", "").tolist()
+labels = labels["labels"].str.replace("_UCB", "").str.replace("_Pfizer", "").tolist()
 
 snakey_fig = go.Figure(data=[go.Sankey(
 	node = dict(
@@ -214,7 +223,7 @@ app.layout = html.Div([
 											clearable=False,
 											options=metadata_umap_options,
 											value="condition"
-							)], style={"width": "8%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
+							)], style={"width": "9%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
 
 							#expression dataset dropdown
 							html.Label(["Expression", 
@@ -256,7 +265,7 @@ app.layout = html.Div([
 											id="stringency_dropdown",
 											clearable=False,
 											options=padj_options,
-							)], style={"width": "8%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
+							)], style={"width": "7%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
 						], style={"width": "100%", "font-size": "12px", "display": "inline-block"}),
 
 						#legend
@@ -281,7 +290,7 @@ app.layout = html.Div([
 							html.Div([
 								dcc.Loading(
 									children = html.Div([
-										dcc.Graph(id="legend", style={"height": 300, "width": 1150}, config={"displayModeBar": False}),
+										dcc.Graph(id="legend", config={"displayModeBar": False}),
 									], id="legend_div", hidden=True),
 									type = "dot",
 									color = "#33A02C"
@@ -339,7 +348,7 @@ app.layout = html.Div([
 						], style={"width":"100%", "display": "inline-block", "position":"relative", "z-index": 1}),
 
 						#UMAP metadata plot 
-						html.Div([
+						html.Div(id="umap_metadata_div", children=[
 							dcc.Loading(
 								id = "loading_umap_metadata",
 								children = dcc.Graph(id="umap_metadata", style={"height": 535}),
@@ -349,7 +358,7 @@ app.layout = html.Div([
 						], style={"width": "46.5%", "height": 535, "display": "inline-block"}),
 
 						#UMAP expression plot
-						html.Div([
+						html.Div(id="umap_expression_div", children=[
 							dcc.Loading(
 								id = "loading_umap_expression",
 								children = dcc.Graph(id="umap_expression", style={"height": 535}),
@@ -1051,6 +1060,17 @@ def dge_table_operations(table, dataset, fdr):
 
 	return columns, data, style_data_conditional
 
+#palette to use to get color
+def get_palette(metadata, i):
+	if metadata == "NA":
+		palette = na_color
+	elif metadata in ["Female", "Male"]:
+		palette = gender_colors[i]
+	else:
+		palette = colors[i]
+	
+	return palette
+
 ### DOWNLOAD CALLBACKS ###
 
 #download diffexp
@@ -1361,8 +1381,13 @@ def find_genes_or_species(dataset, selected_point_ma_plot, active_cell_full, act
 
 	#if you click a gene, update only the dropdown value and keep the rest as it is
 	if trigger_id == "ma_plot_graph.clickData":
-		value = selected_point_ma_plot["points"][0]["customdata"][0].replace(" ", "_")
-		options = current_dropdown_options
+		selected_element = selected_point_ma_plot["points"][0]["customdata"][0].replace(" ", "_")
+		print(selected_element)
+		if selected_element == "NA":
+			raise PreventUpdate
+		else:
+			value = selected_element
+			options = current_dropdown_options
 	#if you change the datast, load it and change options and values
 	elif trigger_id == "expression_dataset_dropdown.value":
 		if dataset == "human":
@@ -1451,6 +1476,22 @@ def filter_contrasts(dataset, tissue, contrast):
 	contrasts = [{"label": i.replace("_", " ").replace("-", " "), "value": i} for i in filtered_contrasts]
 
 	return contrasts, contrast_value
+
+#show legend callback
+@app.callback(
+	Output("show_legend_metadata_switch", "disabled"),
+	Output("show_legend_metadata_switch", "on"),
+	Input("metadata_dropdown", "value"),
+	State("show_legend_metadata_switch", "on")
+)
+def disable_switch_with_continuous_variables(metadata, on):
+	if metadata in ["age", "age_at_diagnosis"]:
+		disabled = True
+		on = False
+	else:
+		disabled = False
+
+	return disabled, on
 
 #group tissues switch abilitation
 @app.callback(
@@ -1641,22 +1682,36 @@ def legend(selected_metadata, contrast_switch, contrast, update_legend, dataset,
 		umap_df = umap_df.sort_values(by=[selected_metadata])
 		if tab_selected_style == "source":
 			umap_df["source"] = [source.split("_")[0] for source in umap_df["source"]]
-		umap_df[selected_metadata] = [i.replace("_", " ") for i in umap_df[selected_metadata]]
-		label_to_value = {"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy", "condition": "Condition"}
+		#clean discrete variables
+		if selected_metadata not in ["age", "age_at_diagnosis"]:
+			umap_df[selected_metadata] = umap_df[selected_metadata].fillna("NA")
+			umap_df[selected_metadata] = [i.replace("_", " ") for i in umap_df[selected_metadata]]
+		#rename columns
 		umap_df = umap_df.rename(columns=label_to_value)
 
 		#create figure
 		legend_fig = go.Figure()
-		i = 0
-		metadata_fields_ordered = umap_df[label_to_value[selected_metadata]].unique().tolist()
-		metadata_fields_ordered.sort()
-		for metadata in metadata_fields_ordered:
-			filtered_umap_df = umap_df[umap_df[label_to_value[selected_metadata]] == metadata]
-			legend_fig.add_trace(go.Scatter(x=filtered_umap_df["UMAP1"], y=filtered_umap_df["UMAP2"], marker_color = colors[i], marker_size = 4, mode="markers", legendgroup = metadata, showlegend = True, name=metadata))
-			i += 1
-
-		#update layout
-		legend_fig.update_layout(legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_itemsizing="constant", legend_tracegroupgap = 0.05, legend_title_side="top", xaxis_visible=False, yaxis_visible=False, margin_t=0, margin_b=340)
+		if selected_metadata not in ["age", "age_at_diagnosis"]:
+			i = 0
+			metadata_fields_ordered = umap_df[label_to_value[selected_metadata]].unique().tolist()
+			metadata_fields_ordered.sort()
+			for metadata in metadata_fields_ordered:
+				filtered_umap_df = umap_df[umap_df[label_to_value[selected_metadata]] == metadata]
+				marker_color = get_palette(metadata, i)
+				legend_fig.add_trace(go.Scatter(x=filtered_umap_df["UMAP1"], y=filtered_umap_df["UMAP2"], marker_color = marker_color, marker_size = 4, mode="markers", legendgroup = metadata, showlegend = True, name=metadata))
+				i += 1
+			
+			#update layout
+			legend_fig.update_layout(legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_itemsizing="constant", legend_tracegroupgap = 0.05, legend_title_side="top", xaxis_visible=False, yaxis_visible=False, margin_t=0, margin_b=340, height=300, width=1150)
+		#heatmap as colotbar
+		else:
+			umap_df = umap_df.dropna(subset=[label_to_value[selected_metadata]])
+			umap_df[label_to_value[selected_metadata]] = umap_df[label_to_value[selected_metadata]].astype(int)
+			#z = umap_df[label_to_value[selected_metadata]].unique().tolist()
+			z = list(range(umap_df[label_to_value[selected_metadata]].min(), umap_df[label_to_value[selected_metadata]].max() + 1))
+			legend_fig.add_trace(go.Heatmap(z=[z], y=[label_to_value[selected_metadata]], colorscale="blues", hovertemplate="%{z}<extra></extra>", hoverlabel_bgcolor="lightgrey"))
+			legend_fig.update_traces(showscale=False)
+			legend_fig.update_layout(height=300, width=600, margin_b=220, margin_t=50, margin_l=150, xaxis_linecolor="#9EA0A2", yaxis_linecolor="#9EA0A2", yaxis_ticks="", xaxis_fixedrange=True, yaxis_fixedrange=True, xaxis_mirror=True, yaxis_mirror=True)
 
 		#transparent paper background
 		legend_fig["layout"]["paper_bgcolor"]="rgba(0,0,0,0)"
@@ -1712,6 +1767,9 @@ def legend(selected_metadata, contrast_switch, contrast, update_legend, dataset,
 	#config
 	Output("umap_metadata", "config"),
 	Output("umap_expression", "config"),
+	#div
+	Output("umap_metadata_div", "style"),
+	Output("umap_expression_div", "style"),
 	#dropdowns
 	Input("umap_dataset_dropdown", "value"),
 	Input("metadata_dropdown", "value"),
@@ -1733,6 +1791,7 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 	#define contexts
 	ctx = dash.callback_context
 	trigger_id = ctx.triggered[0]["prop_id"]
+	div_height = 535
 
 	#function for zoom synchronization
 	def synchronize_zoom(umap_to_update, reference_umap):
@@ -1743,70 +1802,113 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 
 		return umap_to_update
 
-	##### UMAP METADATA #####
-
-	#function for creating umap_metadata_fig from tsv file
-	def plot_umap_metadata(dataset, selected_metadata, show_legend_switch):
+	#function for creating a discrete colored umap from tsv file
+	def plot_umap_discrete(umap_dataset, selected_metadata, show_legend_switch, umap_discrete_fig):
 		#open tsv
-		umap_df = download_from_github("umap_{}.tsv".format(dataset.split("_")[0]))
+		umap_df = download_from_github("umap_{}.tsv".format(umap_dataset.split("_")[0]))
 		umap_df = pd.read_csv(umap_df, sep = "\t")
 
 		#prepare df
 		umap_df = umap_df.sort_values(by=[selected_metadata])
+		umap_df[selected_metadata] = umap_df[selected_metadata].fillna("NA")
 		umap_df[selected_metadata] = [i.replace("_", " ") for i in umap_df[selected_metadata]]
-		label_to_value = {"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy", "condition": "Condition"}
 		umap_df = umap_df.rename(columns=label_to_value)
 
-		#create figure
-		umap_metadata_fig = go.Figure()
+		#plot
 		i = 0
 		metadata_fields_ordered = umap_df[label_to_value[selected_metadata]].unique().tolist()
 		metadata_fields_ordered.sort()
-		hover_template = "Sample: %{customdata[0]}<br>Group: %{customdata[1]}<br>Tissue: %{customdata[2]}<br>Source: %{customdata[3]}<br>Library strategy: %{customdata[4]}<extra></extra>"
+		hover_template = "Sample: %{{customdata[0]}}<br>Group: %{{customdata[1]}}<br>{}: %{{customdata[2]}}<br>Source: %{{customdata[3]}}<br>Library strategy: %{{customdata[4]}}<extra></extra>".format(label_to_value[selected_metadata])
 		for metadata in metadata_fields_ordered:
 			filtered_umap_df = umap_df[umap_df[label_to_value[selected_metadata]] == metadata]
 			custom_data = filtered_umap_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library strategy"]]
-			umap_metadata_fig.add_trace(go.Scatter(x=filtered_umap_df["UMAP1"], y=filtered_umap_df["UMAP2"], marker_opacity = 1, marker_color = colors[i], marker_size = 4, customdata = custom_data, mode="markers", legendgroup = metadata, showlegend = show_legend_switch, hovertemplate = hover_template, name=metadata))
+			marker_color = get_palette(metadata, i)
+			umap_discrete_fig.add_trace(go.Scatter(x=filtered_umap_df["UMAP1"], y=filtered_umap_df["UMAP2"], marker_opacity = 1, marker_color = marker_color, marker_size = 4, customdata = custom_data, mode="markers", legendgroup = metadata, showlegend = show_legend_switch, hovertemplate = hover_template, name=metadata))
 			i += 1
 
 		#update layout
-		umap_metadata_fig.update_layout(xaxis_title_text = "UMAP1", yaxis_title_text = "UMAP2", height=535, title_x=0.5, title_font_size=14, legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_xanchor="center", legend_x=0.5, legend_yanchor="top", legend_y=-0.15, legend_itemsizing="constant", legend_tracegroupgap = 0.05, legend_title_side="top", legend_itemclick=False, legend_itemdoubleclick=False, xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", margin=dict(t=60, b=0, l=10, r=10))
+		umap_discrete_fig.update_layout(xaxis_title_text = "UMAP1", yaxis_title_text = "UMAP2", height=535, title_x=0.5, title_font_size=14, legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_xanchor="center", legend_x=0.5, legend_yanchor="top", legend_y=-0.15, legend_itemsizing="constant", legend_tracegroupgap = 0.05, legend_title_side="top", legend_itemclick=False, legend_itemdoubleclick=False, xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", margin=dict(t=60, b=0, l=10, r=10))
 		
-		#umap_metadata_fig["layout"]["paper_bgcolor"]="LightSteelBlue"
+		#umap_discrete_fig["layout"]["paper_bgcolor"]="LightSteelBlue"
 
-		return umap_metadata_fig, umap_df
+		return umap_discrete_fig
 
-	#function to create a dataframe from umap_metadata_fig
-	def parse_old_metadata_fig_to_get_its_df(umap_metadata_fig, metadata):
-		label_to_value = {"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy", "condition": "Condition"}
-		metadata = label_to_value[metadata]
-		#parse umap metadata data
-		metadata_data = {}
-		metadata_data["Sample"] = []
-		metadata_data["Group"] = []
-		metadata_data[metadata] = []
-		metadata_data["Source"] = []
-		metadata_data["Library strategy"] = []
-		metadata_data["UMAP1"] = []
-		metadata_data["UMAP2"] = []
+	#function for creating a continuous colored umap from tsv file
+	def plot_umap_continuous(umap_dataset, expression_dataset, gene_species, samples_to_keep, selected_metadata, colorscale, umap_category, umap_continuous_fig):	
+		#get umap df
+		umap_df = download_from_github("umap_{}.tsv".format(umap_dataset.split("_")[0]))
+		umap_df = pd.read_csv(umap_df, sep = "\t")
+		umap_df = umap_df.rename(columns=label_to_value)
+
+		#expression continuous umap will have counts
+		if umap_category == "expression":
+			continuous_variable_to_plot = "Log2 expression"
+
+			#filter samples that are not visible
+			umap_df = umap_df[umap_df["Sample"].isin(samples_to_keep)]
+
+			#download counts
+			counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset.split("_")[0], gene_species))
+			counts = pd.read_csv(counts, sep = "\t")
+			counts = counts.rename(columns={"sample": "Sample"})
+
+			#add counts to umap df
+			umap_df = umap_df.merge(counts, how="outer", on="Sample")
+
+			#add log2 counts column to df
+			umap_df["Log2 expression"] = np.log2(umap_df["counts"])
+			umap_df["Log2 expression"].replace(to_replace = -np.inf, value = 0, inplace=True)
+			#labels for graph title
+			if expression_dataset == "human":
+				expression_or_abundance = " expression"
+			else:
+				expression_or_abundance = " abundance"
+			#plot parameters
+			colorbar_title = "Log2 {}".format(expression_or_abundance)
+			hover_template = "Sample: %{customdata[0]}<br>Group: %{customdata[1]}<br>Source: %{customdata[3]}<br>Library strategy: %{customdata[4]}<br>Log2 expression: %{marker.color}<extra></extra>"
+		#metadata continuous umap will use the metadata without counts
+		elif umap_category == "metadata":
+			continuous_variable_to_plot = label_to_value[selected_metadata]
+			colorbar_title = label_to_value[selected_metadata]
+			hover_template = "Sample: %{{customdata[0]}}<br>Group: %{{customdata[1]}}<br>{}: %{{customdata[2]}}<br>Source: %{{customdata[3]}}<br>Library strategy: %{{customdata[4]}}<extra></extra>".format(label_to_value[selected_metadata])
+		
+		#fill nan with NA and remove Pfizer and UCB from source names
+		umap_df[continuous_variable_to_plot] = umap_df[continuous_variable_to_plot].fillna("NA")
+		umap_df["Source"] = umap_df["Source"].str.replace("_UCB", "").str.replace("_Pfizer", "")
+		
+		#select only NA values
+		na_df = umap_df.loc[umap_df[continuous_variable_to_plot] == "NA"]
+		custom_data = na_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library strategy"]]
+		
+		#add discrete trace for NA values
+		umap_continuous_fig.add_trace(go.Scatter(x=na_df["UMAP1"], y=na_df["UMAP2"], marker_color=na_color, marker_size=4, customdata=custom_data, mode="markers", showlegend=False, hovertemplate=hover_template, name=metadata, visible=True))
+		
+		#select only not NA
+		umap_df = umap_df.loc[umap_df[continuous_variable_to_plot] != "NA"]
+		custom_data = umap_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library strategy"]]
+		marker_color = umap_df[continuous_variable_to_plot]
+		#add continuous trace
+		umap_continuous_fig.add_trace(go.Scatter(x=umap_df["UMAP1"], y=umap_df["UMAP2"], marker_color=marker_color, marker_colorscale=colorscale, marker_showscale=True, marker_opacity=1, marker_size=4, marker_colorbar_title=colorbar_title, marker_colorbar_title_side="right", marker_colorbar_title_font_size=14, mode="markers", customdata=custom_data, hovertemplate=hover_template, showlegend=False, visible=True))
+		
+		#update layout
+		umap_continuous_fig.update_layout(title = {"x": 0.5, "font_size": 14}, coloraxis_colorbar_thickness=20, font_family="Arial", hoverlabel_bgcolor = "lightgrey", xaxis_automargin=True, yaxis_automargin=True, height = 535, margin=dict(t=60, b=0, l=10, r=60), xaxis_title_text="UMAP1", yaxis_title_text="UMAP2")
+		
+		#umap_continuous_fig["layout"]["paper_bgcolor"]="#E5F5F9"
+
+		return umap_continuous_fig
+
+	#function to get samples to keep from visibility status in umap_metadata_fig
+	def get_samples_to_keep(umap_metadata_fig):
+		samples_to_keep = []
 		#parse metadata figure data 
 		for trace in umap_metadata_fig["data"]:
-			for dot in trace["customdata"]:				
-				#populate data
-				metadata_data["Sample"].append(dot[0])
-				metadata_data["Group"].append(dot[1])
-				if metadata not in ["Sample", "Group", "Source", "Library strategy"]:
-					metadata_data[metadata].append(dot[2])
-				metadata_data["Source"].append(dot[3])
-				metadata_data["Library strategy"].append(dot[4])
-			#data outside "customdata"
-			metadata_data["UMAP1"].extend(trace["x"])
-			metadata_data["UMAP2"].extend(trace["y"])
-
-		#create a df from parsed data
-		umap_df = pd.DataFrame(metadata_data)
-
-		return umap_df
+			if trace["visible"] is True:
+				for dot in trace["customdata"]:
+					#stores samples to keep after filtering
+					samples_to_keep.append(dot[0])
+		return samples_to_keep
+	
+	##### UMAP METADATA #####
 
 	#change dataset or metadata: create a new figure from tsv
 	if trigger_id in ["umap_dataset_dropdown.value", "metadata_dropdown.value"] or umap_metadata_fig is None:
@@ -1823,7 +1925,12 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 			umap_metadata_fig["layout"]["yaxis"]["autorange"] = True
 
 		#create figure from tsv
-		umap_metadata_fig, umap_df = plot_umap_metadata(umap_dataset, metadata, show_legend_switch)
+		umap_metadata_fig = go.Figure()
+		if metadata in ["age", "age_at_diagnosis"]:
+			samples_to_keep = "all"
+			umap_metadata_fig = plot_umap_continuous(umap_dataset, expression_dataset, gene_species, samples_to_keep, metadata, "blues", "metadata", umap_metadata_fig)
+		else:
+			umap_metadata_fig = plot_umap_discrete(umap_dataset, metadata, show_legend_switch, umap_metadata_fig)
 
 		#apply legend trace visibility
 		for i in range(0, len(legend_fig["data"])):
@@ -1845,67 +1952,11 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 
 	#get df and change visibility of traces
 	elif trigger_id == "update_legend_button.n_clicks":
-		umap_df = parse_old_metadata_fig_to_get_its_df(umap_metadata_fig, metadata)
 		for i in range(0, len(legend_fig["data"])):
 			umap_metadata_fig["data"][i]["visible"] = legend_fig["data"][i]["visible"]
 
-	#if you don't have to change umap_metadata_fig, just parse the old fig to get its dataframe
-	else:
-		umap_df = parse_old_metadata_fig_to_get_its_df(umap_metadata_fig, metadata)
-
 	##### UMAP EXPRESSION #####
 
-	#function for creating umap_expression_fig from tsv file
-	def plot_umap_expression(expression_dataset, gene_species, samples_to_keep, umap_df, selected_metadata):
-		#labels for graph title
-		if expression_dataset == "human":
-			expression_or_abundance = " expression"
-		else:
-			expression_or_abundance = " abundance"
-
-		counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset.split("_")[0], gene_species))
-		counts = pd.read_csv(counts, sep = "\t")
-		counts = counts.rename(columns={"sample": "Sample"})
-
-		#add counts to umap df
-		umap_df = umap_df.merge(counts, how="outer", on="Sample")
-		umap_df = umap_df.dropna(subset=["counts"])
-
-		#filter samples that are not visible
-		umap_df = umap_df[umap_df["Sample"].isin(samples_to_keep)]
-		#create custom data for hover data
-		label_to_value = {"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy", "condition": "Condition"}
-		custom_data = umap_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library strategy"]]
-
-		#add log2 counts column to df
-		umap_df["Log2 expression"] = np.log2(umap_df["counts"])
-		umap_df["Log2 expression"].replace(to_replace = -np.inf, value = 0, inplace=True)
-
-		#plot
-		hover_template = "Sample: %{customdata[0]}<br>Group: %{customdata[1]}<br>Tissue: %{customdata[2]}<br>Source: %{customdata[3]}<br>Library strategy: %{customdata[4]}<br>Log2 expression: %{marker.color}<extra></extra>"
-		
-		umap_expression_fig = go.Figure(data=go.Scatter(x=umap_df["UMAP1"], y=umap_df["UMAP2"], marker_color=umap_df["Log2 expression"], marker_colorscale="reds", marker_showscale=True, marker_opacity=1, marker_size=4, marker_colorbar_title="Log2 {}".format(expression_or_abundance), marker_colorbar_title_side="right", marker_colorbar_title_font_size=14, mode="markers", customdata = custom_data, hovertemplate = hover_template, showlegend = False))
-		
-		umap_expression_fig.update_layout(title = {"x": 0.5, "font_size": 14}, coloraxis_colorbar_thickness=20, font_family="Arial", hoverlabel_bgcolor = "lightgrey", xaxis_automargin=True, yaxis_automargin=True, height = 535, margin=dict(t=60, b=0, l=10, r=60), xaxis_title_text="UMAP1", yaxis_title_text="UMAP2")
-
-		#add visible key for counting diplayed dots
-		umap_expression_fig["data"][0]["visible"] = True
-		
-		#umap_expression_fig["layout"]["paper_bgcolor"]="#E5F5F9"
-
-		return umap_expression_fig
-
-	#function to get samples to keep from visibility status in umap_metadata_fig
-	def get_samples_to_keep(umap_metadata_fig):
-		samples_to_keep = []
-		#parse metadata figure data 
-		for trace in umap_metadata_fig["data"]:
-			if trace["visible"] is True:
-				for dot in trace["customdata"]:
-					#stores samples to keep after filtering
-					samples_to_keep.append(dot[0])
-		return samples_to_keep
-	
 	#change umap dataset, expression dataset or gene/species: create a new figure from tsv
 	if trigger_id in ["umap_dataset_dropdown.value", "expression_dataset_dropdown.value", "gene_species_dropdown.value", "metadata_dropdown.value"] or umap_expression_fig is None:
 
@@ -1922,7 +1973,8 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 
 		samples_to_keep = get_samples_to_keep(umap_metadata_fig)
 		#create figure
-		umap_expression_fig = plot_umap_expression(expression_dataset, gene_species, samples_to_keep, umap_df, metadata)
+		umap_expression_fig = go.Figure()
+		umap_expression_fig = plot_umap_continuous(umap_dataset, expression_dataset, gene_species, samples_to_keep, metadata, "reds", "expression", umap_expression_fig)
 
 		#apply old zoom if present
 		if keep_old_zoom:
@@ -1930,32 +1982,58 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 			umap_expression_fig["layout"]["yaxis"]["range"] = yaxis_range
 			umap_expression_fig["layout"]["xaxis"]["autorange"] = False
 			umap_expression_fig["layout"]["yaxis"]["autorange"] = False
-	
+
+		#adjust height with show legend and contrast only are true
+		if trigger_id == "metadata_dropdown.value" and show_legend_switch is True:
+			if contrast_only_switch:
+				div_height = 600
+			else:
+				div_height = 770
+			umap_metadata_fig["layout"]["height"] = div_height
+
 	#changes in umap metadata zoom and its legend
 	elif trigger_id in ["show_legend_metadata_switch.on", "update_legend_button.n_clicks", "umap_metadata.relayoutData"]:
 
 		#select samples to filter
+		visible_count = 0
 		if trigger_id == "update_legend_button.n_clicks":
 			samples_to_keep = get_samples_to_keep(umap_metadata_fig)
 			#get new filtered umap_expression_fig
-			umap_expression_fig = plot_umap_expression(expression_dataset, gene_species, samples_to_keep, umap_df, metadata)
+			umap_expression_fig = go.Figure()
+			umap_expression_fig = plot_umap_continuous(umap_dataset, expression_dataset, gene_species, samples_to_keep, metadata, "reds", "expression", umap_expression_fig)
 			#give visible status to all traces
 			for i in range(0, len(legend_fig["data"])):
 				if legend_fig["data"][i]["visible"] is True:
+					if show_legend_switch is True:
+						visible_count += 1
 					umap_metadata_fig["data"][i]["visible"] = True
 				else:
 					umap_metadata_fig["data"][i]["visible"] = False
-			
+
 		#show legend switch has changed
 		if trigger_id == "show_legend_metadata_switch.on":
 			#show legend with only selected elements in the legend fig
 			if show_legend_switch is True:
 				for i in range(0, len(legend_fig["data"])):
+					if legend_fig["data"][i]["visible"] is True:
+						visible_count += 1
 					umap_metadata_fig["data"][i]["showlegend"] = True
 			#hide legend
 			elif show_legend_switch is False:
 				for i in range(0, len(legend_fig["data"])):
 					umap_metadata_fig["data"][i]["showlegend"] = False
+		
+		#increase hight of the figure
+		if visible_count == 2:
+			div_height = 600
+		else:
+			lines = int(visible_count/3)
+			if lines < 3:
+				px = 50
+			else:
+				px = 25
+			div_height += lines * px
+		umap_metadata_fig["layout"]["height"] = div_height
 
 		#update zoom from metadata
 		umap_expression_fig = synchronize_zoom(umap_expression_fig, umap_metadata_fig)		
@@ -2002,17 +2080,25 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 		transcriptome_title = "viral"
 
 	#apply title
-	umap_metadata_fig["layout"]["title"]["text"] = "Sample dispersion within the " + transcriptome_title + " transcriptome multidimensional scaling<br>colored by " + metadata + " metadata n=" + str(n_samples_umap_metadata)
+	umap_metadata_fig["layout"]["title"]["text"] = "Sample dispersion within the " + transcriptome_title + " transcriptome multidimensional scaling<br>colored by " + metadata.replace("_", " ") + " metadata n=" + str(n_samples_umap_metadata)
 	umap_expression_fig["layout"]["title"]["text"] = "Sample dispersion within the " + transcriptome_title + " transcriptome multidimensional scaling<br>colored by " + gene_species.replace("_", " ").replace("[", "").replace("]", "") + expression_or_abundance + " n=" + str(n_samples_umap_expression)
 
 	##### CONFIG OPTIONS ####
-	config_umap_metadata = {"doubleClick": "autosize", "modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 500, "height": 500, "scale": 5}}
-	config_umap_expression = {"doubleClick": "autosize", "modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 520, "height": 500, "scale": 5}}
+	config_umap_metadata = {"doubleClick": "autosize", "modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 500, "height": (div_height - 35), "scale": 5}}
+	config_umap_expression = {"doubleClick": "autosize", "modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 520, "height": (div_height - 35), "scale": 5}}
 
 	config_umap_metadata["toImageButtonOptions"]["filename"] = "TaMMA_umap_{umap_metadata}_colored_by_{metadata}".format(umap_metadata = umap_dataset, metadata = metadata)
 	config_umap_expression["toImageButtonOptions"]["filename"] = "TaMMA_umap_{umap_metadata}_colored_by_{gene_species}_{expression_abundance}".format(umap_metadata = umap_dataset, gene_species = gene_species, expression_abundance = "expression" if expression_dataset == "human" else "abundance")
 
-	return umap_metadata_fig, umap_expression_fig, config_umap_metadata, config_umap_expression
+	#div styles
+	if metadata in ["age", "age_at_diagnosis"]:
+		umap_metadata_div_style = {"width": "50%", "height": div_height, "display": "inline-block"}
+		umap_expression_div_style = {"width": "50%", "height": div_height, "display": "inline-block"}
+	else:
+		umap_metadata_div_style = {"width": "46.5%", "height": div_height, "display": "inline-block"}
+		umap_expression_div_style = {"width": "53.5%", "height": div_height, "display": "inline-block"}
+
+	return umap_metadata_fig, umap_expression_fig, config_umap_metadata, config_umap_expression, umap_metadata_div_style, umap_expression_div_style
 
 #plot boxplots callback
 @app.callback(
@@ -2038,68 +2124,89 @@ def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, group_
 		expression_or_abundance = "abundance"
 	else:
 		expression_or_abundance = "expression"
+	
+	#general config for boxplots
+	config_boxplots = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 450, "height": 400, "scale": 5}}
 
-	#in case of dropdown changes must plot again
-	if trigger_id in ["expression_dataset_dropdown.value", "gene_species_dropdown.value", "metadata_dropdown.value", "group_by_group_boxplots_switch.on", "tissue_checkboxes.value"] or box_fig is None or trigger_id == "update_legend_button.n_clicks" and len(box_fig["data"]) != len(legend_fig["data"]):
-		counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset.split("_")[0], gene))
-		counts = pd.read_csv(counts, sep = "\t")
-		#open metadata and select only the desired column
-		metadata_df = download_from_github("umap_{}.tsv".format(expression_dataset))
-		metadata_df = pd.read_csv(metadata_df, sep = "\t")
-		#merge and compute log2 and replace inf with 0
-		metadata_df = metadata_df.merge(counts, how="left", on="sample")
-		metadata_df["Log2 counts"] = np.log2(metadata_df["counts"])
-		metadata_df["Log2 counts"].replace(to_replace = -np.inf, value = 0, inplace=True)
-		metadata_df[metadata_field] = [i.replace("_", " ") for i in metadata_df[metadata_field]]
+	#continuous metadata variable means empty plot
+	if metadata_field in ["age", "age_at_diagnosis"]:
+		box_fig = go.Figure(go.Box(x=None, y=None, showlegend=False))
+		box_fig.update_layout(title_text=None, yaxis_title="Log2 {}".format(expression_or_abundance), xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", height=400)
+		config_boxplots["toImageButtonOptions"]["filename"] = "TaMMA_empty_boxplots.png"
+	#discrete metadata variables means filled plot
+	else:
+		#in case of dropdown changes must plot again
+		if trigger_id in ["expression_dataset_dropdown.value", "gene_species_dropdown.value", "metadata_dropdown.value", "group_by_group_boxplots_switch.on", "tissue_checkboxes.value"] or box_fig is None or trigger_id == "update_legend_button.n_clicks" and len(box_fig["data"]) != len(legend_fig["data"]):
+			counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset.split("_")[0], gene))
+			counts = pd.read_csv(counts, sep = "\t")
+			#open metadata and select only the desired column
+			metadata_df = download_from_github("umap_{}.tsv".format(expression_dataset))
+			metadata_df = pd.read_csv(metadata_df, sep = "\t")
+			#merge and compute log2 and replace inf with 0
+			metadata_df = metadata_df.merge(counts, how="left", on="sample")
+			metadata_df["Log2 counts"] = np.log2(metadata_df["counts"])
+			metadata_df["Log2 counts"].replace(to_replace = -np.inf, value = 0, inplace=True)
+			metadata_df[metadata_field] = metadata_df[metadata_field].fillna("NA")
+			metadata_df[metadata_field] = [i.replace("_", " ") for i in metadata_df[metadata_field]]
 
-		#group switch parameters
-		if metadata_field == "condition" and group_switch is True or trigger_id == "tissue_checkboxes.value":
-			#traces will be group and on the x axis we plot tissues
-			metadata_field = "group"
-			x = "tissue"
+			#group switch parameters
+			if metadata_field == "condition" and group_switch is True or trigger_id == "tissue_checkboxes.value":
+				#traces will be group and on the x axis we plot tissues
+				metadata_field = "group"
+				x = "tissue"
+				#filter tissues for selected checkboxes 
 			#filter tissues for selected checkboxes 
-			metadata_df = metadata_df[metadata_df[x].isin(checkbox_value)]
-			#sort by tissue and remove "_"
-			metadata_df = metadata_df.sort_values(by=[x])
-			metadata_df[x] = [tissue.replace("_", " ") for tissue in metadata_df[x]]
-			#other parameters
-			boxmode = "group"
-			showlegend = True
-			top_margin = 60
-			title_text = gene.replace("_", " ").replace("[", "").replace("]", "") + " {} profiles per ".format(expression_or_abundance) + "tissue, colored by group"
-		else:
-			x = metadata_field
-			boxmode = "overlay"
-			showlegend = False
-			top_margin = 30
-			title_text = gene.replace("_", " ").replace("[", "").replace("]", "") + " {} profiles per ".format(expression_or_abundance) + metadata_field
+				#filter tissues for selected checkboxes 
+				metadata_df = metadata_df[metadata_df[x].isin(checkbox_value)]
+				#sort by tissue and remove "_"
+				metadata_df = metadata_df.sort_values(by=[x])
+				metadata_df[x] = [tissue.replace("_", " ") for tissue in metadata_df[x]]
+				#other parameters
+				boxmode = "group"
+				showlegend = True
+				top_margin = 60
+				title_text = gene.replace("_", " ").replace("[", "").replace("]", "") + " {} profiles per ".format(expression_or_abundance) + "tissue, colored by group"
+			else:
+				x = metadata_field
+				boxmode = "overlay"
+				showlegend = False
+				top_margin = 30
+				title_text = gene.replace("_", " ").replace("[", "").replace("]", "") + " {} profiles per ".format(expression_or_abundance) + metadata_field.replace("_", " ")
 
-		#create figure
-		box_fig = go.Figure()
-		i = 0
-		metadata_fields_ordered = metadata_df[metadata_field].unique().tolist()
-		metadata_fields_ordered.sort()
-		for metadata in metadata_fields_ordered:
-			filtered_metadata = metadata_df[metadata_df[metadata_field] == metadata]
-			hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library strategy: " + filtered_metadata["library_strategy"]
-			box_fig.add_trace(go.Box(y=filtered_metadata["Log2 counts"], x=filtered_metadata[x], name = metadata, marker_color = colors[i], boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text"))
-			i += 1
-		box_fig.update_traces(marker_size=4, showlegend=showlegend)
-		box_fig.update_layout(title = {"text": title_text, "x": 0.5, "font_size": 14, "y": 0.99}, legend_title_text = None, yaxis_title = "Log2 {}".format(expression_or_abundance), xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", height=400, margin=dict(t=top_margin, b=30, l=5, r=10), boxmode=boxmode, legend_orientation="h", legend_yanchor="bottom", legend_y=1.02, legend_xanchor="center", legend_x=0.45)
+			#create figure
+			box_fig = go.Figure()
+			i = 0
+			metadata_fields_ordered = metadata_df[metadata_field].unique().tolist()
+			metadata_fields_ordered.sort()
+			for metadata in metadata_fields_ordered:
+				filtered_metadata = metadata_df[metadata_df[metadata_field] == metadata]
+				#do not plot values for NA
+				if metadata == "NA":
+					y_values = None
+					x_values = None
+				else:
+					y_values = filtered_metadata["Log2 counts"]
+					x_values = filtered_metadata[x]
+				hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library strategy: " + filtered_metadata["library_strategy"]
+				marker_color = get_palette(metadata, i)
+				box_fig.add_trace(go.Box(y=y_values, x=x_values, name = metadata, marker_color = marker_color, boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text"))
+				i += 1
+			box_fig.update_traces(marker_size=4, showlegend=showlegend)
+			box_fig.update_layout(title = {"text": title_text, "x": 0.5, "font_size": 14, "y": 0.99}, legend_title_text = None, yaxis_title = "Log2 {}".format(expression_or_abundance), xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", height=400, margin=dict(t=top_margin, b=30, l=5, r=10), boxmode=boxmode, legend_orientation="h", legend_yanchor="bottom", legend_y=1.02, legend_xanchor="center", legend_x=0.45)
 
-		#define visible status
-		for trace in box_fig["data"]:
-			trace["visible"] = True
+			#define visible status
+			for trace in box_fig["data"]:
+				trace["visible"] = True
 
-	#syncronyze legend status with umap metadata
-	if legend_fig is not None and group_switch is False:
-		for i in range(0, len(legend_fig["data"])):
-			box_fig["data"][i]["visible"] = legend_fig["data"][i]["visible"]
+		#syncronyze legend status with umap metadata
+		if legend_fig is not None and group_switch is False:
+			for i in range(0, len(legend_fig["data"])):
+				box_fig["data"][i]["visible"] = legend_fig["data"][i]["visible"]
+
+		#plot name when saving
+		config_boxplots["toImageButtonOptions"]["filename"] = "TaMMA_boxplots_with_{gene_species}_{expression_or_abundance}_colored_by_{metadata}".format(gene_species = gene, expression_or_abundance = expression_or_abundance, metadata = metadata_field)
 
 	#box_fig["layout"]["paper_bgcolor"] = "#BCBDDC"
-
-	config_boxplots = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 450, "height": 400, "scale": 5}}
-	config_boxplots["toImageButtonOptions"]["filename"] = "TaMMA_boxplots_with_{gene_species}_{expression_or_abundance}_colored_by_{metadata}".format(gene_species = gene, expression_or_abundance = expression_or_abundance, metadata = metadata_field)
 
 	return box_fig, config_boxplots
 
@@ -2135,7 +2242,7 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 	if trigger_id in ["expression_dataset_dropdown.value", "contrast_dropdown.value"] or old_ma_plot_figure is None:
 		table = download_from_github("dge/{}/{}.diffexp.tsv".format(dataset, contrast))
 		table = pd.read_csv(table, sep = "\t")
-		table = table.dropna(subset=["Gene"])
+		table["Gene"] = table["Gene"].fillna("NA")
 		#log2 base mean
 		table["log2_baseMean"] = np.log2(table["baseMean"])
 		#clean gene/species name
@@ -2450,7 +2557,7 @@ def plot_multiboxplots(n_clicks_general, n_clicks_multiboxplots, metadata_field,
 	title_text = ""
 
 	#empty dropdown
-	if selected_genes_species is None or selected_genes_species == []:
+	if selected_genes_species is None or selected_genes_species == [] or metadata_field in ["age", "age_at_diagnosis"]:
 		hidden_status = True
 		popover_status = False
 	#filled dropdown
