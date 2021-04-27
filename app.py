@@ -1,4 +1,3 @@
-from logging import disable
 import dash
 from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
@@ -126,16 +125,16 @@ snakey_fig.update_layout(margin=dict(l=0, r=0, t=20, b=20))
 #metadata table data
 metadata_table = download_from_github("umap_human.tsv")
 metadata_table = pd.read_csv(metadata_table, sep = "\t")
-metadata_table = metadata_table[["sample", "group", "tissue", "source", "library_strategy"]]
+metadata_table = metadata_table[["sample", "group", "tissue", "source", "library_strategy", "age", "age_at_diagnosis", "ancestry", "gender", "treatment", "paris_classification"]]
 metadata_table["source"] = ["[{}](".format(source.split("_")[0]) + str("https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=") + source.split("_")[0] + ")" for source in metadata_table["source"]]
-metadata_table = metadata_table.rename(columns={"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy"})
+metadata_table = metadata_table.rename(columns={"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy", "age": "Age", "age_at_diagnosis": "Age at diagnosis", "ancestry": "Ancestry", "gender": "Gender", "treatment": "Treatment", "paris_classification": "Paris classification"})
 metadata_table_data = metadata_table.to_dict("records")
 #create a downloadable tsv file forced to excel by extension
 metadata_table = download_from_github("umap_human.tsv")
 metadata_table = pd.read_csv(metadata_table, sep = "\t")
-metadata_table = metadata_table[["sample", "group", "tissue", "source", "library_strategy"]]
+metadata_table = metadata_table[["sample", "group", "tissue", "source", "library_strategy", "age", "age_at_diagnosis", "ancestry", "gender", "treatment", "paris_classification"]]
 metadata_table["source"] = [source.split("_")[0] for source in metadata_table["source"]]
-metadata_table = metadata_table.rename(columns={"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy"})
+metadata_table = metadata_table.rename(columns={"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy", "age": "Age", "age_at_diagnosis": "Age at diagnosis", "ancestry": "Ancestry", "gender": "Gender", "treatment": "Treatment", "paris_classification": "Paris classification"})
 link = metadata_table.to_csv(index=False, encoding="utf-8", sep="\t")
 link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
 
@@ -501,6 +500,7 @@ app.layout = html.Div([
 									dcc.Graph(id="snakey", figure=snakey_fig, config={"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 1000, "height": 400, "scale": 20, "filename": "easter_egg_TBD"}})
 								], style={"width": "100%", "display": "inline-block"})
 						], style=tab_style, selected_style=tab_selected_style),
+						#metadata tab
 						dcc.Tab(label="Metadata", value="source_tab", children=[
 							html.Br(),
 
@@ -569,11 +569,17 @@ app.layout = html.Div([
 										style_as_list_view=True,
 										data = metadata_table_data,
 										columns = [
-											{"name": "Sample", "id":"Sample"}, 
-											{"name": "Group", "id":"Group"},
-											{"name": "Tissue", "id":"Tissue"},
-											{"name": "Study", "id":"Source", "type": "text", "presentation": "markdown"},
-											{"name": "Library strategy", "id":"Library strategy"}
+											{"name": "Sample", "id": "Sample"}, 
+											{"name": "Group", "id": "Group"},
+											{"name": "Tissue", "id": "Tissue"},
+											{"name": "Study", "id": "Source", "type": "text", "presentation": "markdown"},
+											{"name": "Library strategy", "id": "Library strategy"},
+											{"name": "Age", "id": "Age"},
+											{"name": "Age at diagnosis", "id": "Age at diagnosis"},
+											{"name": "Ancestry", "id": "Ancestry"},
+											{"name": "Gender", "id": "Gender"},
+											{"name": "Treatment", "id": "Treatment"},
+											{"name": "Paris classification", "id": "Paris classification"}
 										]
 									)
 								)
@@ -1702,16 +1708,15 @@ def legend(selected_metadata, contrast_switch, contrast, update_legend, dataset,
 				i += 1
 			
 			#update layout
-			legend_fig.update_layout(legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_itemsizing="constant", legend_tracegroupgap = 0.05, legend_title_side="top", xaxis_visible=False, yaxis_visible=False, margin_t=0, margin_b=340, height=300, width=1150)
+			legend_fig.update_layout(legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_itemsizing="constant", legend_tracegroupgap = 0.05, legend_title_side="top", xaxis_visible=False, yaxis_visible=False, margin_t=0, margin_b=340, height=300, width=1150, legend_font_family="Arial")
 		#heatmap as colotbar
 		else:
 			umap_df = umap_df.dropna(subset=[label_to_value[selected_metadata]])
 			umap_df[label_to_value[selected_metadata]] = umap_df[label_to_value[selected_metadata]].astype(int)
-			#z = umap_df[label_to_value[selected_metadata]].unique().tolist()
 			z = list(range(umap_df[label_to_value[selected_metadata]].min(), umap_df[label_to_value[selected_metadata]].max() + 1))
 			legend_fig.add_trace(go.Heatmap(z=[z], y=[label_to_value[selected_metadata]], colorscale="blues", hovertemplate="%{z}<extra></extra>", hoverlabel_bgcolor="lightgrey"))
 			legend_fig.update_traces(showscale=False)
-			legend_fig.update_layout(height=300, width=600, margin_b=220, margin_t=50, margin_l=150, xaxis_linecolor="#9EA0A2", yaxis_linecolor="#9EA0A2", yaxis_ticks="", xaxis_fixedrange=True, yaxis_fixedrange=True, xaxis_mirror=True, yaxis_mirror=True)
+			legend_fig.update_layout(height=300, width=600, margin_b=220, margin_t=50, margin_l=150, xaxis_linecolor="#9EA0A2", yaxis_linecolor="#9EA0A2", yaxis_ticks="", xaxis_fixedrange=True, yaxis_fixedrange=True, xaxis_mirror=True, yaxis_mirror=True, legend_font_family="Arial")
 
 		#transparent paper background
 		legend_fig["layout"]["paper_bgcolor"]="rgba(0,0,0,0)"
