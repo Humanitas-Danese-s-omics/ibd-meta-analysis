@@ -990,8 +990,9 @@ app.layout = html.Div([
 				html.A("Federica Ungaro", href="https://scholar.google.com/citations?user=CYfM7wsAAAAJ&hl=en", target="_blank"), ", ",
 				html.A("Stefania Vetrano", href="https://www.hunimed.eu/member/stefania-vetrano/", target="_blank"), ", ",
 				html.A("Silvio Danese", href="https://scholar.google.com/citations?hl=en&user=2ia1nGUAAAAJ", target="_blank"), "  -  ",
-				html.A("Manual", href="https://ibd-tamma.readthedocs.io/", target="_blank"), "; ",
-				html.A("Data", href="https://github.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data", target="_blank"),  "; ",
+				html.A("Manual", href="https://ibd-tamma.readthedocs.io/", target="_blank"), "  -  ",
+				html.A("Report a bug", href="https://github.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data/issues", target="_blank"), "  -  ",
+				html.A("Data", href="https://github.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data", target="_blank"),  "  -  ",
 				html.A("NGS dark matter", href="https://dataverse.harvard.edu/dataverse/tamma-dark-matter", target="_blank")
 			]),
 			html.Br()
