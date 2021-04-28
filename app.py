@@ -483,6 +483,22 @@ app.layout = html.Div([
 						color = "#33A02C", 
 					),
 				], style={"width": "60%", "display": "inline-block", "vertical-align": "top"}),
+
+				html.Div([
+					dbc.Modal(id="video", centered=True, backdrop=False, size="xl", style={"background-color": "rgba(0, 0, 0, 0)"},
+						children=[
+							dbc.ModalBody(children=[
+								html.Div(children=[], style={"width": "5%", "display": "inline-block"}),
+								html.Div(children=[
+									html.Iframe(src="https://www.youtube.com/embed/CwnR0zuFcPI", width="1000", height="800", allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture")], style={"width": "25%", "display": "inline-block"}),
+								html.Div(children=[], style={"width": "5%", "display": "inline-block"})
+							], style={"background-color": "rgba(0, 0, 0, 0)"}),
+							dbc.ModalFooter(children=[
+								dbc.Button("Close", id="close_video")
+							], style={"background-color": "rgba(0, 0, 0, 0)"})
+						]
+					),
+				])
 			], style = {"width": "100%", "height": 1000, "display": "inline-block"}),
 		]),
 
@@ -497,7 +513,7 @@ app.layout = html.Div([
 
 					#statistics
 					html.Div([
-						dcc.Graph(id="snakey", figure=snakey_fig, config={"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 1000, "height": 400, "scale": 20, "filename": "easter_egg_TBD"}})
+						dcc.Graph(id="snakey", figure=snakey_fig, config={"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 1000, "height": 400, "scale": 20, "filename": "TaMMA_snakey"}})
 					], style={"width": "100%", "display": "inline-block"})
 			], style=tab_style, selected_style=tab_selected_style),
 			#metadata tab
@@ -674,6 +690,7 @@ app.layout = html.Div([
 						], style={"width": "67%", "display": "inline-block", "vertical-align": "middle", "font-size": 11})
 					], style={"width": "25%", "display": "inline-block", "vertical-align": "top"}),
 
+
 					#graph
 					html.Div([
 						dcc.Loading(type = "dot", color = "#33A02C", children=[
@@ -686,6 +703,7 @@ app.layout = html.Div([
 							], hidden=True)
 						])
 					], style={"height": 600, "width": "75%", "display": "inline-block"})
+
 				], style={"height": 700})
 			], style=tab_style, selected_style=tab_selected_style),
 			#dge table tab
@@ -1673,6 +1691,28 @@ def serach_genes_in_text_area(n_clicks, expression_dataset, text, already_select
 
 	return already_selected_genes_species, log_div, log_hidden_status
 
+@app.callback(
+	Output("video", "is_open"),
+	Input("go_plot_filter_input", "value"),
+	Input("close_video", "n_clicks"),
+	prevent_initial_call=True
+)
+def show_video(search_value, close_button):
+	#define contexts
+	ctx = dash.callback_context
+	trigger_id = ctx.triggered[0]["prop_id"]
+
+	if trigger_id == "close_video.n_clicks":
+		is_open = False
+	else:
+		search_value = search_value.upper()
+		if search_value == "DANCE":
+			is_open = True
+		else:
+			is_open = False
+
+	return is_open
+
 ### PLOTS ###
 
 #legend plot
@@ -2423,9 +2463,13 @@ def plot_go_plot(contrast, search_value):
 
 	#define search query if present
 	if search_value is not None and search_value != "":
-		processes_to_keep = serach_go(search_value, go_df)
-		#filtering
-		go_df = go_df[go_df["Process~name"].isin(processes_to_keep)]
+		dance = search_value.upper()
+		if dance == "DANCE":
+			raise PreventUpdate
+		else:
+			processes_to_keep = serach_go(search_value, go_df)
+			#filtering
+			go_df = go_df[go_df["Process~name"].isin(processes_to_keep)]
 
 	#rename columns
 	go_df = go_df.rename(columns={"Process~name": "Process", "percentage%": "Enrichment", "P-value": "GO p-value"})
