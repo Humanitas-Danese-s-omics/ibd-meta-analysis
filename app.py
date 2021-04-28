@@ -962,6 +962,23 @@ app.layout = html.Div([
 						], style=tab_style, selected_style=tab_selected_style)
 					], style= {"height": 40}),
 
+					#footer
+					html.Div([
+						html.Hr(),
+						html.Div([
+							"© Copyright 2021 ", 
+							html.A("Luca Massimino", href="https://scholar.google.com/citations?user=zkPRE9oAAAAJ&hl=en", target="_blank"), ", ",
+							html.A("Luigi Antonio Lamparelli", href="https://scholar.google.com/citations?hl=en&user=D4JB6sQAAAAJ", target="_blank"), ", ",
+							html.A("Federica Ungaro", href="https://scholar.google.com/citations?user=CYfM7wsAAAAJ&hl=en", target="_blank"), ", ",
+							html.A("Stefania Vetrano", href="https://www.hunimed.eu/member/stefania-vetrano/", target="_blank"), ", ",
+							html.A("Silvio Danese", href="https://scholar.google.com/citations?hl=en&user=2ia1nGUAAAAJ", target="_blank"), "  -  ",
+							html.A("Manual", href="https://ibd-tamma.readthedocs.io/", target="_blank"), "; ",
+							html.A("Data", href="https://github.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data", target="_blank"),  "; ",
+							html.A("NGS dark matter", href="https://dataverse.harvard.edu/dataverse/tamma-dark-matter", target="_blank")
+						]),
+						html.Br()
+					])
+
 				], style={"width": 1200}),
 
 			], style={"width": "100%", "justify-content":"center", "display":"flex", "textAlign": "center"})
