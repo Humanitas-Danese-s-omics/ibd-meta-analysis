@@ -490,7 +490,7 @@ app.layout = html.Div([
 							dbc.ModalBody(children=[
 								html.Div(children=[], style={"width": "5%", "display": "inline-block"}),
 								html.Div(children=[
-									html.Iframe(src="https://www.youtube.com/embed/CwnR0zuFcPI", width="1000", height="800", allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture")], style={"width": "25%", "display": "inline-block"}),
+									html.Iframe(src="https://www.youtube.com/embed/CwnR0zuFcPI", width="1000", height="800")], style={"width": "25%", "display": "inline-block"}),
 								html.Div(children=[], style={"width": "5%", "display": "inline-block"})
 							], style={"background-color": "rgba(0, 0, 0, 0)"}),
 							dbc.ModalFooter(children=[
