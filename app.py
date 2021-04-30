@@ -606,7 +606,7 @@ app.layout = html.Div([
 			#custom boxplots
 			dcc.Tab(label="Box plots", value="boxplots_tab", children=[
 				html.Br(),
-				html.Div([
+				html.Div(id="multiboxplot_div", children=[
 					#input section
 					html.Div([
 						
@@ -690,9 +690,8 @@ app.layout = html.Div([
 						], style={"width": "67%", "display": "inline-block", "vertical-align": "middle", "font-size": 11})
 					], style={"width": "25%", "display": "inline-block", "vertical-align": "top"}),
 
-
 					#graph
-					html.Div([
+					html.Div(id="multiboxplot_graph_div", children=[
 						dcc.Loading(type = "dot", color = "#33A02C", children=[
 							html.Div(
 								id="multi_boxplots_div",
@@ -702,9 +701,8 @@ app.layout = html.Div([
 									color = "#33A02C")
 							], hidden=True)
 						])
-					], style={"height": 600, "width": "75%", "display": "inline-block"})
-
-				], style={"height": 700})
+					], style={"height": 800, "width": "75%", "display": "inline-block"})
+				])
 			], style=tab_style, selected_style=tab_selected_style),
 			#dge table tab
 			dcc.Tab(label="DGE table", value="dge_tab", children=[
@@ -981,7 +979,7 @@ app.layout = html.Div([
 		], style= {"height": 40}),
 
 		#footer
-		html.Div([
+		html.Footer([
 			html.Hr(),
 			html.Div([
 				"© Copyright 2021 ", 
@@ -1609,6 +1607,7 @@ def get_placeholder_multiboxplots_text_area(expression_dataset):
 	Output("gene_species_multi_boxplots_dropdown", "value"),
 	Output("genes_not_found_multi_boxplots_div", "children"),
 	Output("genes_not_found_multi_boxplots_div", "hidden"),
+	Output("multiboxplot_graph_div", "style"),
 	Input("multi_boxplots_search_button", "n_clicks"),
 	Input("expression_dataset_dropdown", "value"),
 	State("multi_boxplots_text_area", "value"),
@@ -1690,7 +1689,9 @@ def serach_genes_in_text_area(n_clicks, expression_dataset, text, already_select
 				log_div = []
 				log_hidden_status = True
 
-	return already_selected_genes_species, log_div, log_hidden_status
+	div_style = {"height": 600 + 25*(len(already_selected_genes_species)/3), "width": "75%", "display": "inline-block"}
+
+	return already_selected_genes_species, log_div, log_hidden_status, div_style
 
 @app.callback(
 	Output("video", "is_open"),
@@ -2601,6 +2602,7 @@ def plot_go_plot(contrast, search_value):
 	Output("multi_boxplots_graph", "config"),
 	Output("multi_boxplots_div", "hidden"),
 	Output("popover_plot_multiboxplots", "is_open"),
+	Output("multiboxplot_div", "style"),
 	Input("update_legend_button", "n_clicks"),
 	Input("update_multixoplot_plot_button", "n_clicks"),
 	Input("metadata_dropdown", "value"),
@@ -2795,7 +2797,9 @@ def plot_multiboxplots(n_clicks_general, n_clicks_multiboxplots, metadata_field,
 	config_multi_boxplots = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 900, "height": height_fig, "scale": 5}}
 	config_multi_boxplots["toImageButtonOptions"]["filename"] = "TaMMA_multiboxplots_{title_text}".format(title_text = title_text.replace(" ", "_") + metadata_field)
 
-	return box_fig, config_multi_boxplots, hidden_status, popover_status
+	multiboxplot_div_style = {"height": height_fig, "width": "100%", "display":"inline-block"}
+
+	return box_fig, config_multi_boxplots, hidden_status, popover_status, multiboxplot_div_style
 
 #evidence callback
 @app.callback(
