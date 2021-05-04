@@ -18,13 +18,8 @@ import urllib.parse
 import requests
 from io import StringIO
 
-#GitHub username
-username = "maximinio"
-#Personal Access Token (PAO)
-token = "3b2bc6c745bd96682a139e46ee27922df7e1dcd6"
 #creates a re-usable session object with your creds in-built
 github_session = requests.Session()
-github_session.auth = (username, token)
 
 #function for downloading and importing in pandas df
 def download_from_github(file_url):
