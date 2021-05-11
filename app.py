@@ -145,10 +145,10 @@ VALID_USERNAME_PASSWORD_PAIRS = {
 #layout
 app = dash.Dash(__name__, title="IBD TaMMA", external_stylesheets=[dbc.themes.FLATLY])
 server = app.server
-auth = dash_auth.BasicAuth(
-	app,
-	VALID_USERNAME_PASSWORD_PAIRS
-)
+#auth = dash_auth.BasicAuth(
+	#app,
+	#VALID_USERNAME_PASSWORD_PAIRS
+#)
 
 #styles for tabs and selected tabs
 tab_style = {
