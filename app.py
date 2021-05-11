@@ -136,19 +136,9 @@ link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
 tissues = metadata_table["Tissue"].unique().tolist()
 tissues.sort()
 
-#external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
-
-VALID_USERNAME_PASSWORD_PAIRS = {
-	"danese": "steam"
-}
-
 #layout
 app = dash.Dash(__name__, title="IBD TaMMA", external_stylesheets=[dbc.themes.FLATLY])
 server = app.server
-#auth = dash_auth.BasicAuth(
-	#app,
-	#VALID_USERNAME_PASSWORD_PAIRS
-#)
 
 #styles for tabs and selected tabs
 tab_style = {
