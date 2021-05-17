@@ -1730,8 +1730,6 @@ def legend(selected_metadata, contrast_switch, contrast, update_legend, dataset,
 
 		#prepare df
 		umap_df = umap_df.sort_values(by=[selected_metadata])
-		if tab_selected_style == "source":
-			umap_df["source"] = [source.split("_")[0] for source in umap_df["source"]]
 		#clean discrete variables
 		if selected_metadata not in ["age", "age_at_diagnosis"]:
 			umap_df[selected_metadata] = umap_df[selected_metadata].fillna("NA")
