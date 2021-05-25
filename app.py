@@ -1360,7 +1360,7 @@ def display_go_table(contrast, search_value):
 	Input("ma_plot_graph", "clickData"),
 	Input("dge_table", "active_cell"),
 	Input("dge_table_filtered", "active_cell"),
-	State("gene_species_dropdown", "options"),
+	State("gene_species_dropdown", "options")
 )
 def find_genes_or_species(dataset, selected_point_ma_plot, active_cell_full, active_cell_filtered, current_dropdown_options):
 	#define contexts
@@ -1407,7 +1407,6 @@ def find_genes_or_species(dataset, selected_point_ma_plot, active_cell_full, act
 	#if you click a gene, update only the dropdown value and keep the rest as it is
 	if trigger_id == "ma_plot_graph.clickData":
 		selected_element = selected_point_ma_plot["points"][0]["customdata"][0].replace(" ", "_")
-		print(selected_element)
 		if selected_element == "NA":
 			raise PreventUpdate
 		else:
