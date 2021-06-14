@@ -4,7 +4,6 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash_daq as daq
 import dash_bootstrap_components as dbc
-import dash_auth
 import dash_table
 from dash_table.Format import Format, Scheme
 from dash.exceptions import PreventUpdate
@@ -23,7 +22,7 @@ github_session = requests.Session()
 
 #function for downloading and importing in pandas df
 def download_from_github(file_url):
-	file_url = "https://raw.githubusercontent.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data/main/data/" + file_url
+	file_url = "https://raw.githubusercontent.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data/main/" + file_url
 	download = github_session.get(file_url).content
 	#read the downloaded content and make a pandas dataframe
 	df_downloaded_data = StringIO(download.decode('utf-8'))
@@ -65,13 +64,13 @@ metadata_umap_options = [{"label": "Condition", "value": "condition"},
 						{"label": "Group", "value": "group"},
 						{"label": "Tissue", "value": "tissue"},
 						{"label": "Source", "value": "source"},
-						{"label": "Library strategy", "value": "library_strategy"},
+						{"label": "Library prep strategy", "value": "Library prep strategy"},
 						{"label": "Age", "value": "age"},
 						{"label": "Age at diagnosis", "value": "age_at_diagnosis"},
 						{"label": "Gender", "value": "gender"},
 						{"label": "Ancestry", "value": "ancestry"},
 						{"label": "Paris classification", "value": "paris_classification"}]
-label_to_value = {"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy", "condition": "Condition", "age": "Age", "age_at_diagnosis": "Age at diagnosis", "gender": "Gender", "ancestry": "Ancestry", "paris_classification": "Paris classification"}
+label_to_value = {"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "Library prep strategy": "Library prep strategy", "condition": "Condition", "age": "Age", "age_at_diagnosis": "Age at diagnosis", "gender": "Gender", "ancestry": "Ancestry", "paris_classification": "Paris classification"}
 
 padj_options = [{"label": "0.1", "value": 0.1},
 				{"label": "0.01", "value": 0.01},
@@ -93,9 +92,9 @@ evidence_options = [
 ]
 
 #snakey
-dataset_stats = download_from_github("stats.tsv")
+dataset_stats = download_from_github("manual/stats.tsv")
 dataset_stats = pd.read_csv(dataset_stats, sep="\t")
-labels = download_from_github("labels_list.tsv")
+labels = download_from_github("manual/labels_list.tsv")
 labels = pd.read_csv(labels, sep = "\t", header=None, names=["labels"])
 labels["labels"] = labels["labels"].dropna()
 labels = labels["labels"].str.replace("_UCB", "").str.replace("_Pfizer", "").tolist()
@@ -118,18 +117,18 @@ snakey_fig = go.Figure(data=[go.Sankey(
 snakey_fig.update_layout(margin=dict(l=0, r=0, t=20, b=20))
 
 #metadata table data
-metadata_table = download_from_github("umap_human.tsv")
+metadata_table = download_from_github("metadata.tsv")
 metadata_table = pd.read_csv(metadata_table, sep = "\t")
-metadata_table = metadata_table[["sample", "group", "tissue", "source", "library_strategy", "age", "age_at_diagnosis", "ancestry", "gender", "treatment", "paris_classification"]]
+metadata_table = metadata_table[["sample", "group", "tissue", "source", "Library prep strategy", "age", "age_at_diagnosis", "ancestry", "gender", "treatment", "paris_classification"]]
 metadata_table["source"] = ["[{}](".format(source.split("_")[0]) + str("https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=") + source.split("_")[0] + ")" for source in metadata_table["source"]]
-metadata_table = metadata_table.rename(columns={"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy", "age": "Age", "age_at_diagnosis": "Age at diagnosis", "ancestry": "Ancestry", "gender": "Gender", "treatment": "Treatment", "paris_classification": "Paris classification"})
+metadata_table = metadata_table.rename(columns={"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "Library prep strategy": "Library prep strategy", "age": "Age", "age_at_diagnosis": "Age at diagnosis", "ancestry": "Ancestry", "gender": "Gender", "treatment": "Treatment", "paris_classification": "Paris classification"})
 metadata_table_data = metadata_table.to_dict("records")
 #create a downloadable tsv file forced to excel by extension
-metadata_table = download_from_github("umap_human.tsv")
+metadata_table = download_from_github("metadata.tsv")
 metadata_table = pd.read_csv(metadata_table, sep = "\t")
-metadata_table = metadata_table[["sample", "group", "tissue", "source", "library_strategy", "age", "age_at_diagnosis", "ancestry", "gender", "treatment", "paris_classification"]]
+metadata_table = metadata_table[["sample", "group", "tissue", "source", "Library prep strategy", "age", "age_at_diagnosis", "ancestry", "gender", "treatment", "paris_classification"]]
 metadata_table["source"] = [source.split("_")[0] for source in metadata_table["source"]]
-metadata_table = metadata_table.rename(columns={"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "library_strategy": "Library strategy", "age": "Age", "age_at_diagnosis": "Age at diagnosis", "ancestry": "Ancestry", "gender": "Gender", "treatment": "Treatment", "paris_classification": "Paris classification"})
+metadata_table = metadata_table.rename(columns={"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "Library prep strategy": "Library prep strategy", "age": "Age", "age_at_diagnosis": "Age at diagnosis", "ancestry": "Ancestry", "gender": "Gender", "treatment": "Treatment", "paris_classification": "Paris classification"})
 link = metadata_table.to_csv(index=False, encoding="utf-8", sep="\t")
 link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
 
@@ -228,10 +227,10 @@ app.layout = html.Div([
 				], style={"width": "28%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
 
 				#tissue filter for contrast dropdown
-				html.Label(["Tissue", 
+				html.Label(["Filter comparisons by",
 							dcc.Dropdown(
 								value="All",
-								id="tissue_filter_dropdown",
+								id="comparison_filter_dropdown",
 								clearable=False,
 				)], style={"width": "11%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
 
@@ -351,10 +350,39 @@ app.layout = html.Div([
 				)
 			], style={"width": "53.5%", "height": 535, "display": "inline-block"}),
 
-			#boxplots + MA-plot + go plot
+			#MA-plot + boxplots + go plot
 			html.Div([
-				#boxplots + MA-plot
+				#MA-plot + boxplots
 				html.Div([
+					#info MA-plot
+					html.Div([
+						html.Img(src="assets/info.png", alt="info", id="info_ma_plot", style={"width": 20, "height": 20}),
+						dbc.Tooltip(
+							children=[dcc.Markdown(
+								"""
+								Differential expression/abundance visualization by MA plot, with gene/species/family/order dispersion in accordance with the fold change between conditions and their average expression/abundance.
+								
+								Click on the ___Comparison___ dropdown to change the results.
+								Click on the ___FDR___ dropdown to change visualization in accordance with the stringency.
+
+								Click on the ___Show gene stats___ to display its statistics.  
+								Click inside the plot to change the statistics of interest.
+								""")
+							],
+							target="info_ma_plot",
+							style={"font-family": "arial", "font-size": 14}
+						),
+					], style={"width": "100%", "display": "inline-block", "text-align":"center"}),
+
+					#MA-plot
+					html.Div([
+						dcc.Loading(
+							id = "loading_ma_plot",
+							children = dcc.Graph(id="ma_plot_graph", style={"height": 359}),
+							type = "dot",
+							color = "#33A02C"
+						)
+					], style={"width": "100%", "display": "inline-block"}),
 
 					#info boxplots
 					html.Div([
@@ -404,33 +432,10 @@ app.layout = html.Div([
 						),
 						html.Br()
 					], style={"width": "100%", "display": "inline-block", "position":"relative", "z-index": 1}),
-
-					#info MA-plot
+					#show additional boxplots
 					html.Div([
-						html.Img(src="assets/info.png", alt="info", id="info_ma_plot", style={"width": 20, "height": 20}),
-						dbc.Tooltip(
-							children=[dcc.Markdown(
-								"""
-								Differential expression/abundance visualization by MA plot, with gene/species/family/order dispersion in accordance with the fold change between conditions and their average expression/abundance.
-								
-								Click on the ___Show gene stats___ to display its statistics.  
-								Click inside the plot to change statistics of interest.
-								""")
-							],
-							target="info_ma_plot",
-							style={"font-family": "arial", "font-size": 14}
-						),
-					], style={"width": "100%", "display": "inline-block", "text-align":"center"}),
-
-					#MA-plot
-					html.Div([
-						dcc.Loading(
-							id = "loading_ma_plot",
-							children = dcc.Graph(id="ma_plot_graph", style={"height": 359}),
-							type = "dot",
-							color = "#33A02C"
-						)
-					], style={"width": "100%", "display": "inline-block"}),
+						daq.BooleanSwitch(id = "show_multiboxplots_switch", on = False, color = "#33A02C", label = "Multiple genes visualization", disabled=False)
+					], style={"width": "100%", "display": "inline-block", "vertical-align": "middle"}),
 				], style={"width": "40%", "display": "inline-block"}),
 
 				#go plot
@@ -468,7 +473,6 @@ app.layout = html.Div([
 						color = "#33A02C", 
 					),
 				], style={"width": "60%", "display": "inline-block", "vertical-align": "top"}),
-
 				html.Div([
 					dbc.Modal(id="video", centered=True, backdrop=False, size="xl", style={"background-color": "rgba(0, 0, 0, 0)"},
 						children=[
@@ -485,24 +489,121 @@ app.layout = html.Div([
 					),
 				])
 			], style = {"width": "100%", "height": 1000, "display": "inline-block"}),
+
+			#multiboxplots
+			html.Div(id="multiboxplot_div", hidden=True, children=[
+				#input section
+				html.Div([
+					
+					#info + update plot button
+					html.Div([
+						
+						#info
+						html.Div([
+							html.Img(src="assets/info.png", alt="info", id="info_multiboxplots", style={"width": 20, "height": 20}),
+							dbc.Tooltip(
+								children=[dcc.Markdown(
+									"""
+									Box plots showing host gene/species/family/order expression/abundance in the different groups.
+									
+									Click the ___UMAP legend___ to choose which group you want to display.  
+									Click the ___Comparison only___ button to display only the samples from the two comparisons.
+									""")
+								],
+								target="info_multiboxplots",
+								style={"font-family": "arial", "font-size": 14}
+							),
+						], style={"width": "50%", "display": "inline-block", "vertical-align": "middle"}),
+						
+						#update plot button
+						html.Div([
+							html.Button("Update plot", id="update_multixoplot_plot_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}),
+							#warning popup
+							dbc.Popover(
+								children=[
+									dbc.PopoverHeader(children=["Warning!"], tag="div", style={"font-family": "arial", "font-size": 14}),
+									dbc.PopoverBody(children=["Plotting more than 10 features is not allowed."], style={"font-family": "arial", "font-size": 12})
+								],
+								id="popover_plot_multiboxplots",
+								target="update_multixoplot_plot_button",
+								is_open=False,
+								style={"font-family": "arial"}
+							),
+						], style={"width": "50%", "display": "inline-block", "vertical-align": "middle"}),
+					]),
+					
+					html.Br(),
+
+					#dropdown
+					dcc.Dropdown(id="gene_species_multi_boxplots_dropdown", multi=True, placeholder="", style={"textAlign": "left", "font-size": "12px"}),
+
+					html.Br(),
+
+					#text area
+					dcc.Textarea(id="multi_boxplots_text_area", style={"width": "100%", "height": 300, "resize": "none", "font-size": "12px"}),
+
+					html.Br(),
+
+					#search button
+					html.Button("Search", id="multi_boxplots_search_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}),
+
+					html.Br(),
+
+					#genes not found area
+					html.Div(id="genes_not_found_multi_boxplots_div", children=[], hidden=True, style={"font-size": "12px", "text-align": "center"}), 
+
+					html.Br(),
+
+					#group by "group"
+					html.Div([
+						daq.BooleanSwitch(id = "group_by_group_multiboxplots_switch", on = False, color = "#33A02C", label = "Group by tissue", disabled=False)
+					], style={"width": "33%", "display": "inline-block", "vertical-align": "middle"}),
+
+					#tissue checkbox for when the switch is on
+					html.Div(id="tissue_checkboxes_multiboxplots_div", hidden=False, children=[
+						html.Br(),
+						dbc.FormGroup(
+							[
+								dbc.Checklist(
+									options=[{"label": tissue.replace("_", " "), "value": tissue} for tissue in tissues],
+									value=tissues,
+									id="tissue_checkboxes_multiboxplots",
+									inline=True
+								),
+							]
+						)
+					], style={"width": "67%", "display": "inline-block", "vertical-align": "middle", "font-size": 11})
+				], style={"width": "25%", "display": "inline-block", "vertical-align": "top"}),
+
+				#graph
+				html.Div(id="multiboxplot_graph_div", children=[
+					dcc.Loading(type = "dot", color = "#33A02C", children=[
+						html.Div(
+							id="multi_boxplots_div",
+							children=[dcc.Loading(
+								children = [dcc.Graph(id="multi_boxplots_graph", figure={})],
+								type = "dot",
+								color = "#33A02C")
+						], hidden=True)
+					])
+				], style={"height": 800, "width": "75%", "display": "inline-block"})
+			])
 		]),
 
 		#tabs
 		dcc.Tabs(id="site_tabs", value="summary_tab", children=[
-			#summary tab
-			dcc.Tab(label="Summary", value="summary_tab", children =[
-					html.Br(),
-					#graphical abstract
-					html.Div([html.Img(src="assets/workflow.png", alt="graphical_abstract", style={"width": "60%", "height": "60%"}, title="FASTQ reads from 3,853 RNA-Seq data from different tissues, namely ileum, colon, rectum, mesenteric adipose tissue, peripheral blood, and stools, were mined from NCBI GEO/SRA and passed the initial quality filter. All files were mapped to the human reference genome and initial gene quantification was performed. Since these data came from 26 different studies made in different laboratories, we counteract the presumptive bias through a batch correction in accordance with source and tissue of origin. Once the gene counts were adjusted, samples were divided into groups in accordance with the tissue of origin and patient condition prior to differential expression analysis and gene ontology functional enrichment. Finally, the reads failing to map to the human genome were subjected to metatranscriptomics profiling by taxonomic classification using exact k-mer matching either archaeal, bacterial, eukaryotic, or viral genes. This image has been designed using resources from https://streamlineicons.com")
-					], style={"width": "100%", "display": "inline-block"}),
+			#summary and metadata tab
+			dcc.Tab(label="Summary and metadata", value="summary_tab", children =[
+				html.Br(),
+				#graphical abstract
+				html.Div([html.Img(src="assets/workflow.png", alt="graphical_abstract", style={"width": "60%", "height": "60%"}, title="FASTQ reads from 3,853 RNA-Seq data from different tissues, namely ileum, colon, rectum, mesenteric adipose tissue, peripheral blood, and stools, were mined from NCBI GEO/SRA and passed the initial quality filter. All files were mapped to the human reference genome and initial gene quantification was performed. Since these data came from 26 different studies made in different laboratories, we counteract the presumptive bias through a batch correction in accordance with source and tissue of origin. Once the gene counts were adjusted, samples were divided into groups in accordance with the tissue of origin and patient condition prior to differential expression analysis and gene ontology functional enrichment. Finally, the reads failing to map to the human genome were subjected to metatranscriptomics profiling by taxonomic classification using exact k-mer matching either archaeal, bacterial, eukaryotic, or viral genes. This image has been designed using resources from https://streamlineicons.com")
+				], style={"width": "100%", "display": "inline-block"}),
 
-					#statistics
-					html.Div([
-						dcc.Graph(id="snakey", figure=snakey_fig, config={"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 1000, "height": 400, "scale": 20, "filename": "TaMMA_snakey"}})
-					], style={"width": "100%", "display": "inline-block"})
-			], style=tab_style, selected_style=tab_selected_style),
-			#metadata tab
-			dcc.Tab(label="Metadata", value="source_tab", children=[
+				#statistics
+				html.Div([
+					dcc.Graph(id="snakey", figure=snakey_fig, config={"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 1000, "height": 400, "scale": 20, "filename": "TaMMA_snakey"}})
+				], style={"width": "100%", "display": "inline-block"}),
+				
 				html.Br(),
 
 				#info metadata table
@@ -574,7 +675,7 @@ app.layout = html.Div([
 								{"name": "Group", "id": "Group"},
 								{"name": "Tissue", "id": "Tissue"},
 								{"name": "Study", "id": "Source", "type": "text", "presentation": "markdown"},
-								{"name": "Library strategy", "id": "Library strategy"},
+								{"name": "Library prep strategy", "id": "Library prep strategy"},
 								{"name": "Age", "id": "Age"},
 								{"name": "Age at diagnosis", "id": "Age at diagnosis"},
 								{"name": "Ancestry", "id": "Ancestry"},
@@ -588,379 +689,317 @@ app.layout = html.Div([
 				html.Br(),
 				html.Br()
 			], style=tab_style, selected_style=tab_selected_style),
-			#custom boxplots
-			dcc.Tab(label="Box plots", value="boxplots_tab", children=[
-				html.Br(),
-				html.Div(id="multiboxplot_div", children=[
-					#input section
-					html.Div([
-						
-						#info + update plot button
-						html.Div([
-							
-							#info
-							html.Div([
-								html.Img(src="assets/info.png", alt="info", id="info_multiboxplots", style={"width": 20, "height": 20}),
-								dbc.Tooltip(
-									children=[dcc.Markdown(
-										"""
-										Box plots showing host gene/species/family/order expression/abundance in the different groups.
-										
-										Click the ___UMAP legend___ to choose which group you want to display.  
-										Click the ___Comparison only___ button to display only the samples from the two comparisons.
-										""")
-									],
-									target="info_multiboxplots",
-									style={"font-family": "arial", "font-size": 14}
-								),
-							], style={"width": "50%", "display": "inline-block", "vertical-align": "middle"}),
-							
-							#update plot button
-							html.Div([
-								html.Button("Update plot", id="update_multixoplot_plot_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}),
-								#warning popup
-								dbc.Popover(
-									children=[
-										dbc.PopoverHeader(children=["Warning!"], tag="div", style={"font-family": "arial", "font-size": 14}),
-										dbc.PopoverBody(children=["Plotting more than 10 features is not allowed."], style={"font-family": "arial", "font-size": 12})
-									],
-									id="popover_plot_multiboxplots",
-									target="update_multixoplot_plot_button",
-									is_open=False,
-									style={"font-family": "arial"}
-								),
-							], style={"width": "50%", "display": "inline-block", "vertical-align": "middle"}),
-						]),
+			#differential analysis tab
+			dcc.Tab(label="Differential analysis", value="differential_analysis", children=[
+				dcc.Tabs(id="differential_analysis_tabs", value="dge_tab", children=[
+					#dge table tab
+					dcc.Tab(label="DGE table", value="dge_tab", children=[
 						
 						html.Br(),
-
-						#dropdown
-						dcc.Dropdown(id="gene_species_multi_boxplots_dropdown", multi=True, placeholder="", style={"textAlign": "left", "font-size": "12px"}),
-
+						#title dge table
+						html.Div(id="dge_table_title", children=[], style={"width": "100%", "display": "inline-block", "textAlign": "center", "font-size": "14px"}),
+						html.Br(),
 						html.Br(),
 
-						#text area
-						dcc.Textarea(id="multi_boxplots_text_area", style={"width": "100%", "height": 300, "resize": "none", "font-size": "12px"}),
-
-						html.Br(),
-
-						#search button
-						html.Button("Search", id="multi_boxplots_search_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"}),
-
-						html.Br(),
-
-						#genes not found area
-						html.Div(id="genes_not_found_multi_boxplots_div", children=[], hidden=True, style={"font-size": "12px", "text-align": "center"}), 
-
-						html.Br(),
-
-						#group by "group"
+						#info dge table
 						html.Div([
-							daq.BooleanSwitch(id = "group_by_group_multiboxplots_switch", on = False, color = "#33A02C", label = "Group by tissue", disabled=False)
-						], style={"width": "33%", "display": "inline-block", "vertical-align": "middle"}),
+							html.Img(src="assets/info.png", alt="info", id="info_dge_table", style={"width": 20, "height": 20}),
+							dbc.Tooltip(
+								children=[dcc.Markdown(
+									"""
+									Table showing the differential gene/species/family/order expression/abundance between the two conditions, unless filtered otherwise.
 
-						#tissue checkbox for when the switch is on
-						html.Div(id="tissue_checkboxes_multiboxplots_div", hidden=False, children=[
-							html.Br(),
-							dbc.FormGroup(
-								[
-									dbc.Checklist(
-										options=[{"label": tissue.replace("_", " "), "value": tissue} for tissue in tissues],
-										value=tissues,
-										id="tissue_checkboxes_multiboxplots",
-										inline=True
-									),
+									Click on headers to reorder the table.
+
+									Click on a row will highlight the feature in the MA plot.
+									Click on an icon in the last column to open external resources.
+									""")
+								],
+								target="info_dge_table",
+								style={"font-family": "arial", "font-size": 14}
+							),
+						], style={"width": "10%", "display": "inline-block", "vertical-align": "middle", "textAlign": "center"}),
+
+						#download full table button diffexp
+						html.Div([
+							dcc.Loading(
+								id = "loading_download_diffexp",
+								type = "circle",
+								color = "#33A02C",
+								children=[html.A(
+									id="download_diffexp",
+									href="",
+									target="_blank",
+									children = [html.Button("Download full table", id="download_diffexp_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+									)
 								]
 							)
-						], style={"width": "67%", "display": "inline-block", "vertical-align": "middle", "font-size": 11})
-					], style={"width": "25%", "display": "inline-block", "vertical-align": "top"}),
+						], style={"width": "15%", "display": "inline-block", "vertical-align": "middle", 'color': 'black'}),
 
-					#graph
-					html.Div(id="multiboxplot_graph_div", children=[
-						dcc.Loading(type = "dot", color = "#33A02C", children=[
-							html.Div(
-								id="multi_boxplots_div",
-								children=[dcc.Loading(
-									children = [dcc.Graph(id="multi_boxplots_graph", figure={})],
-									type = "dot",
-									color = "#33A02C")
-							], hidden=True)
-						])
-					], style={"height": 800, "width": "75%", "display": "inline-block"})
-				])
-			], style=tab_style, selected_style=tab_selected_style),
-			#dge table tab
-			dcc.Tab(label="DGE table", value="dge_tab", children=[
-				
-				html.Br(),
-				#title dge table
-				html.Div(id="dge_table_title", children=[], style={"width": "100%", "display": "inline-block", "textAlign": "center", "font-size": "14px"}),
-				html.Br(),
-				html.Br(),
-
-				#info dge table
-				html.Div([
-					html.Img(src="assets/info.png", alt="info", id="info_dge_table", style={"width": 20, "height": 20}),
-					dbc.Tooltip(
-						children=[dcc.Markdown(
-							"""
-							Table showing the differential gene/species/family/order expression/abundance between the two conditions, unless filtered otherwise.
-
-							Click on headers to reorder the table.
-
-							Click on a row will highlight the feature in the MA plot.
-							Click on an icon in the last column to open external resources.
-							""")
-						],
-						target="info_dge_table",
-						style={"font-family": "arial", "font-size": 14}
-					),
-				], style={"width": "10%", "display": "inline-block", "vertical-align": "middle", "textAlign": "center"}),
-
-				#download full table button diffexp
-				html.Div([
-					dcc.Loading(
-						id = "loading_download_diffexp",
-						type = "circle",
-						color = "#33A02C",
-						children=[html.A(
-							id="download_diffexp",
-							href="",
-							target="_blank",
-							children = [html.Button("Download full table", id="download_diffexp_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+						#download partial button diffexp
+						html.Div([
+							dcc.Loading(
+								type = "circle",
+								color = "#33A02C",
+								children=[html.A(
+									id="download_diffexp_partial",
+									href="",
+									target="_blank",
+									children = [html.Button("Download filtered table", id="download_diffexp_button_partial", disabled=True, style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+									)
+								]
 							)
-						]
-					)
-				], style={"width": "15%", "display": "inline-block", "vertical-align": "middle", 'color': 'black'}),
+						], style={"width": "25%", "display": "inline-block", "vertical-align": "middle", 'color': 'black'}),
 
-				#download partial button diffexp
-				html.Div([
-					dcc.Loading(
-						type = "circle",
-						color = "#33A02C",
-						children=[html.A(
-							id="download_diffexp_partial",
-							href="",
-							target="_blank",
-							children = [html.Button("Download filtered table", id="download_diffexp_button_partial", disabled=True, style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
-							)
-						]
-					)
-				], style={"width": "25%", "display": "inline-block", "vertical-align": "middle", 'color': 'black'}),
-
-				#dropdown
-				html.Div([
-					dcc.Dropdown(id="multi_gene_dge_table_selection_dropdown", multi=True, placeholder="", style={"textAlign": "left", "font-size": "12px"})
-				], style={"width": "25%", "display": "inline-block", "font-size": "12px", "vertical-align": "middle"}),
-
-				#filtered dge table
-				html.Div(id="filtered_dge_table_div", children=[
-					html.Br(),
-					dcc.Loading(
-						id="loading_dge_table_filtered",
-						type="dot",
-						color="#33A02C",
-						children=dash_table.DataTable(
-							id="dge_table_filtered",
-							style_cell={
-								"whiteSpace": "normal",
-								"height": "auto",
-								"fontSize": 12, 
-								"font-family": "arial",
-								"textAlign": "center"
-							},
-							page_size=25,
-							sort_action="native",
-							style_header={
-								"textAlign": "center"
-							},
-							style_cell_conditional=[
-								{
-									"if": {"column_id": "External resources"},
-									"width": "12%"
-								}
-							],
-							style_data_conditional=[],
-							style_as_list_view=True
-						)
-					)
-				], style={"width": "100%", "font-family": "arial"}, hidden=True),
-
-				#full dge table
-				html.Div([
-					html.Br(),
-					dcc.Loading(
-						id="loading_dge_table",
-						type="dot",
-						color="#33A02C",
-						children=dash_table.DataTable(
-							id="dge_table",
-							style_cell={
-								"whiteSpace": "normal",
-								"height": "auto",
-								"fontSize": 12, 
-								"font-family": "arial",
-								"textAlign": "center"
-							},
-							page_size=25,
-							sort_action="native",
-							style_header={
-								"textAlign": "center"
-							},
-							style_cell_conditional=[
-								{
-									"if": {"column_id": "External resources"},
-									"width": "12%"
-								}
-							],
-							style_data_conditional=[],
-							style_as_list_view=True
-						)
-					)
-				], style={"width": "100%", "font-family": "arial"}),
-				html.Br()
-			], style=tab_style, selected_style=tab_selected_style),
-			#go table tab
-			dcc.Tab(label="GO table", value="go_table_tab", children=[
-				
-				html.Br(),
-				#title go table
-				html.Div(id="go_table_title", children=[], style={"width": "100%", "display": "inline-block", "textAlign": "center", "font-size": "14px"}),
-				html.Br(),
-				html.Br(),
-
-				#info go table
-				html.Div([
-					html.Img(src="assets/info.png", alt="info", id="info_go_table", style={"width": 20, "height": 20}),
-					dbc.Tooltip(
-						children=[dcc.Markdown(
-							"""
-							Table showing the differentially enriched gene ontology biological processes between the two conditions, unless filtered otherwise.
-
-							Use the ___search bar___ above the GO plot to filter the processes.
-
-							Click on headers to reorder the table.
-							Click on a GO dataset name to see its specifics in AmiGO 2 (___Ashburner et al. 2000, PMID 10802651___).
-							""")
-						],
-						target="info_go_table",
-						style={"font-family": "arial", "font-size": 14}
-					),
-				], style={"width": "12%", "display": "inline-block", "vertical-align": "middle", "textAlign": "center"}),
-
-				#download button
-				html.Div([
-					dcc.Loading(
-						id = "loading_download_go",
-						type = "circle",
-						color = "#33A02C",
-						children=[html.A(
-							id="download_go",
-							href="",
-							target="_blank",
-							children = [html.Button("Download full table", id="download_go_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
-							)
-						]
-					)
-				], style={"width": "20%", "display": "inline-block", "textAlign": "left", "vertical-align": "middle", 'color': 'black'}),
-
-				#download button partial
-				html.Div([
-					dcc.Loading(
-						type = "circle",
-						color = "#33A02C",
-						children=[html.A(
-							id="download_go_partial",
-							href="",
-							target="_blank",
-							children = [html.Button("Download shown table", id="download_go_button_partial", disabled=True, style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
-							)
-						]
-					)
-				], style={"width": "20%", "display": "inline-block", "textAlign": "left", "vertical-align": "middle", 'color': 'black'}),
-
-				#go table
-				html.Div([
-					html.Br(),
-					dcc.Loading(
-						id="loading_go_table",
-						type="dot",
-						color="#33A02C",
-						children=dash_table.DataTable(
-							id="go_table",
-							style_cell={
-								"whiteSpace": "normal",
-								"height": "auto",
-								"fontSize": 12, 
-								"font-family": "arial",
-								"textAlign": "center"
-							},
-							page_size=10,
-							sort_action="native",
-							style_header={
-								"textAlign": "center"
-							},
-							style_cell_conditional=[
-								{
-									"if": {"column_id": "Genes"},
-									"textAlign": "left",
-									"width": "50%"
-								},
-								{
-									"if": {"column_id": "GO biological process"},
-									"textAlign": "left",
-									"width": "15%"
-								}
-							],
-							style_data_conditional=[
-								{
-									"if": {
-										"filter_query": "{{DGE}} = {}".format("up")
-									},
-									"backgroundColor": "#FFE6E6"
-								},
-								{
-									"if": {
-										"filter_query": "{{DGE}} = {}".format("down")
-									},
-									"backgroundColor": "#E6F0FF"
-								}
-							],
-							style_as_list_view=True
-						)
-					)
-				], style={"width": "100%", "font-family": "arial"}),
-				html.Br()
-			], style=tab_style, selected_style=tab_selected_style),
-			#literature tab
-			dcc.Tab(label="Literature", value="validation_tab", children=[
-				html.Br(),
-				html.Div([
-					#input section
-					html.Div([
-						html.Br(),
 						#dropdown
-						dcc.Dropdown(id="validation_dropdown", placeholder="Search evidence", options=evidence_options, style={"textAlign": "left", "font-size": "12px"}),
-					], style={"height": 350, "width": "25%", "display": "inline-block", "vertical-align": "top"}),
+						html.Div([
+							dcc.Dropdown(id="multi_gene_dge_table_selection_dropdown", multi=True, placeholder="", style={"textAlign": "left", "font-size": "12px"})
+						], style={"width": "25%", "display": "inline-block", "font-size": "12px", "vertical-align": "middle"}),
 
-					#spacer
-					html.Div([], style={"width": "1.5%", "display": "inline-block"}),
+						#filtered dge table
+						html.Div(id="filtered_dge_table_div", children=[
+							html.Br(),
+							dcc.Loading(
+								id="loading_dge_table_filtered",
+								type="dot",
+								color="#33A02C",
+								children=dash_table.DataTable(
+									id="dge_table_filtered",
+									style_cell={
+										"whiteSpace": "normal",
+										"height": "auto",
+										"fontSize": 12, 
+										"font-family": "arial",
+										"textAlign": "center"
+									},
+									page_size=25,
+									sort_action="native",
+									style_header={
+										"textAlign": "center"
+									},
+									style_cell_conditional=[
+										{
+											"if": {"column_id": "External resources"},
+											"width": "12%"
+										}
+									],
+									style_data_conditional=[],
+									style_as_list_view=True
+								)
+							)
+						], style={"width": "100%", "font-family": "arial"}, hidden=True),
 
-					#graphs
-					html.Div(id="evidence_div", children=[
-						dcc.Loading(
-							id="evidence_div_loading",
-							type="dot",
-							color="#33A02C",
-							children=[]
-						)
-					], style={"height": 600, "width": "70%", "display": "inline-block"}),
+						#full dge table
+						html.Div([
+							html.Br(),
+							dcc.Loading(
+								id="loading_dge_table",
+								type="dot",
+								color="#33A02C",
+								children=dash_table.DataTable(
+									id="dge_table",
+									style_cell={
+										"whiteSpace": "normal",
+										"height": "auto",
+										"fontSize": 12, 
+										"font-family": "arial",
+										"textAlign": "center"
+									},
+									page_size=25,
+									sort_action="native",
+									style_header={
+										"textAlign": "center"
+									},
+									style_cell_conditional=[
+										{
+											"if": {"column_id": "External resources"},
+											"width": "12%"
+										}
+									],
+									style_data_conditional=[],
+									style_as_list_view=True
+								)
+							)
+						], style={"width": "100%", "font-family": "arial"}),
+						html.Br()
+					], style=tab_style, selected_style=tab_selected_style),
+					#go table tab
+					dcc.Tab(label="GO table", value="go_table_tab", children=[
+						
+						html.Br(),
+						#title go table
+						html.Div(id="go_table_title", children=[], style={"width": "100%", "display": "inline-block", "textAlign": "center", "font-size": "14px"}),
+						html.Br(),
+						html.Br(),
 
-					#spacer
-					html.Div([], style={"width": "1.5%", "display": "inline-block"}),
-				]),
-				html.Br()
-			], style=tab_style, selected_style=tab_selected_style)
+						#info go table
+						html.Div([
+							html.Img(src="assets/info.png", alt="info", id="info_go_table", style={"width": 20, "height": 20}),
+							dbc.Tooltip(
+								children=[dcc.Markdown(
+									"""
+									Table showing the differentially enriched gene ontology biological processes between the two conditions, unless filtered otherwise.
+
+									Use the ___search bar___ above the GO plot to filter the processes.
+
+									Click on headers to reorder the table.
+									Click on a GO dataset name to see its specifics in AmiGO 2 (___Ashburner et al. 2000, PMID 10802651___).
+									""")
+								],
+								target="info_go_table",
+								style={"font-family": "arial", "font-size": 14}
+							),
+						], style={"width": "12%", "display": "inline-block", "vertical-align": "middle", "textAlign": "center"}),
+
+						#download button
+						html.Div([
+							dcc.Loading(
+								id = "loading_download_go",
+								type = "circle",
+								color = "#33A02C",
+								children=[html.A(
+									id="download_go",
+									href="",
+									target="_blank",
+									children = [html.Button("Download full table", id="download_go_button", style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+									)
+								]
+							)
+						], style={"width": "20%", "display": "inline-block", "textAlign": "left", "vertical-align": "middle", 'color': 'black'}),
+
+						#download button partial
+						html.Div([
+							dcc.Loading(
+								type = "circle",
+								color = "#33A02C",
+								children=[html.A(
+									id="download_go_partial",
+									href="",
+									target="_blank",
+									children = [html.Button("Download shown table", id="download_go_button_partial", disabled=True, style={"font-size": 12, "text-transform": "none", "font-weight": "normal", "background-image": "linear-gradient(-180deg, #FFFFFF 0%, #D9D9D9 100%)"})],
+									)
+								]
+							)
+						], style={"width": "20%", "display": "inline-block", "textAlign": "left", "vertical-align": "middle", 'color': 'black'}),
+
+						#go table
+						html.Div([
+							html.Br(),
+							dcc.Loading(
+								id="loading_go_table",
+								type="dot",
+								color="#33A02C",
+								children=dash_table.DataTable(
+									id="go_table",
+									style_cell={
+										"whiteSpace": "normal",
+										"height": "auto",
+										"fontSize": 12, 
+										"font-family": "arial",
+										"textAlign": "center"
+									},
+									page_size=10,
+									sort_action="native",
+									style_header={
+										"textAlign": "center"
+									},
+									style_cell_conditional=[
+										{
+											"if": {"column_id": "Genes"},
+											"textAlign": "left",
+											"width": "50%"
+										},
+										{
+											"if": {"column_id": "GO biological process"},
+											"textAlign": "left",
+											"width": "15%"
+										}
+									],
+									style_data_conditional=[
+										{
+											"if": {
+												"filter_query": "{{DGE}} = {}".format("up")
+											},
+											"backgroundColor": "#FFE6E6"
+										},
+										{
+											"if": {
+												"filter_query": "{{DGE}} = {}".format("down")
+											},
+											"backgroundColor": "#E6F0FF"
+										}
+									],
+									style_as_list_view=True
+								)
+							)
+						], style={"width": "100%", "font-family": "arial"}),
+						html.Br()
+					], style=tab_style, selected_style=tab_selected_style)
+				], style= {"height": 40})
+			], style=tab_style, selected_style=tab_selected_style),
+			#evidence tab 
+			dcc.Tab(label="Old and new evidence", value="evidence_tab", children=[
+				dcc.Tabs(id="evidence_tabs", value="old_evidence_tab", children=[
+					#old
+					dcc.Tab(label="Old evidence from literature confirmed by TaMMA", value="old_evidence_tab", children=[
+						html.Br(),
+						html.Div([
+							#input section
+							html.Div([
+								html.Br(),
+								#dropdown
+								dcc.Dropdown(id="validation_dropdown", placeholder="Search evidence", options=evidence_options, style={"textAlign": "left", "font-size": "12px"}),
+							], style={"height": 350, "width": "25%", "display": "inline-block", "vertical-align": "top"}),
+
+							#spacer
+							html.Div([], style={"width": "1.5%", "display": "inline-block"}),
+
+							#graphs
+							html.Div(id="evidence_div", children=[
+								dcc.Loading(
+									id="evidence_div_loading",
+									type="dot",
+									color="#33A02C",
+									children=[]
+								)
+							], style={"height": 600, "width": "70%", "display": "inline-block"}),
+
+							#spacer
+							html.Div([], style={"width": "1.5%", "display": "inline-block"}),
+						]),
+						html.Br()
+					], style=tab_style, selected_style=tab_selected_style),
+					#new
+					dcc.Tab(label="New evidence by TaMMA", value="new_evidence_tab", children=[
+						html.Br(),
+						html.Div([
+							#input section
+							html.Div([
+								html.Br(),
+								#dropdown
+								dcc.Dropdown(id="new_evidence_dropdown", placeholder="Search evidence", options=evidence_options, style={"textAlign": "left", "font-size": "12px"}),
+							], style={"height": 350, "width": "25%", "display": "inline-block", "vertical-align": "top"}),
+
+							#spacer
+							html.Div([], style={"width": "1.5%", "display": "inline-block"}),
+
+							#graphs
+							html.Div(id="new_evidence_div", children=[
+								dcc.Loading(
+									id="new_evidence_div_loading",
+									type="dot",
+									color="#33A02C",
+									children=[]
+								)
+							], style={"height": 600, "width": "70%", "display": "inline-block"}),
+
+							#spacer
+							html.Div([], style={"width": "1.5%", "display": "inline-block"}),
+						]),
+						html.Br()
+					], style=tab_style, selected_style=tab_selected_style),
+				], style= {"height": 40})
+			], style=tab_style, selected_style=tab_selected_style),
 		], style= {"height": 40}),
 
 		#footer
@@ -974,7 +1013,7 @@ app.layout = html.Div([
 				html.A("Stefania Vetrano", href="https://www.hunimed.eu/member/stefania-vetrano/", target="_blank"), ", ",
 				html.A("Silvio Danese", href="https://scholar.google.com/citations?hl=en&user=2ia1nGUAAAAJ", target="_blank"), "  -  ",
 				html.A("Manual", href="https://ibd-tamma.readthedocs.io/", target="_blank"), "  -  ",
-				html.A("Report a bug", href="https://github.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data/issues", target="_blank"), "  -  ",
+				html.A("Report a bug/Suggestions", href="https://github.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data/issues", target="_blank"), "  -  ",
 				html.A("Data", href="https://github.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data", target="_blank"),  "  -  ",
 				html.A("NGS dark matter", href="https://dataverse.harvard.edu/dataverse/tamma-dark-matter", target="_blank")
 			]),
@@ -1109,9 +1148,8 @@ def get_palette(metadata, i):
 def downlaod_diffexp_table(button_click, dataset, contrast):
 
 	#download from GitHub
-	url = "dge/{}/{}.diffexp.tsv".format(dataset, contrast)
+	df = download_from_github("data/" + dataset + "/dge/" + contrast + ".diffexp.tsv")
 	#read the downloaded content and make a pandas dataframe
-	df = download_from_github(url)
 	df = pd.read_csv(df, sep="\t")
 	df = df[["Gene", "Geneid", "log2FoldChange", "lfcSE", "pvalue", "padj", "baseMean"]]
 
@@ -1163,7 +1201,7 @@ def downlaod_diffexp_table_partial(button_click, dataset, contrast, dropdown_val
 	else:
 		disabled_status = False
 		#download from GitHub
-		url = "dge/{}/{}.diffexp.tsv".format(dataset, contrast)
+		url = "data/" + dataset + "/dge/" + contrast + ".diffexp.tsv"
 		#read the downloaded content and make a pandas dataframe
 		df = download_from_github(url)
 		df = pd.read_csv(df, sep="\t")
@@ -1207,7 +1245,7 @@ def downlaod_diffexp_table_partial(button_click, dataset, contrast, dropdown_val
 def download_go_table(button_click, contrast):
 
 	#download from GitHub
-	url = "go/{}.merged_go.tsv".format(contrast)
+	url = "data/human/padj_1e-10/" + contrast + ".merged_go.tsv"
 	df = download_from_github(url)
 	df = pd.read_csv(df, sep="\t")
 
@@ -1233,7 +1271,7 @@ def download_partial_go_table(n_clicks, contrast, search_value):
 	#define search query if present
 	if search_value is not None and search_value != "":
 		disabled_status = False
-		go_df = download_from_github("go/{}.merged_go.tsv".format(contrast))
+		go_df = download_from_github("data/human/padj_1e-10/" + contrast + ".merged_go.tsv")
 		go_df = pd.read_csv(go_df, sep="\t")
 		go_df = go_df[["DGE", "Genes", "Process~name", "num_of_Genes", "gene_group", "percentage%", "P-value"]]
 		
@@ -1279,7 +1317,7 @@ def get_filtered_dge_table(dropdown_values, contrast, dataset, fdr):
 	else:
 		hidden_div = False
 		#open tsv
-		table = download_from_github("dge/{}/{}.diffexp.tsv".format(dataset, contrast))
+		table = download_from_github("data/" + dataset + "/dge/" + contrast + ".diffexp.tsv")
 		table = pd.read_csv(table, sep = "\t")
 
 		#filter selected genes
@@ -1303,7 +1341,7 @@ def get_filtered_dge_table(dropdown_values, contrast, dataset, fdr):
 )
 def display_dge_table(contrast, dataset, fdr):
 	#open tsv
-	table = download_from_github("dge/{}/{}.diffexp.tsv".format(dataset, contrast))
+	table = download_from_github("data/" + dataset + "/dge/" + contrast + ".diffexp.tsv")
 	table = pd.read_csv(table, sep = "\t")
 	
 	columns, data, style_data_conditional = dge_table_operations(table, dataset, fdr)
@@ -1318,7 +1356,7 @@ def display_dge_table(contrast, dataset, fdr):
 	Input("go_plot_filter_input", "value")
 )
 def display_go_table(contrast, search_value):
-	go_df = download_from_github("go/{}.merged_go.tsv".format(contrast))
+	go_df = download_from_github("data/human/padj_1e-10/" + contrast + ".merged_go.tsv")
 	go_df = pd.read_csv(go_df, sep="\t")
 	go_df = go_df[["DGE", "Genes", "Process~name", "num_of_Genes", "gene_group", "percentage%", "P-value"]]
 
@@ -1415,13 +1453,13 @@ def find_genes_or_species(dataset, selected_point_ma_plot, active_cell_full, act
 	#if you change the datast, load it and change options and values
 	elif trigger_id == "expression_dataset_dropdown.value":
 		if dataset == "human":
-			genes = download_from_github("genes_list.tsv")
+			genes = download_from_github("manual/genes_list.tsv")
 			genes = pd.read_csv(genes, sep = "\t", header=None, names=["genes"])
 			genes = genes["genes"].dropna().tolist()
 			options = [{"label": i, "value": i} for i in genes]
 			value="TNF"
 		else:
-			species = download_from_github("{}_list.tsv".format(dataset))
+			species = download_from_github("manual/{}_list.tsv".format(dataset))
 			species = pd.read_csv(species, sep = "\t", header=None, names=["species"])
 			species = species["species"].dropna().tolist()
 			options = [{"label": i.replace("_", " ").replace("[", "").replace("]", ""), "value": i} for i in species]
@@ -1431,65 +1469,94 @@ def find_genes_or_species(dataset, selected_point_ma_plot, active_cell_full, act
 
 #tissue filter callback
 @app.callback(
-	Output("tissue_filter_dropdown", "options"),
-	Output("tissue_filter_dropdown", "value"),
+	Output("comparison_filter_dropdown", "options"),
+	Output("comparison_filter_dropdown", "value"),
 	Input("expression_dataset_dropdown", "value")
 )
 def get_tissues_with_2_or_more_conditions(dataset):
 	#get all contrasts for dataset
-	contrasts = download_from_github("dge_list_{}.tsv".format(dataset))
-	contrasts = pd.read_csv(contrasts, sep = "\t", header=None, names=["contrast"])
-	contrasts = contrasts["contrast"].tolist()
-	#get all tissues for dataset
-	tissues = download_from_github("umap_{}.tsv".format(dataset.split("_")[0]))
-	tissues = pd.read_csv(tissues, sep = "\t")
-	tissues = tissues["tissue"].unique().tolist()
+	if dataset == "human":
+		tsv = "manual/contrast_list_human.tsv"
+	else:
+		tsv = "manual/contrast_list_meta.tsv"
+	contrasts = download_from_github(tsv)
+	contrasts = pd.read_csv(contrasts, sep = "\t")
+	contrasts = contrasts["comparison"].tolist()
+	
+	#get all tissues and groups for dataset
+	df = download_from_github("data/" + dataset.split("_")[0] + "_species/mds/umap.tsv")
+	df = pd.read_csv(df, sep = "\t")
+	tissues = df["tissue"].unique().tolist()
+	groups = df["group"].unique().tolist()
 
 	#loop over tissues and contrasts
 	filtered_tissues = []
+	filtered_groups = []
 	for contrast in contrasts:
 		#define the two tiessues in the contrast
-		re_result = re.search(r"(\w+)_\w+-vs-(\w+)_\w+", contrast)
+		re_result = re.search(r"(\w+)_(\w+)-vs-(\w+)_(\w+)", contrast)
 		tissue_1 = re_result.group(1)
-		tissue_2 = re_result.group(2)
+		tissue_2 = re_result.group(3)
+		group_1 = re_result.group(2)
+		group_2 = re_result.group(3)
 		for tissue in tissues:
 			#check if they are the same
 			if tissue == tissue_1 and tissue == tissue_2:
 				if tissue not in filtered_tissues:
 					filtered_tissues.append(tissue)
+		for group in groups:
+			if group == group_1 and group == group_2:
+				if group not in filtered_groups:
+					filtered_groups.append(group)
 
 	#define default value and options
-	default_value_tissue = "All"
-	tissues_options = [{"label": i.replace("_", " "), "value": i} for i in ["All"] + filtered_tissues]
+	value = "All"
+	options = [{"label": "All", "value": "All"}]
+	tissues_options = [{"label": "Tissue: " + i.replace("_", " "), "value": i} for i in filtered_tissues]
+	group_options = [{"label": "Group: " + i, "value": i} for i in filtered_tissues]
+	options.extend(tissues_options)
+	options.extend(group_options)
 
-	return tissues_options, default_value_tissue
+	return options, value
 
 #contrast callback
 @app.callback(
 	Output("contrast_dropdown", "options"),
 	Output("contrast_dropdown", "value"),
 	Input("expression_dataset_dropdown", "value"),
-	Input("tissue_filter_dropdown", "value"),
+	Input("comparison_filter_dropdown", "value"),
 	State("contrast_dropdown", "value")
 )
-def filter_contrasts(dataset, tissue, contrast):
+def filter_contrasts(dataset, filter_element, contrast):
 	#get all contrasts for selected dataset
-	contrasts = download_from_github("dge_list_{}.tsv".format(dataset))
-	contrasts = pd.read_csv(contrasts, sep = "\t", header=None, names=["contrast"])
-	contrasts = contrasts["contrast"].dropna().tolist()
+	df = download_from_github("manual/contrast_list_{}.tsv".format(dataset))
+	df = pd.read_csv(df, sep = "\t")
 
 	#if all, then do not filter
-	if tissue == "All":
+	if filter_element == "All":
+		contrasts = df["comparison"].unique().tolist()
 		filtered_contrasts = contrasts
 	else:
 		filtered_contrasts = []
+		#define where to find the info in the contrast and which category to use to filter the df
+		if "Tissue" in filter_element:
+			result_number_1 = 1
+			result_number_2 = 3
+			filtering_value = "same_tissue"
+		elif "Group" in filter_element:
+			result_number_1 = 2
+			result_number_2 = 4
+			filtering_value = "same_group"
+		#filter df and define contrast to serch
+		df = df.loc[filtering_value, "category"]
+		contrasts = df["comparison"].unique().tolist()
 		for contrast in contrasts:
-			#define the two tiessues in the contrast
-			re_result = re.search(r"(\w+)_\w+-vs-(\w+)_\w+", contrast)
-			tissue_1 = re_result.group(1)
-			tissue_2 = re_result.group(2)
+			#define the two items to comapre in the contrast
+			re_result = re.search(r"(\w+)_(\w+)-vs-(\w+)_(\w+)", contrast)
+			result_1 = re_result.group(result_number_1)
+			result_2 = re_result.group(result_number_2)
 			#check if they are the same
-			if tissue == tissue_1 and tissue == tissue_2:
+			if filter_element == result_1 and filter_element == result_2:
 				filtered_contrasts.append(contrast)
 
 	#define contrast_value
@@ -1573,6 +1640,19 @@ def create_dge_tab_title(expression_dataset, contrast, fdr):
 
 	return children_dge, children_go
 
+#show multiboxplot area
+@app.callback(
+	Output("multiboxplot_div", "hidden"),
+	Input("show_multiboxplots_switch", "on")
+)
+def show_multiboxplots_div(switch):
+	if switch is True:
+		hidden = False
+	else:
+		hidden = True
+	
+	return hidden
+
 #placeholder for multi_boxplots_text_area
 @app.callback(
 	Output("multi_boxplots_text_area", "placeholder"),
@@ -1621,9 +1701,9 @@ def serach_genes_in_text_area(n_clicks, expression_dataset, text, already_select
 
 			#get all genes
 			if expression_dataset == "human":
-				all_genes = download_from_github("genes_list.tsv")
+				all_genes = download_from_github("manual/genes_list.tsv")
 			else:
-				all_genes = download_from_github("{}_list.tsv".format(expression_dataset))
+				all_genes = download_from_github("manual/{}_list.tsv".format(expression_dataset))
 			all_genes = pd.read_csv(all_genes, sep = "\t", header=None, names=["genes"])
 			all_genes = all_genes["genes"].dropna().tolist()
 
@@ -1722,7 +1802,7 @@ def legend(selected_metadata, contrast_switch, contrast, update_legend, dataset,
 	#function to create legend_fig from tsv
 	def rebuild_legend_fig_from_tsv(dataset, selected_metadata):
 		#open tsv
-		umap_df = download_from_github("umap_{}.tsv".format(dataset.split("_")[0]))
+		umap_df = download_from_github("data/" + dataset.split("_")[0] + "_species/mds/umap.tsv")
 		umap_df = pd.read_csv(umap_df, sep = "\t")
 		umap_df["UMAP1"] = None
 		umap_df["UMAP2"] = None
@@ -1750,12 +1830,12 @@ def legend(selected_metadata, contrast_switch, contrast, update_legend, dataset,
 			
 			#update layout
 			legend_fig.update_layout(legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_itemsizing="constant", legend_tracegroupgap = 0.05, legend_title_side="top", xaxis_visible=False, yaxis_visible=False, margin_t=0, margin_b=340, height=300, width=1150, legend_font_family="Arial")
-		#heatmap as colotbar
+		#heatmap as colorbar
 		else:
 			umap_df = umap_df.dropna(subset=[label_to_value[selected_metadata]])
 			umap_df[label_to_value[selected_metadata]] = umap_df[label_to_value[selected_metadata]].astype(int)
 			z = list(range(umap_df[label_to_value[selected_metadata]].min(), umap_df[label_to_value[selected_metadata]].max() + 1))
-			legend_fig.add_trace(go.Heatmap(z=[z], y=[label_to_value[selected_metadata]], colorscale="blues", hovertemplate="%{z}<extra></extra>", hoverlabel_bgcolor="lightgrey"))
+			legend_fig.add_trace(go.Heatmap(z=[z], y=[label_to_value[selected_metadata]], colorscale="blues", hovertemplate="%{z}<extra></extra>", hoverlabel_bgcolor="lightgrey", zsmooth="best"))
 			legend_fig.update_traces(showscale=False)
 			legend_fig.update_layout(height=300, width=600, margin_b=220, margin_t=50, margin_l=150, xaxis_linecolor="#9EA0A2", yaxis_linecolor="#9EA0A2", yaxis_ticks="", xaxis_fixedrange=True, yaxis_fixedrange=True, xaxis_mirror=True, yaxis_mirror=True, legend_font_family="Arial")
 
@@ -1851,7 +1931,10 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 	#function for creating a discrete colored umap from tsv file
 	def plot_umap_discrete(umap_dataset, selected_metadata, show_legend_switch, umap_discrete_fig):
 		#open tsv
-		umap_df = download_from_github("umap_{}.tsv".format(umap_dataset.split("_")[0]))
+		if umap_dataset == "human":
+			umap_df = download_from_github("data/" + umap_dataset + "/mds/umap.tsv")
+		else:
+			umap_df = download_from_github("data/" + umap_dataset + "_species/mds/umap.tsv")
 		umap_df = pd.read_csv(umap_df, sep = "\t")
 
 		#prepare df
@@ -1864,10 +1947,10 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 		i = 0
 		metadata_fields_ordered = umap_df[label_to_value[selected_metadata]].unique().tolist()
 		metadata_fields_ordered.sort()
-		hover_template = "Sample: %{{customdata[0]}}<br>Group: %{{customdata[1]}}<br>{}: %{{customdata[2]}}<br>Source: %{{customdata[3]}}<br>Library strategy: %{{customdata[4]}}<extra></extra>".format(label_to_value[selected_metadata])
+		hover_template = "Sample: %{{customdata[0]}}<br>Group: %{{customdata[1]}}<br>{}: %{{customdata[2]}}<br>Source: %{{customdata[3]}}<br>Library prep strategy: %{{customdata[4]}}<extra></extra>".format(label_to_value[selected_metadata])
 		for metadata in metadata_fields_ordered:
 			filtered_umap_df = umap_df[umap_df[label_to_value[selected_metadata]] == metadata]
-			custom_data = filtered_umap_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library strategy"]]
+			custom_data = filtered_umap_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library prep strategy"]]
 			marker_color = get_palette(metadata, i)
 			umap_discrete_fig.add_trace(go.Scatter(x=filtered_umap_df["UMAP1"], y=filtered_umap_df["UMAP2"], marker_opacity = 1, marker_color = marker_color, marker_size = 4, customdata = custom_data, mode="markers", legendgroup = metadata, showlegend = show_legend_switch, hovertemplate = hover_template, name=metadata))
 			i += 1
@@ -1882,7 +1965,7 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 	#function for creating a continuous colored umap from tsv file
 	def plot_umap_continuous(umap_dataset, expression_dataset, gene_species, samples_to_keep, selected_metadata, colorscale, umap_category, umap_continuous_fig):	
 		#get umap df
-		umap_df = download_from_github("umap_{}.tsv".format(umap_dataset.split("_")[0]))
+		umap_df = download_from_github("data/" + umap_dataset + "_species/mds/umap.tsv")
 		umap_df = pd.read_csv(umap_df, sep = "\t")
 		umap_df = umap_df.rename(columns=label_to_value)
 
@@ -1894,7 +1977,7 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 			umap_df = umap_df[umap_df["Sample"].isin(samples_to_keep)]
 
 			#download counts
-			counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset.split("_")[0], gene_species))
+			counts = download_from_github("data/" + expression_dataset + "/counts/" + gene_species + ".tsv")
 			counts = pd.read_csv(counts, sep = "\t")
 			counts = counts.rename(columns={"sample": "Sample"})
 
@@ -1911,12 +1994,12 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 				expression_or_abundance = " abundance"
 			#plot parameters
 			colorbar_title = "Log2 {}".format(expression_or_abundance)
-			hover_template = "Sample: %{customdata[0]}<br>Group: %{customdata[1]}<br>Source: %{customdata[3]}<br>Library strategy: %{customdata[4]}<br>Log2 expression: %{marker.color}<extra></extra>"
+			hover_template = "Sample: %{customdata[0]}<br>Group: %{customdata[1]}<br>Source: %{customdata[3]}<br>Library prep strategy: %{customdata[4]}<br>Log2 expression: %{marker.color}<extra></extra>"
 		#metadata continuous umap will use the metadata without counts
 		elif umap_category == "metadata":
 			continuous_variable_to_plot = label_to_value[selected_metadata]
 			colorbar_title = label_to_value[selected_metadata]
-			hover_template = "Sample: %{{customdata[0]}}<br>Group: %{{customdata[1]}}<br>{}: %{{customdata[2]}}<br>Source: %{{customdata[3]}}<br>Library strategy: %{{customdata[4]}}<extra></extra>".format(label_to_value[selected_metadata])
+			hover_template = "Sample: %{{customdata[0]}}<br>Group: %{{customdata[1]}}<br>{}: %{{customdata[2]}}<br>Source: %{{customdata[3]}}<br>Library prep strategy: %{{customdata[4]}}<extra></extra>".format(label_to_value[selected_metadata])
 		
 		#fill nan with NA and remove Pfizer and UCB from source names
 		umap_df[continuous_variable_to_plot] = umap_df[continuous_variable_to_plot].fillna("NA")
@@ -1924,14 +2007,14 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 		
 		#select only NA values
 		na_df = umap_df.loc[umap_df[continuous_variable_to_plot] == "NA"]
-		custom_data = na_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library strategy"]]
+		custom_data = na_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library prep strategy"]]
 		
 		#add discrete trace for NA values
 		umap_continuous_fig.add_trace(go.Scatter(x=na_df["UMAP1"], y=na_df["UMAP2"], marker_color=na_color, marker_size=4, customdata=custom_data, mode="markers", showlegend=False, hovertemplate=hover_template, name=metadata, visible=True))
 		
 		#select only not NA
 		umap_df = umap_df.loc[umap_df[continuous_variable_to_plot] != "NA"]
-		custom_data = umap_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library strategy"]]
+		custom_data = umap_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library prep strategy"]]
 		marker_color = umap_df[continuous_variable_to_plot]
 		#add continuous trace
 		umap_continuous_fig.add_trace(go.Scatter(x=umap_df["UMAP1"], y=umap_df["UMAP2"], marker_color=marker_color, marker_colorscale=colorscale, marker_showscale=True, marker_opacity=1, marker_size=4, marker_colorbar_title=colorbar_title, marker_colorbar_title_side="right", marker_colorbar_title_font_size=14, mode="markers", customdata=custom_data, hovertemplate=hover_template, showlegend=False, visible=True))
@@ -2183,10 +2266,10 @@ def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, group_
 	else:
 		#in case of dropdown changes must plot again
 		if trigger_id in ["expression_dataset_dropdown.value", "gene_species_dropdown.value", "metadata_dropdown.value", "group_by_group_boxplots_switch.on", "tissue_checkboxes.value"] or box_fig is None or trigger_id == "update_legend_button.n_clicks" and len(box_fig["data"]) != len(legend_fig["data"]):
-			counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset.split("_")[0], gene))
+			counts = download_from_github("data/" + expression_dataset + "/counts/" + gene + ".tsv")
 			counts = pd.read_csv(counts, sep = "\t")
 			#open metadata and select only the desired column
-			metadata_df = download_from_github("umap_{}.tsv".format(expression_dataset))
+			metadata_df = download_from_github("metadata.tsv")
 			metadata_df = pd.read_csv(metadata_df, sep = "\t")
 			#merge and compute log2 and replace inf with 0
 			metadata_df = metadata_df.merge(counts, how="left", on="sample")
@@ -2233,7 +2316,7 @@ def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, group_
 				else:
 					y_values = filtered_metadata["Log2 counts"]
 					x_values = filtered_metadata[x]
-				hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library strategy: " + filtered_metadata["library_strategy"]
+				hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library prep strategy: " + filtered_metadata["Library prep strategy"]
 				marker_color = get_palette(metadata, i)
 				box_fig.add_trace(go.Box(y=y_values, x=x_values, name = metadata, marker_color = marker_color, boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text"))
 				i += 1
@@ -2286,7 +2369,7 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 
 	#read tsv if change in dataset or contrast
 	if trigger_id in ["expression_dataset_dropdown.value", "contrast_dropdown.value"] or old_ma_plot_figure is None:
-		table = download_from_github("dge/{}/{}.diffexp.tsv".format(dataset, contrast))
+		table = download_from_github("data/" + dataset + "/dge/" + contrast + ".diffexp.tsv")
 		table = pd.read_csv(table, sep = "\t")
 		table["Gene"] = table["Gene"].fillna("NA")
 		#log2 base mean
@@ -2438,7 +2521,7 @@ def plot_MA_plot(dataset, contrast, fdr, gene, old_ma_plot_figure):
 )
 def plot_go_plot(contrast, search_value):
 	#open df
-	go_df = download_from_github("go/{}.merged_go.tsv".format(contrast))
+	go_df = download_from_github("data/human/padj_1e-10/" + contrast + ".merged_go.tsv")
 	go_df = pd.read_csv(go_df, sep = "\t")
 	#filter out useless columns
 	go_df = go_df[["DGE", "Process~name", "P-value", "percentage%"]]
@@ -2673,7 +2756,7 @@ def plot_multiboxplots(n_clicks_general, n_clicks_multiboxplots, metadata_field,
 				box_fig = make_subplots(rows=n_rows, cols=2, specs=specs, subplot_titles=[gene.replace("[", "").replace("]", "").replace("_", " ") for gene in selected_genes_species], shared_xaxes=True, vertical_spacing=vertical_spacing, y_title="Log2 {}".format(expression_or_abundance))
 				
 				#open metadata
-				metadata_df_original = download_from_github("umap_{}.tsv".format(expression_dataset.split("_")[0]))
+				metadata_df_original = download_from_github("metadata.tsv")
 				metadata_df_original = pd.read_csv(metadata_df_original, sep = "\t")
 
 				#parameters for group by switch
@@ -2697,7 +2780,7 @@ def plot_multiboxplots(n_clicks_general, n_clicks_multiboxplots, metadata_field,
 				working_col = 1
 				for gene in selected_genes_species:
 					#open counts
-					counts = download_from_github("counts/{}/{}.tsv".format(expression_dataset.split("_")[0], gene))
+					counts = download_from_github("data/" + expression_dataset + "/counts/" + gene + ".tsv")
 					counts = pd.read_csv(counts, sep = "\t")
 					#merge and compute log2 and replace inf with 0
 					metadata_df = metadata_df_original.merge(counts, how="left", on="sample")
@@ -2734,7 +2817,7 @@ def plot_multiboxplots(n_clicks_general, n_clicks_multiboxplots, metadata_field,
 							visible_status = False
 						
 						filtered_metadata = metadata_df[metadata_df[metadata_field] == metadata]
-						hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library strategy: " + filtered_metadata["library_strategy"]
+						hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library prep strategy: " + filtered_metadata["Library prep strategy"]
 						box_fig.add_trace(go.Box(x=filtered_metadata[x], y=filtered_metadata["Log2 counts"], name=metadata, marker_color=colors[i], boxpoints="all", hovertext=hovertext_labels, hoverinfo="y+text", visible=visible_status, legendgroup=metadata, showlegend=showlegend, offsetgroup=metadata), row=int(working_row), col=working_col)
 						i += 1
 
@@ -2789,7 +2872,7 @@ def plot_multiboxplots(n_clicks_general, n_clicks_multiboxplots, metadata_field,
 	Output("evidence_div", "hidden"),
 	Input("validation_dropdown", "value")
 )
-def populate_evidence(validation):
+def populate_evidence_old(validation):
 	
 	#function for card
 	def card(header, body):
@@ -2831,7 +2914,7 @@ def populate_evidence(validation):
 		)
 
 		#open tsv
-		bacteria_phylum = download_from_github("validation/bacteria_phylum.tsv")
+		bacteria_phylum = download_from_github("manual/validation/bacteria_phylum.tsv")
 		bacteria_phylum = pd.read_csv(bacteria_phylum, sep = "\t")
 
 		#get others
@@ -2909,14 +2992,14 @@ def populate_evidence(validation):
 		box_fig = make_subplots(rows=2, cols=3, specs=[[{}, {}, {}], [{}, {}, None]], subplot_titles=genes, shared_xaxes=True, y_title="Log2 expression", vertical_spacing=0.2)
 
 		#metadata
-		metadata_df_original = download_from_github("umap_human.tsv")
+		metadata_df_original = download_from_github("metadata.tsv")
 		metadata_df_original = pd.read_csv(metadata_df_original, sep = "\t")
 		working_row = 1
 		working_col = 1
 		showlegend = True
 		for gene in genes:
 			#open counts
-			counts = download_from_github("counts/human/{}.tsv".format(gene))
+			counts = download_from_github("data/human/counts/" + gene + ".tsv")
 			counts = pd.read_csv(counts, sep = "\t")
 			#merge and compute log2 and replace inf with 0
 			metadata_df = metadata_df_original.merge(counts, how="left", on="sample")
@@ -2935,7 +3018,7 @@ def populate_evidence(validation):
 			specific_colors = ["#F8666D", "#00BA38", "#619CFF"]
 			for group in ["CD", "Control", "UC"]:
 				filtered_metadata = metadata_df[metadata_df["group"] == group]
-				hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library strategy: " + filtered_metadata["library_strategy"]
+				hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library prep strategy: " + filtered_metadata["Library prep strategy"]
 				box_fig.add_trace(go.Box(x=filtered_metadata["tissue"], y=filtered_metadata["Log2 counts"], name=group, marker_color=specific_colors[i], boxpoints="all", hovertext=hovertext_labels, hoverinfo="y+text", legendgroup=group, showlegend=showlegend, offsetgroup=group), row=int(working_row), col=working_col)
 				i += 1
 
@@ -2999,7 +3082,7 @@ def populate_evidence(validation):
 		working_col = 1
 		for contrast in contrasts:
 			#open df
-			go_df = download_from_github("go/{}.merged_go.tsv".format(contrast))
+			go_df = download_from_github("data/human/padj_1e-10/" + contrast + ".merged_go.tsv")
 			go_df = pd.read_csv(go_df, sep = "\t")
 			#filter out useless columns
 			go_df = go_df[["DGE", "Process~name", "P-value", "percentage%"]]
@@ -3102,14 +3185,14 @@ def populate_evidence(validation):
 		box_fig = make_subplots(rows=2, cols=2, specs=[[{}, {}], [{}, {}]], subplot_titles=genes, shared_xaxes=True, y_title="Log2 expression", vertical_spacing=0.1)
 
 		#metadata
-		metadata_df_original = download_from_github("umap_human.tsv")
+		metadata_df_original = download_from_github("metadata.tsv")
 		metadata_df_original = pd.read_csv(metadata_df_original, sep = "\t")
 		working_row = 1
 		working_col = 1
 		showlegend = True
 		for gene in genes:
 			#open counts
-			counts = download_from_github("counts/human/{}.tsv".format(gene))
+			counts = download_from_github("data/human/counts/" + gene + ".tsv")
 			counts = pd.read_csv(counts, sep = "\t")
 			#merge and compute log2 and replace inf with 0
 			metadata_df = metadata_df_original.merge(counts, how="left", on="sample")
@@ -3128,7 +3211,7 @@ def populate_evidence(validation):
 			specific_colors = ["#F8666D", "#00BA38", "#619CFF"]
 			for group in ["CD", "Control", "UC"]:
 				filtered_metadata = metadata_df[metadata_df["group"] == group]
-				hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library strategy: " + filtered_metadata["library_strategy"]
+				hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library prep strategy: " + filtered_metadata["Library prep strategy"]
 				box_fig.add_trace(go.Box(x=filtered_metadata["tissue"], y=filtered_metadata["Log2 counts"], name=group, marker_color=specific_colors[i], boxpoints="all", hovertext=hovertext_labels, hoverinfo="y+text", legendgroup=group, showlegend=showlegend, offsetgroup=group), row=int(working_row), col=working_col)
 				i += 1
 
@@ -3176,7 +3259,7 @@ def populate_evidence(validation):
 		showlegend=True
 		i = 1
 		for tissue in ["stools", "colon", "ileum"]:
-			diversity_df = download_from_github("validation/diversity_{}.tsv".format(tissue))
+			diversity_df = download_from_github("manual/validation/diversity_{}.tsv".format(tissue))
 			diversity_df = pd.read_csv(diversity_df, sep="\t")
 			diversity_df["condition"] = [condition.split(" ")[1] for condition in diversity_df["condition"]]
 			conditions = diversity_df["condition"].unique().tolist()
@@ -3218,10 +3301,10 @@ def populate_evidence(validation):
 		## Caudovirales ##
 
 		#create df
-		df = download_from_github("validation/viruses_orders.tsv")
+		df = download_from_github("manual/validation/viruses_orders.tsv")
 		df = pd.read_csv(df, sep="\t")
 		df = df[df["order"] == "Caudovirales"]
-		metadata = download_from_github("umap_human.tsv")
+		metadata = download_from_github("metadata.tsv")
 		metadata = pd.read_csv(metadata, sep="\t")
 		metadata = metadata[["sample", "group", "tissue"]]
 		df = df.merge(metadata, how="inner", on="sample")
@@ -3256,7 +3339,7 @@ def populate_evidence(validation):
 		## herpesviridae and hepadnaviridae ##
 
 		#open tsv and data carpentry
-		df = download_from_github("validation/virus_families.tsv")
+		df = download_from_github("manual/validation/virus_families.tsv")
 		df = pd.read_csv(df, sep="\t", low_memory=False)
 		df = df[["family", "sample", "tissue", "group", "counts"]]
 		tissues = ["Colon", "Ileum"]
@@ -3298,6 +3381,161 @@ def populate_evidence(validation):
 		card("Evidence from the literature", literature_body),
 		html.Br(),
 		card("Evidence from TaMMA", tamma_body),
+		html.Br()
+	])
+
+	return div_children, hidden
+
+#evidence callback
+@app.callback(
+	Output("new_evidence_div_loading", "children"),
+	Output("new_evidence_div", "hidden"),
+	Input("new_evidence_dropdown", "value")
+)
+def populate_evidence_new(validation):
+
+	#function for card
+	def card(header, body):
+		card = dbc.Card(
+			[
+				dbc.CardHeader(header),
+				dbc.CardBody(body),
+			],
+		)
+
+		return card
+
+	evidence_body = []
+
+	if validation == "archaeome_in_ibd":
+		
+		first_markdown = dcc.Markdown(
+			"""
+			The investigation of gut archaeome composition is at its very beginning ((Aldars-García et al., 2021)[https://www.mdpi.com/2076-2607/9/5/977]).
+			"""
+		)
+		for file in ["data/human/mds/umap.tsv", "data/archaea_species/mds/umap.tsv"]:
+
+			#open tsv
+			umap_df = download_from_github(file)
+			umap_df = pd.read_csv(umap_df, sep = "\t")
+
+			#prepare df
+			selected_metadata = "tissue"
+			umap_df = umap_df.sort_values(by=[selected_metadata])
+			umap_df[selected_metadata] = umap_df[selected_metadata].fillna("NA")
+			umap_df[selected_metadata] = [i.replace("_", " ") for i in umap_df[selected_metadata]]
+			umap_df = umap_df[umap_df["condition"].isin(["Colon", "Ileum"])]
+			umap_df = umap_df.rename(columns=label_to_value)
+
+			#plot
+			i = 1
+			umap_discrete_fig = go.Figure()
+			metadata_fields_ordered = umap_df[label_to_value[selected_metadata]].unique().tolist()
+			metadata_fields_ordered.sort()
+			hover_template = "Sample: %{{customdata[0]}}<br>Group: %{{customdata[1]}}<br>{}: %{{customdata[2]}}<br>Source: %{{customdata[3]}}<br>Library prep strategy: %{{customdata[4]}}<extra></extra>".format(label_to_value[selected_metadata])
+			for metadata in metadata_fields_ordered:
+				filtered_umap_df = umap_df[umap_df[label_to_value[selected_metadata]] == metadata]
+				custom_data = filtered_umap_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library prep strategy"]]
+				marker_color = get_palette(metadata, i)
+				umap_discrete_fig.add_trace(go.Scatter(x=filtered_umap_df["UMAP1"], y=filtered_umap_df["UMAP2"], marker_opacity = 1, marker_color = marker_color, marker_size = 4, customdata = custom_data, mode="markers", legendgroup = metadata, showlegend = True, hovertemplate = hover_template, name=metadata))
+				i += 4
+
+			#update layout
+			umap_discrete_fig.update_layout(xaxis_title_text = "UMAP1", yaxis_title_text = "UMAP2", height=250, title_x=0.5, title_font_size=14, legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_xanchor="center", legend_x=0.5, legend_yanchor="top", legend_y=-0.15, legend_itemsizing="constant", legend_tracegroupgap = 0.05, legend_title_side="top", legend_itemclick=False, legend_itemdoubleclick=False, xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", margin=dict(t=60, b=0, l=10, r=10))
+
+			evidence_body.append(html.Div(dcc.Graph(figure=umap_discrete_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "bacteriome_ibd_violins.png"}}), style={"width": "50%", "display": "inline-block"}))
+		
+		second_markdown = dcc.Markdown(
+			"""
+			In TaMMA, colonic and ileal samples are widely intermixed within the human UMAP suggesting extreme similarity between the two transcriptomes. On the contrary, when the same samples were plotted within the archaeal UMAP two different groups are clearly distinguishable, one mainly including ileal samples, the other including colonic samples. This indicates that the upper gastrointestinal part (ileum) may extensively differ from the terminal intestine in terms of archaeome composition.
+			"""
+		)
+
+		#MA-plot
+
+		for contrasts in [["Colon_CD-vs-Ileum_CD", "Colon_UC-vs-Ileum_UC", "Colon_Control-vs-Ileum_Control"], ["Ileum_CD-vs-Ileum_Control", "Ileum_UC-vs-Ileum_Control"], ["Colon_CD-vs-Ileum_Control", "Colon_UC-vs-Colon_Control"]]:
+			if contrasts == ["Ileum_CD-vs-Ileum_Control", "Ileum_UC-vs-Ileum_Control"]:
+				markdown = """Moreover, differences occur also when the differential arechaeome composition was analyzed among conditions. Specifically, _Nitrosophaerales_, _Haloferacales_, _Natrialbales_, and _Thermococcales_ were among the most abundant archaea orders in CD ileum, whereas the most abundant orders in UC ileum were _Methanococcales_, _Methanobacteriales_, _Methanosarcinales_, _Methanomicrobiales_, evidencing the differences between the two diseases in the ileal part."""
+			elif contrasts == ["Ileum_CD-vs-Ileum_Control", "Ileum_UC-vs-Ileum_Control"]:
+				markdown = """Interestingly, _Thermococcales_ was also found higher in CD colons where it was the sole archaeal order to be statistically significant. Different from CD samples, UC colons feature higher abundance of _Candidatus Nitrosocaldales_ and _Nitrosophaerales_, while also harboring decreased _Methanosarcinales_. Overall, from these novel insights we can conclude that each intestinal tract may display differential abundances of archaea not only featuring the specific gut tract, but also the specific disease conditions."""
+			else:
+				markdown = """TODO"""
+			
+			markdown = dcc.Markdown(markdown)
+			
+			for contrast in contrasts:
+				xaxis_title = "Log2 average abundance"
+				dataset = "archaea_order"
+				gene_or_species = dataset.split("_")[1]
+				expression_or_abundance = gene_or_species + " abundance"
+				gene_or_species = gene_or_species.capitalize()
+
+				table = download_from_github("data/archaea_order/dge/{contrast}.diffexp.tsv".format(contrast=contrast))
+				table = pd.read_csv(table, sep = "\t")
+				table["Gene"] = table["Gene"].fillna("NA")
+				#log2 base mean
+				table["log2_baseMean"] = np.log2(table["baseMean"])
+				#clean gene/species name
+				table["Gene"] = [i.replace("_", " ").replace("[", "").replace("]", "") for i in table["Gene"]]
+
+				#find DEGs
+				fdr = 0.1
+				table.loc[(table["padj"] <= fdr) & (table["log2FoldChange"] > 0), "DEG"] = "Up"
+				table.loc[(table["padj"] <= fdr) & (table["log2FoldChange"] < 0), "DEG"] = "Down"
+				table.loc[table["DEG"].isnull(), "DEG"] = "no_DEG"
+
+				#replace nan values with NA
+				table = table.fillna(value={"padj": "NA"})
+
+				#count DEGs
+				up = table[table["DEG"] == "Up"]
+				up = len(up["Gene"])
+				down = table[table["DEG"] == "Down"]
+				down = len(down["Gene"])
+
+				#colors for discrete sequence
+				colors = ["#636363", "#D7301F", "#045A8D"]
+				#rename column if not human
+				table = table.rename(columns={"Gene": gene_or_species})
+
+				#plot
+				ma_plot_fig = go.Figure()
+				i = 0
+				for deg_status in ["no_DEG", "Up", "Down", "selected_gene"]:
+					filtered_table = table[table["DEG"] == deg_status]
+					custom_data = filtered_table[[gene_or_species, "padj"]]
+					hover_template = "Log2 average expression: %{x}<br>Log2 fold change: %{y}<br>" + gene_or_species + ": %{customdata[0]}<br>Padj: %{customdata[1]}<extra></extra>"
+					ma_plot_fig.add_trace(go.Scattergl(x=filtered_table["log2_baseMean"], y=filtered_table["log2FoldChange"], marker_opacity = 1, marker_color = colors[i], marker_symbol = 2, marker_size = 5, customdata = custom_data, mode="markers", hovertemplate = hover_template))
+					#special marker for selected gene
+					if deg_status == "selected_gene":
+						ma_plot_fig["data"][i]["marker"] = {"color": "#D9D9D9", "size": 9, "symbol": 2, "line": {"color": "#525252", "width": 2}}
+					i += 1
+
+				#title and y = 0 line
+				ma_plot_fig.update_layout(title={"text": "Differential {} FDR<".format(expression_or_abundance) + "{:.0e}".format(fdr) + "<br>" + contrast.replace("_", " ").replace("-", " ").replace("Control", "Control"), "xref": "paper", "x": 0.5, "font_size": 14}, xaxis_automargin=True, xaxis_title=xaxis_title, yaxis_automargin=True, yaxis_title="Log2 fold change", font_family="Arial", height=359, margin=dict(t=50, b=0, l=5, r=130), showlegend = False)
+				#line at y=0
+				ma_plot_fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=0, line=dict(color="black", width=3), xref="paper", layer="below")
+
+				#define annotations
+				up_genes_annotation = [dict(text = str(up) + " higher in<br>" + contrast.split("-vs-")[0].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.98, showarrow=False, font=dict(size=14, color="#DE2D26", family="Arial"))]
+				down_genes_annotation = [dict(text = str(down) + " higher in<br>" + contrast.split("-vs-")[1].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.02, showarrow=False, font=dict(size=14, color="#045A8D", family="Arial"))]
+				show_gene_annotaton = [dict(text = "Show gene stats", align="center", xref="paper", yref="paper", x=1.4, y=1, showarrow=False, font_size=12)]
+				#selected_gene_annotation = [dict(x=ma_plot_fig["data"][3]["x"][0], y=ma_plot_fig["data"][3]["y"][0], xref="x", yref="y", text=ma_plot_fig["data"][3]["customdata"][0][0] + "<br>Log2 avg expr: " +  str(round(selected_gene_log2_base_mean, 1)) + "<br>Log2 FC: " +  str(round(selected_gene_log2fc, 1)) + "<br>FDR: " + selected_gene_fdr, showarrow=True, font=dict(family="Arial", size=12, color="#252525"), align="center", arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="#525252", ax=50, ay=50, bordercolor="#525252", borderwidth=2, borderpad=4, bgcolor="#D9D9D9", opacity=0.9)]
+
+				#add default annotations
+				ma_plot_fig["layout"]["annotations"] = up_genes_annotation + down_genes_annotation + show_gene_annotaton #+ selected_gene_annotation
+
+				#config
+				config_ma_plot = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 450, "height": 350, "scale": 5}, "plotGlPixelRatio": 5000}
+				config_ma_plot["toImageButtonOptions"]["filename"] = "TaMMA_maplot_with_{contrast}".format(contrast = contrast)
+
+	else:
+		hidden = True
+
+	#append cards to div
+	div_children = html.Div([
+		card("New evidence from TaMMA", evidence_body),
 		html.Br()
 	])
 
