@@ -3452,31 +3452,268 @@ def populate_evidence_old(validation):
 		#markdown
 		literature_markdown = dcc.Markdown(
 			"""
-			Recent experimental evidence indeed implicates a crucial function of epithelial  barrier dysfunctions in the onset and perpetuation of IBD. This is reflected by increased barrier permeability due to the loss of expression of tight junctions, and alterations in the mucins-formed mucus layer acting as a protective film on the epithelial barrier. ((Martini et al., 2017)[https://pubmed.ncbi.nlm.nih.gov/28560287/]; (Schulz-Kuhnt et al., 2021)[https://www.frontiersin.org/articles/10.3389/fmed.2021.656745/full]).
-			It is widely accepted and well described that IBD pathogenesis is featured by increased angiogenesis ((Danese, 2011)[https://pubmed.ncbi.nlm.nih.gov/21212253/]; (Alkim et al., 2015)[https://www.hindawi.com/journals/iji/2015/970890/]).
+			Recent experimental evidence indeed implicates a crucial function of epithelial  barrier dysfunctions in the onset and perpetuation of IBD. This is reflected by increased barrier permeability due to the loss of expression of tight junctions, and alterations in the mucins-formed mucus layer acting as a protective film on the epithelial barrier. ([Martini et al., 2017](https://pubmed.ncbi.nlm.nih.gov/28560287/); [Schulz-Kuhnt et al., 2021](https://www.frontiersin.org/articles/10.3389/fmed.2021.656745/full)).
+			It is widely accepted and well described that IBD pathogenesis is featured by increased angiogenesis ([Danese, 2011](https://pubmed.ncbi.nlm.nih.gov/21212253/); [Alkim et al., 2015](https://www.hindawi.com/journals/iji/2015/970890/)).
 			"""
 		)
 
-		literature_markdown = dcc.Markdown(
+		tamma_markdown = dcc.Markdown(
 			"""
-			Coming soon ...
+			In TaMMA, these biological processes are clearly dysregulated in both UC and CD colon versus control colon, as well as in CD ileum versus control ileum.
 			"""
 		)
+		
+		go_plot_fig = go.Figure()
+		contrasts = ["Colon_UC-vs-Colon_Control", "Colon_CD-vs-Colon_Control", "Ileum_CD-vs-Ileum_Control"]
+		search_value = "epithelial endothelial"
+		contrasts_for_titles = [contrast.replace("_", " ").replace("-", " ") for contrast in contrasts]
+		#create subplots
+		specs = []
+		titles = []
+		i = 1
+		for contrast in contrasts_for_titles:
+			specs.append([None, {}])
+			titles.append(contrast)
+			i += 1
+		specs.append([{}, {}])
+		titles.extend(["GO p-value", "Enrichment"])
+		row_heights = [0.3, 0.25, 0.2, 0.25]
+		fig_height = 1100
+		colorbar_x = 0.15
+		colorbar_y = 0.09
+		colorbar_len = 150
+		go_plot_fig = make_subplots(rows=i, cols=2, specs=specs, horizontal_spacing=0.3, row_heights=row_heights, subplot_titles=titles)
+		
+		#function used in the loop
 
-		#append to body
+		#function to select top GO categories
+		def select_go_categories(df):
+			#sort by pvalue
+			df = df.sort_values(by=["GO p-value"])
+			#take top ten
+			df = df.head(15)
+			#sort by enrichment
+			df = df.sort_values(by=["Enrichment"])
+
+			return df
+
+		#function for hover text
+		def create_hover_text(df):
+			hover_text = []
+			for index, row in df.iterrows():
+				hover_text.append(('DGE: {dge}<br>' + 'Process: {process}<br>' + 'Enrichment: {enrichment}<br>' + 'GO p-value: {pvalue}').format(dge=row["DGE"], process=row['Process'], enrichment=row['Enrichment'], pvalue=row['GO p-value']))
+
+			return hover_text
+
+		#plots
+		all_enrichments = []
+		working_row = 1
+		working_col = 1
+		for contrast in contrasts:
+			#open df
+			go_df = download_from_github("data/human/padj_1e-10/" + contrast + ".merged_go.tsv")
+			go_df = pd.read_csv(go_df, sep = "\t")
+			#filter out useless columns
+			go_df = go_df[["DGE", "Process~name", "P-value", "percentage%"]]
+			#remove duplicate GO categories for up and down
+			go_df.drop_duplicates(subset ="Process~name", keep = False, inplace = True)
+			go_df["go_id"] = [go_id.split("~")[0] for go_id in go_df["Process~name"]]
+			#filter go_categories
+			processes_to_keep = serach_go(search_value, go_df)
+			#filtering
+			go_df = go_df[go_df["Process~name"].isin(processes_to_keep)]
+			#rename columns
+			go_df = go_df.rename(columns={"Process~name": "Process", "percentage%": "Enrichment", "P-value": "GO p-value"})
+			#crop too long process name
+			processes = []
+			for process in go_df["Process"]:
+				if len(process) > 80:
+					process = process[0:79] + " ..."
+				processes.append(process)
+			go_df["Process"] = processes
+			
+			#divide up and down GO categories
+			go_df_up = go_df[go_df["DGE"] == "up"]
+			go_df_down = go_df[go_df["DGE"] == "down"]
+
+			#find out max enrichment for this dataset (will be used for legend size)
+			all_enrichments.extend(go_df_up["Enrichment"].tolist())
+			all_enrichments.extend(go_df_down["Enrichment"].tolist())
+
+			#apply function
+			go_df_up = select_go_categories(go_df_up)
+			go_df_down = select_go_categories(go_df_down)
+
+			#up trace
+			hover_text = create_hover_text(go_df_up)
+			go_plot_fig.add_trace(go.Scatter(x=go_df_up["DGE"], y=go_df_up["Process"], marker_size=go_df_up["Enrichment"], marker_opacity = 1, marker_color = go_df_up["GO p-value"], marker_colorscale=["#D7301F", "#FCBBA1"], marker_showscale=False, marker_cmax=0.05, marker_cmin=0, mode="markers", hovertext = hover_text, hoverinfo = "text", marker_sizeref = 4.081632653061225), row = working_row, col = 2)
+			#down trace
+			hover_text = create_hover_text(go_df_down)
+			go_plot_fig.add_trace(go.Scatter(x=go_df_down["DGE"], y=go_df_down["Process"], marker_size=go_df_down["Enrichment"], marker_opacity = 1, marker_color = go_df_down["GO p-value"], marker_colorscale=["#045A8D", "#C6DBEF"], marker_showscale=False, marker_cmax=0.05, marker_cmin=0, mode="markers", hovertext = hover_text, hoverinfo = "text", marker_sizeref = 4.081632653061225), row = working_row, col = 2)
+
+			#increase col and row counts
+			working_col += 1
+			if working_col == 2:
+				working_col = 1
+				working_row += 1
+
+		#colorbar trace
+		go_plot_fig.add_trace(go.Scatter(x = [None], y = [None], marker_showscale=True, marker_color = [0], marker_colorscale=["#737373", "#D9D9D9"], marker_cmax=0.05, marker_cmin=0, marker_colorbar = dict(thicknessmode="pixels", thickness=20, lenmode="pixels", len=colorbar_len, y=colorbar_y, x=colorbar_x)), row = i, col = 1)
+
+		#enrichment size legend trace
+		legend_sizes = [round(min(all_enrichments)), round(np.average([max(all_enrichments), min(all_enrichments)])), round(max(all_enrichments))]
+		sizeref = 2. * max(all_enrichments)/(7 ** 2)
+		go_plot_fig.add_trace(go.Scatter(x = [1, 1, 1], y = [10, 45, 80], marker_size = legend_sizes, marker_sizeref = sizeref, marker_color = "#737373", mode="markers+text", text=["min", "mid", "max"], hoverinfo="text", hovertext=legend_sizes, textposition="top center"), row = i, col = 2)
+		go_plot_fig.update_traces(showlegend=False)
+		
+		#hide axes of legends
+		go_plot_fig["layout"]["xaxis" + str(i)]["visible"] = False
+		go_plot_fig["layout"]["yaxis" + str(i)]["visible"] = False
+		go_plot_fig["layout"]["xaxis" + str(i + 1)]["visible"] = False
+		go_plot_fig["layout"]["yaxis" + str(i + 1)]["visible"] = False
+		#fixed range for enrichment legend
+		go_plot_fig["layout"]["yaxis" + str(i + 1)]["range"] = [0, 100]
+
+		#no zoom
+		go_plot_fig["layout"]["xaxis" + str(i)]["fixedrange"] = True
+		go_plot_fig["layout"]["yaxis" + str(i)]["fixedrange"] = True
+		go_plot_fig["layout"]["xaxis" + str(i + 1)]["fixedrange"] = True
+		go_plot_fig["layout"]["yaxis" + str(i + 1)]["fixedrange"] = True
+
+		#all other traces
+		for j in range(1, i):
+			if j == 1:
+				j = ""
+			#no linecolors
+			go_plot_fig["layout"]["xaxis" + str(j)]["linecolor"] = "rgb(255,255,255)"
+			go_plot_fig["layout"]["yaxis" + str(j)]["linecolor"] = "rgb(255,255,255)"
+			#no zoom
+			go_plot_fig["layout"]["xaxis" + str(j)]["fixedrange"] = True
+			go_plot_fig["layout"]["yaxis" + str(j)]["fixedrange"] = True
+
+		go_plot_fig.update_layout(height=fig_height, font_family="Arial", margin=dict(t=50, r=50, b=10))
+		#go_plot_fig["layout"]["paper_bgcolor"] = "#FDE0DD"
+		
+		#populate html components
 		literature_body.append(literature_markdown)
-		tamma_body.append(literature_markdown)
-
+		tamma_body.append(tamma_markdown)
+		tamma_body.append(dcc.Graph(figure=go_plot_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "epithelium_proangiogenic_factors_ibd_go.png"}}))
 	elif validation == "mirnas_ibd":
 		literature_markdown = dcc.Markdown(
 			"""
-			Coming soon ...
+			Network analysis of IBD-related gene-miRNA interactions highlighted miRNAs associated with various biological functions such as cell proliferation, cell cycle, stem cell biology, metabolism, and migration, progression, and chemoresistance ([Altaf-Ul-Amin et al., 2020](https://bmcmedgenomics.biomedcentral.com/articles/10.1186/s12920-020-0660-y)). These were _let-7a_, _let-7b_, _let-7c_, _let-7d_, _let-7e_, _let-7f_, _let-7g_, _let-7i_, and _miR-98_.
 			"""
 		)
 
+		tamma_markdown = dcc.Markdown(
+			"""
+			To strengthen this evidence and help prioritizing future studies aiming at the investigation of this aspect, the expression profiles of these miRNAs has been plotted for comparison. Of note, some of these miRNAs display high expression levels and clear dysregulations that can be associated with a specific condition and would therefore deserve more attention.
+			"""
+		)
+
+		#create figure
+		box_fig = go.Figure()
+		selected_genes_species = ["MIRLET7A1", "MIRLET7A2", "MIRLET7BHG", "MIRLET7C", "MIRLET7D", "MIRLET7DHG", "MIRLET7E", "MIRLET7F1", "MIRLET7F2", "MIRLET7G", "MIRLET7I", "MIR98"]
+		#define number of rows
+		if (len(selected_genes_species) % 2) == 0:
+			n_rows = len(selected_genes_species)/2
+		else:
+			n_rows = int(len(selected_genes_species)/2) + 1
+		n_rows = int(n_rows)
+
+		#vertical spacing and legend positioning
+		vertical_spacing = 0.04
+		legend_y = 1.035
+
+		#define specs for subplot
+		specs = []
+		for i in range(0, n_rows):
+			specs.append([{}, {}])
+		#in case of odd number of selected elements, the last plot in grid is None
+		if (len(selected_genes_species) % 2) != 0:
+			specs[-1][-1] = None
+
+		#make subplots
+		expression_dataset = "human"
+		if expression_dataset == "human":
+			expression_or_abundance = "expression"
+		else:
+			expression_or_abundance = "abundance"
+		box_fig = make_subplots(rows=n_rows, cols=2, specs=specs, subplot_titles=[gene.replace("[", "").replace("]", "").replace("_", " ") for gene in selected_genes_species], shared_xaxes=True, vertical_spacing=vertical_spacing, y_title="Log2 {}".format(expression_or_abundance))
+		
+		#open metadata
+		metadata_df_original = download_from_github("metadata.tsv")
+		metadata_df_original = pd.read_csv(metadata_df_original, sep = "\t")
+
+		#parameters for group by switch
+		grouped_boxplots = True
+		metadata_field = "group"
+		tissues = metadata_df_original[metadata_field].unique().tolist()
+		x = "tissue"
+		boxmode = "group"
+		showlegend=True
+		margin_t = 110
+
+		#loop 1 plot per gene
+		working_row = 1
+		working_col = 1
+		for gene in selected_genes_species:
+			#open counts
+			counts = download_from_github("data/" + expression_dataset + "/counts/" + gene + ".tsv")
+			counts = pd.read_csv(counts, sep = "\t")
+			#merge and compute log2 and replace inf with 0
+			metadata_df = metadata_df_original.merge(counts, how="left", on="sample")
+			metadata_df["Log2 counts"] = np.log2(metadata_df["counts"])
+			metadata_df["Log2 counts"].replace(to_replace = -np.inf, value = 0, inplace=True)
+			#clean metadata field column
+			metadata_df[metadata_field] = [i.replace("_", " ") for i in metadata_df[metadata_field]]
+			metadata_df[x] = [i.replace("_", " ") for i in metadata_df[x]]
+
+			#plot
+			metadata_fields_ordered = metadata_df[metadata_field].unique().tolist()
+			metadata_fields_ordered.sort()
+			i = 0
+			for metadata in metadata_fields_ordered:
+				filtered_metadata = metadata_df[metadata_df[metadata_field] == metadata]
+				hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library prep strategy: " + filtered_metadata["Library prep strategy"]
+				box_fig.add_trace(go.Box(x=filtered_metadata[x], y=filtered_metadata["Log2 counts"], name=metadata, marker_color=colors[i], boxpoints="all", hovertext=hovertext_labels, hoverinfo="y+text", legendgroup=metadata, showlegend=showlegend, offsetgroup=metadata), row=int(working_row), col=working_col)
+				i += 1
+
+			#just one legend for trece showed is enough
+			if showlegend is True:
+				showlegend = False
+
+			#row and column count
+			working_row += 0.5
+			if working_col == 1:
+				working_col = 2
+			elif working_col == 2:
+				working_col = 1
+
+		#update all traces markers
+		box_fig.update_traces(marker_size=4)
+		#compute height
+		if n_rows == 1:
+			height_fig = 450
+		else:
+			height_fig = n_rows*300
+		#add title and set height
+		if grouped_boxplots is True:
+			metadata_field = "tissue"
+			extra_text = ", colored by group"
+		else:
+			extra_text = ""
+		if expression_dataset == "human":
+			title_text = "Host gene expression profiles per " + metadata_field.replace("_", " ")
+		else:
+			title_text = "{} abundance profiles per ".format(expression_dataset.replace("_", " ").replace("viruses", "viral").capitalize()) + metadata_field.replace("_", " ")
+		#update layout
+		box_fig.update_layout(height=height_fig, title = {"text": title_text + extra_text, "x": 0.5, "y": 0.98, "font_size": 14}, font_family="Arial", margin_r=10, boxmode=boxmode, legend_orientation="h", legend_y=legend_y, legend_xanchor="center", legend_x=0.47, margin_t=margin_t)
+		
 		#append to body
 		literature_body.append(literature_markdown)
-		tamma_body.append(literature_markdown)
+		tamma_body.append(tamma_markdown)
+		tamma_body.append(dcc.Graph(figure=box_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "epithelium_proangiogenic_factors_ibd_go.png"}}))
 	else:
 		hidden = True
 
