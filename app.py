@@ -33,9 +33,9 @@ def download_from_github(file_url):
 pio.templates.default = "simple_white"
 
 #palette
-colors = ["#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C", "#FDBF6F", "#FF7F00", "#CAB2D6", "#6A3D9A", "#B15928", "#8DD3C7", "#BEBADA", "#FB8072", "#80B1D3", "#FDB462", "#B3DE69", "#FCCDE5", "#D9D9D9", "#BC80BD", "#CCEBC5", "#FFED6F", "#5A5156", "#F6222E", "#3283FE", "#FEAF16", "#B00068", "#90AD1C", "#DEA0FD", "#F8A19F", "#325A9B", "#C4451C", "#1C8356", "#85660D", "#B10DA1", "#FBE426", "#1CBE4F", "#FA0087", "#F7E1A0", "#C075A6", "#AAF400", "#BDCDFF", "#822E1C", "#B5EFB5", "#7ED7D1", "#1C7F93", "#683B79", "#66B0FF"]
+colors = ["#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C", "#FDBF6F", "#FF7F00", "#CAB2D6", "#6A3D9A", "#B15928", "#8DD3C7", "#BEBADA", "#FB8072", "#80B1D3", "#FDB462", "#B3DE69", "#FCCDE5", "#D9D9D9", "#BC80BD", "#CCEBC5", "#F6222E", "#3283FE","#FFED6F", "#5A5156", "#FEAF16", "#B00068", "#90AD1C", "#DEA0FD", "#F8A19F", "#325A9B", "#C4451C", "#1C8356", "#85660D", "#B10DA1", "#FBE426", "#1CBE4F", "#FA0087", "#F7E1A0", "#C075A6", "#AAF400", "#BDCDFF", "#822E1C", "#B5EFB5", "#7ED7D1", "#1C7F93", "#683B79", "#66B0FF"]
 #
-gender_colors = ["#FA9FB5", "#9ECAE1"]
+gender_colors = {"Female": "#FA9FB5", "Male": "#9ECAE1"}
 #NA color
 na_color = "#E6E6E6"
 
@@ -60,17 +60,15 @@ expression_datasets_options = [{"label": "Human", "value": "human"},
 					{"label": "Viruses by family", "value": "viruses_family"},
 					{"label": "Viruses by species", "value": "viruses_species"}]
 
-metadata_umap_options = [{"label": "Condition", "value": "condition"},
-						{"label": "Group", "value": "group"},
-						{"label": "Tissue", "value": "tissue"},
-						{"label": "Source", "value": "source"},
-						{"label": "Library prep strategy", "value": "Library prep strategy"},
-						{"label": "Age", "value": "age"},
-						{"label": "Age at diagnosis", "value": "age_at_diagnosis"},
-						{"label": "Gender", "value": "gender"},
-						{"label": "Ancestry", "value": "ancestry"},
-						{"label": "Paris classification", "value": "paris_classification"}]
-label_to_value = {"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "Library prep strategy": "Library prep strategy", "condition": "Condition", "age": "Age", "age_at_diagnosis": "Age at diagnosis", "gender": "Gender", "ancestry": "Ancestry", "paris_classification": "Paris classification"}
+#color by dropdown
+metadata_table = download_from_github("metadata.tsv")
+metadata_table = pd.read_csv(metadata_table, sep = "\t")
+metadata_umap_options = []
+label_to_value = {"sample": "Sample"}
+for column in metadata_table.columns:
+	if column not in ["sample", "raw_counts", "kraken2", "control"]:
+		metadata_umap_options.append({"label": column.replace("_", " ").capitalize(), "value": column})
+		label_to_value[column] = column.replace("_", " ").capitalize()
 
 padj_options = [{"label": "0.1", "value": 0.1},
 				{"label": "0.01", "value": 0.01},
@@ -88,7 +86,14 @@ evidence_options = [
 	{"label": "Pro-inflammatory signals in IBD", "value": "pro_inflammatory"},
 	{"label": "Bacteriome overview", "value": "bacteriome_overview"},
 	{"label": "Bacteriome in IBD", "value": "bacteriome_ibd"},
-	{"label": "Virome in IBD", "value": "virome_ibd"}
+	{"label": "Virome in IBD", "value": "virome_ibd"},
+	{"label": "Epithelium-related and proangiogenic factors in IBD", "value": "epithelium_proangiogenic_factors_ibd"},
+	{"label": "miRNAs in IBD", "value": "mirnas_ibd"}
+]
+
+new_evidence_options = [
+	{"label": "Archaeome in IBD", "value": "archaeome_ibd"},
+	{"label": "Mycome in IBD", "value": "mycome_ibd"}
 ]
 
 #snakey
@@ -119,16 +124,26 @@ snakey_fig.update_layout(margin=dict(l=0, r=0, t=20, b=20))
 #metadata table data
 metadata_table = download_from_github("metadata.tsv")
 metadata_table = pd.read_csv(metadata_table, sep = "\t")
-metadata_table = metadata_table[["sample", "group", "tissue", "source", "Library prep strategy", "age", "age_at_diagnosis", "ancestry", "gender", "treatment", "paris_classification"]]
+columns_to_keep = []
+for column in metadata_table.columns:
+	if column not in ["raw_counts", "kraken2", "condition", "control"]:
+		columns_to_keep.append(column)
+metadata_table = metadata_table[columns_to_keep]
 metadata_table["source"] = ["[{}](".format(source.split("_")[0]) + str("https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=") + source.split("_")[0] + ")" for source in metadata_table["source"]]
-metadata_table = metadata_table.rename(columns={"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "Library prep strategy": "Library prep strategy", "age": "Age", "age_at_diagnosis": "Age at diagnosis", "ancestry": "Ancestry", "gender": "Gender", "treatment": "Treatment", "paris_classification": "Paris classification"})
+metadata_table = metadata_table.rename(columns=label_to_value)
+metadata_table_columns = []
+for column in columns_to_keep:
+	if column != "source":
+		metadata_table_columns.append({"name": column.replace("_", " ").capitalize(), "id": column.replace("_", " ").capitalize()})
+	else:
+		metadata_table_columns.append({"name": "Source", "id": "Source", "type": "text", "presentation": "markdown"}),
+
 metadata_table_data = metadata_table.to_dict("records")
 #create a downloadable tsv file forced to excel by extension
 metadata_table = download_from_github("metadata.tsv")
 metadata_table = pd.read_csv(metadata_table, sep = "\t")
-metadata_table = metadata_table[["sample", "group", "tissue", "source", "Library prep strategy", "age", "age_at_diagnosis", "ancestry", "gender", "treatment", "paris_classification"]]
-metadata_table["source"] = [source.split("_")[0] for source in metadata_table["source"]]
-metadata_table = metadata_table.rename(columns={"sample": "Sample", "group": "Group", "tissue": "Tissue", "source": "Source", "Library prep strategy": "Library prep strategy", "age": "Age", "age_at_diagnosis": "Age at diagnosis", "ancestry": "Ancestry", "gender": "Gender", "treatment": "Treatment", "paris_classification": "Paris classification"})
+metadata_table = metadata_table[columns_to_keep]
+metadata_table = metadata_table.rename(columns=label_to_value)
 link = metadata_table.to_csv(index=False, encoding="utf-8", sep="\t")
 link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
 
@@ -215,7 +230,7 @@ app.layout = html.Div([
 								clearable=False,
 								options=expression_datasets_options,
 								value="human"
-				)], style={"width": "13%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
+				)], style={"width": "11%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
 
 				#gene/specie dropdown
 				html.Div([
@@ -232,7 +247,7 @@ app.layout = html.Div([
 								value="All",
 								id="comparison_filter_dropdown",
 								clearable=False,
-				)], style={"width": "11%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
+				)], style={"width": "14%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
 
 				#contrast dropdown
 				html.Label(["Comparison", 
@@ -248,7 +263,7 @@ app.layout = html.Div([
 								id="stringency_dropdown",
 								clearable=False,
 								options=padj_options,
-				)], style={"width": "7%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
+				)], style={"width": "6%", "display": "inline-block", 'margin-left': 'auto', 'margin-right': 'auto', "textAlign": "left"}),
 			], style={"width": "100%", "font-size": "12px", "display": "inline-block"}),
 
 			#legend
@@ -488,7 +503,7 @@ app.layout = html.Div([
 						]
 					),
 				])
-			], style = {"width": "100%", "height": 1000, "display": "inline-block"}),
+			], style = {"width": "100%", "height": 1050, "display": "inline-block"}),
 
 			#multiboxplots
 			html.Div(id="multiboxplot_div", hidden=True, children=[
@@ -573,7 +588,7 @@ app.layout = html.Div([
 							]
 						)
 					], style={"width": "67%", "display": "inline-block", "vertical-align": "middle", "font-size": 11})
-				], style={"width": "25%", "display": "inline-block", "vertical-align": "top"}),
+				], style={"height": 800, "width": "25%", "display": "inline-block", "vertical-align": "top"}),
 
 				#graph
 				html.Div(id="multiboxplot_graph_div", children=[
@@ -587,8 +602,8 @@ app.layout = html.Div([
 						], hidden=True)
 					])
 				], style={"height": 800, "width": "75%", "display": "inline-block"})
-			])
-		]),
+			], style={"width": "100%", "display": "inline-block"})
+		], style={"width": "100%", "display": "inline-block"}),
 
 		#tabs
 		dcc.Tabs(id="site_tabs", value="summary_tab", children=[
@@ -670,19 +685,7 @@ app.layout = html.Div([
 							},
 							style_as_list_view=True,
 							data = metadata_table_data,
-							columns = [
-								{"name": "Sample", "id": "Sample"}, 
-								{"name": "Group", "id": "Group"},
-								{"name": "Tissue", "id": "Tissue"},
-								{"name": "Study", "id": "Source", "type": "text", "presentation": "markdown"},
-								{"name": "Library prep strategy", "id": "Library prep strategy"},
-								{"name": "Age", "id": "Age"},
-								{"name": "Age at diagnosis", "id": "Age at diagnosis"},
-								{"name": "Ancestry", "id": "Ancestry"},
-								{"name": "Gender", "id": "Gender"},
-								{"name": "Treatment", "id": "Treatment"},
-								{"name": "Paris classification", "id": "Paris classification"}
-							]
+							columns = metadata_table_columns
 						)
 					)
 				], style={"width": "100%", "font-family": "arial"}),
@@ -938,10 +941,10 @@ app.layout = html.Div([
 				], style= {"height": 40})
 			], style=tab_style, selected_style=tab_selected_style),
 			#evidence tab 
-			dcc.Tab(label="Old and new evidence", value="evidence_tab", children=[
+			dcc.Tab(label="Insights", value="evidence_tab", children=[
 				dcc.Tabs(id="evidence_tabs", value="old_evidence_tab", children=[
 					#old
-					dcc.Tab(label="Old evidence from literature confirmed by TaMMA", value="old_evidence_tab", children=[
+					dcc.Tab(label="Old evidence from the literature confirmed by TaMMA", value="old_evidence_tab", children=[
 						html.Br(),
 						html.Div([
 							#input section
@@ -977,7 +980,7 @@ app.layout = html.Div([
 							html.Div([
 								html.Br(),
 								#dropdown
-								dcc.Dropdown(id="new_evidence_dropdown", placeholder="Search evidence", options=evidence_options, style={"textAlign": "left", "font-size": "12px"}),
+								dcc.Dropdown(id="new_evidence_dropdown", placeholder="Search evidence", options=new_evidence_options, style={"textAlign": "left", "font-size": "12px"}),
 							], style={"height": 350, "width": "25%", "display": "inline-block", "vertical-align": "top"}),
 
 							#spacer
@@ -1013,7 +1016,8 @@ app.layout = html.Div([
 				html.A("Stefania Vetrano", href="https://www.hunimed.eu/member/stefania-vetrano/", target="_blank"), ", ",
 				html.A("Silvio Danese", href="https://scholar.google.com/citations?hl=en&user=2ia1nGUAAAAJ", target="_blank"), "  -  ",
 				html.A("Manual", href="https://ibd-tamma.readthedocs.io/", target="_blank"), "  -  ",
-				html.A("Report a bug/Suggestions", href="https://github.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data/issues", target="_blank"), "  -  ",
+				html.A("Report a bug", href="https://github.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data/issues", target="_blank"), "  -  ",
+				html.A("Suggestions", href="https://github.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data/issues", target="_blank"), "  -  ",
 				html.A("Data", href="https://github.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data", target="_blank"),  "  -  ",
 				html.A("NGS dark matter", href="https://dataverse.harvard.edu/dataverse/tamma-dark-matter", target="_blank")
 			]),
@@ -1125,15 +1129,15 @@ def dge_table_operations(table, dataset, fdr):
 	return columns, data, style_data_conditional
 
 #palette to use to get color
-def get_palette(metadata, i):
+def get_color(metadata, i):
 	if metadata == "NA":
-		palette = na_color
+		color = na_color
 	elif metadata in ["Female", "Male"]:
-		palette = gender_colors[i]
+		color = gender_colors[metadata]
 	else:
-		palette = colors[i]
+		color = colors[i]
 	
-	return palette
+	return color
 
 ### DOWNLOAD CALLBACKS ###
 
@@ -1467,13 +1471,13 @@ def find_genes_or_species(dataset, selected_point_ma_plot, active_cell_full, act
 
 	return label, options, value, options, placeholder_multiboxplots_dropdown, options, placeholder_multidropdown_dge_table, stringency
 
-#tissue filter callback
+#comparison filter callback
 @app.callback(
 	Output("comparison_filter_dropdown", "options"),
 	Output("comparison_filter_dropdown", "value"),
 	Input("expression_dataset_dropdown", "value")
 )
-def get_tissues_with_2_or_more_conditions(dataset):
+def get_comparison_filter_options(dataset):
 	#get all contrasts for dataset
 	if dataset == "human":
 		tsv = "manual/contrast_list_human.tsv"
@@ -1484,7 +1488,10 @@ def get_tissues_with_2_or_more_conditions(dataset):
 	contrasts = contrasts["comparison"].tolist()
 	
 	#get all tissues and groups for dataset
-	df = download_from_github("data/" + dataset.split("_")[0] + "_species/mds/umap.tsv")
+	if dataset == "human":
+		df = download_from_github("data/human/mds/umap.tsv")
+	else:
+		df = download_from_github("data/" + dataset.split("_")[0] + "_species/mds/umap.tsv")
 	df = pd.read_csv(df, sep = "\t")
 	tissues = df["tissue"].unique().tolist()
 	groups = df["group"].unique().tolist()
@@ -1498,7 +1505,7 @@ def get_tissues_with_2_or_more_conditions(dataset):
 		tissue_1 = re_result.group(1)
 		tissue_2 = re_result.group(3)
 		group_1 = re_result.group(2)
-		group_2 = re_result.group(3)
+		group_2 = re_result.group(4)
 		for tissue in tissues:
 			#check if they are the same
 			if tissue == tissue_1 and tissue == tissue_2:
@@ -1510,10 +1517,10 @@ def get_tissues_with_2_or_more_conditions(dataset):
 					filtered_groups.append(group)
 
 	#define default value and options
-	value = "All"
-	options = [{"label": "All", "value": "All"}]
-	tissues_options = [{"label": "Tissue: " + i.replace("_", " "), "value": i} for i in filtered_tissues]
-	group_options = [{"label": "Group: " + i, "value": i} for i in filtered_tissues]
+	value = "All comparisons"
+	options = [{"label": "All comparisons", "value": "All comparisons"}]
+	tissues_options = [{"label": "Tissue: " + i.replace("_", " "), "value": "tissue_" + i} for i in filtered_tissues]
+	group_options = [{"label": "Group: " + i, "value": "group_" + i} for i in filtered_groups]
 	options.extend(tissues_options)
 	options.extend(group_options)
 
@@ -1529,41 +1536,47 @@ def get_tissues_with_2_or_more_conditions(dataset):
 )
 def filter_contrasts(dataset, filter_element, contrast):
 	#get all contrasts for selected dataset
-	df = download_from_github("manual/contrast_list_{}.tsv".format(dataset))
+	if dataset == "human":
+		df = download_from_github("manual/contrast_list_human.tsv")
+	else:
+		df = download_from_github("manual/contrast_list_meta.tsv")
 	df = pd.read_csv(df, sep = "\t")
 
 	#if all, then do not filter
-	if filter_element == "All":
+	if filter_element == "All comparisons":
 		contrasts = df["comparison"].unique().tolist()
 		filtered_contrasts = contrasts
 	else:
 		filtered_contrasts = []
 		#define where to find the info in the contrast and which category to use to filter the df
-		if "Tissue" in filter_element:
+		if "tissue" in filter_element:
 			result_number_1 = 1
 			result_number_2 = 3
 			filtering_value = "same_tissue"
-		elif "Group" in filter_element:
+		elif "group" in filter_element:
 			result_number_1 = 2
 			result_number_2 = 4
 			filtering_value = "same_group"
 		#filter df and define contrast to serch
-		df = df.loc[filtering_value, "category"]
+		df = df[df["category"] == filtering_value]
 		contrasts = df["comparison"].unique().tolist()
+		filter_element = filter_element.replace("tissue_", "").replace("group_", "")
 		for contrast in contrasts:
 			#define the two items to comapre in the contrast
 			re_result = re.search(r"(\w+)_(\w+)-vs-(\w+)_(\w+)", contrast)
 			result_1 = re_result.group(result_number_1)
 			result_2 = re_result.group(result_number_2)
-			#check if they are the same
 			if filter_element == result_1 and filter_element == result_2:
 				filtered_contrasts.append(contrast)
 
 	#define contrast_value
-	if contrast in filtered_contrasts:
-		contrast_value = contrast
+	if filter_element == "All comparisons" and dataset == "human":
+		contrast_value = "Ileum_CD-vs-Ileum_Control"
 	else:
-		contrast_value = filtered_contrasts[0]
+		if "Ileum_CD-vs-Ileum_Control" in filtered_contrasts:
+			contrast_value = "Ileum_CD-vs-Ileum_Control"
+		else:
+			contrast_value = filtered_contrasts[0]
 	contrasts = [{"label": i.replace("_", " ").replace("-", " "), "value": i} for i in filtered_contrasts]
 
 	return contrasts, contrast_value
@@ -1607,7 +1620,7 @@ def abilitate_switch(metadata):
 	Output("tissue_checkboxes", "value"),
 	Input("group_by_group_boxplots_switch", "on")
 )
-def show_checkboxes(on):
+def show_checkboxes_boxplots(on):
 	value = tissues
 	return not on, value
 
@@ -1617,7 +1630,7 @@ def show_checkboxes(on):
 	Output("tissue_checkboxes_multiboxplots", "value"),
 	Input("group_by_group_multiboxplots_switch", "on")
 )
-def show_checkboxes(on):
+def show_checkboxes_multiboxplots(on):
 	value = tissues
 	return not on, value
 
@@ -1791,7 +1804,7 @@ def show_video(search_value, close_button):
 	Input("contrast_only_switch", "on"),
 	Input("contrast_dropdown", "value"),
 	Input("update_legend_button", "n_clicks"),
-	State("umap_dataset_dropdown", "value"),
+	Input("umap_dataset_dropdown", "value"),
 	State("legend", "figure")
 )
 def legend(selected_metadata, contrast_switch, contrast, update_legend, dataset, legend_fig):
@@ -1802,39 +1815,47 @@ def legend(selected_metadata, contrast_switch, contrast, update_legend, dataset,
 	#function to create legend_fig from tsv
 	def rebuild_legend_fig_from_tsv(dataset, selected_metadata):
 		#open tsv
-		umap_df = download_from_github("data/" + dataset.split("_")[0] + "_species/mds/umap.tsv")
-		umap_df = pd.read_csv(umap_df, sep = "\t")
-		umap_df["UMAP1"] = None
-		umap_df["UMAP2"] = None
+		if dataset == "human":
+			metadata = download_from_github("data/" + dataset + "/mds/umap.tsv")
+		else:
+			metadata = download_from_github("data/" + dataset + "_species/mds/umap.tsv")
+		metadata = pd.read_csv(metadata, sep = "\t")
 
 		#prepare df
-		umap_df = umap_df.sort_values(by=[selected_metadata])
-		#clean discrete variables
-		if selected_metadata not in ["age", "age_at_diagnosis"]:
-			umap_df[selected_metadata] = umap_df[selected_metadata].fillna("NA")
-			umap_df[selected_metadata] = [i.replace("_", " ") for i in umap_df[selected_metadata]]
+		if str(metadata.dtypes[selected_metadata]) == "object":
+			metadata[selected_metadata] = metadata[selected_metadata].fillna("NA")
+			metadata[selected_metadata] = [i.replace("_", " ") for i in metadata[selected_metadata]]
+		metadata = metadata.sort_values(by=[selected_metadata])
 		#rename columns
-		umap_df = umap_df.rename(columns=label_to_value)
+		metadata = metadata.rename(columns=label_to_value)
+		metadata = metadata.replace("_", " ", regex=True)
+		#mock column for plot
+		metadata["mock_column"] = None
 
 		#create figure
 		legend_fig = go.Figure()
-		if selected_metadata not in ["age", "age_at_diagnosis"]:
+		#discrete variables
+		if str(metadata.dtypes[label_to_value[selected_metadata]]) == "object":
 			i = 0
-			metadata_fields_ordered = umap_df[label_to_value[selected_metadata]].unique().tolist()
+			metadata[selected_metadata] = metadata[label_to_value[selected_metadata]].str.replace("_", " ")
+			metadata_fields_ordered = metadata[label_to_value[selected_metadata]].unique().tolist()
 			metadata_fields_ordered.sort()
-			for metadata in metadata_fields_ordered:
-				filtered_umap_df = umap_df[umap_df[label_to_value[selected_metadata]] == metadata]
-				marker_color = get_palette(metadata, i)
-				legend_fig.add_trace(go.Scatter(x=filtered_umap_df["UMAP1"], y=filtered_umap_df["UMAP2"], marker_color = marker_color, marker_size = 4, mode="markers", legendgroup = metadata, showlegend = True, name=metadata))
+			#move NA as fisrt element so that its trace will be behind the others
+			if "NA" in metadata_fields_ordered:
+				old_index = metadata_fields_ordered.index("NA")
+				metadata_fields_ordered.insert(0, metadata_fields_ordered.pop(old_index))
+			for metadata_field in metadata_fields_ordered:
+				marker_color = get_color(metadata_field, i)
+				legend_fig.add_trace(go.Scatter(x=metadata["mock_column"], y=metadata["mock_column"], marker_color=marker_color, marker_size=4, mode="markers", legendgroup=metadata_field, showlegend=True, name=metadata_field))
 				i += 1
 			
 			#update layout
 			legend_fig.update_layout(legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_itemsizing="constant", legend_tracegroupgap = 0.05, legend_title_side="top", xaxis_visible=False, yaxis_visible=False, margin_t=0, margin_b=340, height=300, width=1150, legend_font_family="Arial")
-		#heatmap as colorbar
+		#continue variables, heatmap as colorbar
 		else:
-			umap_df = umap_df.dropna(subset=[label_to_value[selected_metadata]])
-			umap_df[label_to_value[selected_metadata]] = umap_df[label_to_value[selected_metadata]].astype(int)
-			z = list(range(umap_df[label_to_value[selected_metadata]].min(), umap_df[label_to_value[selected_metadata]].max() + 1))
+			metadata = metadata.dropna(subset=[label_to_value[selected_metadata]])
+			metadata[label_to_value[selected_metadata]] = metadata[label_to_value[selected_metadata]].astype(int)
+			z = list(range(metadata[label_to_value[selected_metadata]].min(), metadata[label_to_value[selected_metadata]].max() + 1))
 			legend_fig.add_trace(go.Heatmap(z=[z], y=[label_to_value[selected_metadata]], colorscale="blues", hovertemplate="%{z}<extra></extra>", hoverlabel_bgcolor="lightgrey", zsmooth="best"))
 			legend_fig.update_traces(showscale=False)
 			legend_fig.update_layout(height=300, width=600, margin_b=220, margin_t=50, margin_l=150, xaxis_linecolor="#9EA0A2", yaxis_linecolor="#9EA0A2", yaxis_ticks="", xaxis_fixedrange=True, yaxis_fixedrange=True, xaxis_mirror=True, yaxis_mirror=True, legend_font_family="Arial")
@@ -1845,14 +1866,26 @@ def legend(selected_metadata, contrast_switch, contrast, update_legend, dataset,
 		return legend_fig
 
 	#change in metadata always means to update all the legend
-	if trigger_id == "metadata_dropdown.value" or legend_fig is None:
+	if trigger_id in ["metadata_dropdown.value", "umap_dataset_dropdown.value"] or legend_fig is None:
 		#if contrast only is true and you change metadata then it have to be set as false
 		if selected_metadata != "condition" and contrast_switch is True:
 			contrast_switch = False
 		legend_fig = rebuild_legend_fig_from_tsv(dataset, selected_metadata)
-		#all traces are visible
-		for trace in legend_fig["data"]:
-			trace["visible"] = True
+		
+		#trace visibility
+		if contrast_switch is False:
+			#all traces are visible
+			for trace in legend_fig["data"]:
+				trace["visible"] = True
+		else:
+			condition_1 = contrast.split("-vs-")[0].replace("_", " ")
+			condition_2 = contrast.split("-vs-")[1].replace("_", " ")
+			#setup "visible" only for the two conditions in contrast
+			for trace in legend_fig["data"]:
+				if trace["name"] in [condition_1, condition_2]:
+					trace["visible"] = True
+				else:
+					trace["visible"] = "legendonly"
 	else:
 		#false contrast switch
 		if contrast_switch is False:
@@ -1918,6 +1951,8 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 	ctx = dash.callback_context
 	trigger_id = ctx.triggered[0]["prop_id"]
 	div_height = 535
+	metadata_df = download_from_github("metadata.tsv")
+	metadata_df = pd.read_csv(metadata_df, sep = "\t")
 
 	#function for zoom synchronization
 	def synchronize_zoom(umap_to_update, reference_umap):
@@ -1938,20 +1973,38 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 		umap_df = pd.read_csv(umap_df, sep = "\t")
 
 		#prepare df
+		umap_df = umap_df[["sample", "UMAP1", "UMAP2"]]
+		metadata = download_from_github("metadata.tsv")
+		metadata = pd.read_csv(metadata, sep = "\t")
+		umap_df = pd.merge(umap_df, metadata, how="left", on="sample")
 		umap_df = umap_df.sort_values(by=[selected_metadata])
 		umap_df[selected_metadata] = umap_df[selected_metadata].fillna("NA")
 		umap_df[selected_metadata] = [i.replace("_", " ") for i in umap_df[selected_metadata]]
 		umap_df = umap_df.rename(columns=label_to_value)
 
 		#plot
-		i = 0
 		metadata_fields_ordered = umap_df[label_to_value[selected_metadata]].unique().tolist()
 		metadata_fields_ordered.sort()
-		hover_template = "Sample: %{{customdata[0]}}<br>Group: %{{customdata[1]}}<br>{}: %{{customdata[2]}}<br>Source: %{{customdata[3]}}<br>Library prep strategy: %{{customdata[4]}}<extra></extra>".format(label_to_value[selected_metadata])
+		#move NA as fisrt element so that its trace will be behind the others
+		if "NA" in metadata_fields_ordered:
+			old_index = metadata_fields_ordered.index("NA")
+			metadata_fields_ordered.insert(0, metadata_fields_ordered.pop(old_index))
+		#hover template
+		hover_template = ""
+		i = 0
+		columns_to_keep = []
+		for column in umap_df.columns:
+			if column not in ["UMAP1", "UMAP2", "raw_counts", "kraken2", "control"]:
+				columns_to_keep.append(column)
+				hover_template += "{key}: %{{customdata[{i}]}}<br>".format(key=column.replace("_", " ").capitalize(), i=i)
+				i += 1
+		hover_template += "<extra></extra>"
+		i = 0
 		for metadata in metadata_fields_ordered:
 			filtered_umap_df = umap_df[umap_df[label_to_value[selected_metadata]] == metadata]
-			custom_data = filtered_umap_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library prep strategy"]]
-			marker_color = get_palette(metadata, i)
+			custom_data = filtered_umap_df[columns_to_keep]
+			custom_data = custom_data.replace(np.nan, "NA")
+			marker_color = get_color(metadata, i)
 			umap_discrete_fig.add_trace(go.Scatter(x=filtered_umap_df["UMAP1"], y=filtered_umap_df["UMAP2"], marker_opacity = 1, marker_color = marker_color, marker_size = 4, customdata = custom_data, mode="markers", legendgroup = metadata, showlegend = show_legend_switch, hovertemplate = hover_template, name=metadata))
 			i += 1
 
@@ -1964,25 +2017,26 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 
 	#function for creating a continuous colored umap from tsv file
 	def plot_umap_continuous(umap_dataset, expression_dataset, gene_species, samples_to_keep, selected_metadata, colorscale, umap_category, umap_continuous_fig):	
-		#get umap df
-		umap_df = download_from_github("data/" + umap_dataset + "_species/mds/umap.tsv")
+		#open tsv
+		if umap_dataset == "human":
+			umap_df = download_from_github("data/" + umap_dataset + "/mds/umap.tsv")
+		else:
+			umap_df = download_from_github("data/" + umap_dataset + "_species/mds/umap.tsv")
 		umap_df = pd.read_csv(umap_df, sep = "\t")
-		umap_df = umap_df.rename(columns=label_to_value)
 
 		#expression continuous umap will have counts
 		if umap_category == "expression":
 			continuous_variable_to_plot = "Log2 expression"
 
 			#filter samples that are not visible
-			umap_df = umap_df[umap_df["Sample"].isin(samples_to_keep)]
+			umap_df = umap_df[umap_df["sample"].isin(samples_to_keep)]
 
 			#download counts
 			counts = download_from_github("data/" + expression_dataset + "/counts/" + gene_species + ".tsv")
 			counts = pd.read_csv(counts, sep = "\t")
-			counts = counts.rename(columns={"sample": "Sample"})
 
 			#add counts to umap df
-			umap_df = umap_df.merge(counts, how="outer", on="Sample")
+			umap_df = umap_df.merge(counts, how="outer", on="sample")
 
 			#add log2 counts column to df
 			umap_df["Log2 expression"] = np.log2(umap_df["counts"])
@@ -1994,27 +2048,44 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 				expression_or_abundance = " abundance"
 			#plot parameters
 			colorbar_title = "Log2 {}".format(expression_or_abundance)
-			hover_template = "Sample: %{customdata[0]}<br>Group: %{customdata[1]}<br>Source: %{customdata[3]}<br>Library prep strategy: %{customdata[4]}<br>Log2 expression: %{marker.color}<extra></extra>"
 		#metadata continuous umap will use the metadata without counts
 		elif umap_category == "metadata":
+			umap_df = umap_df[["sample", "UMAP1", "UMAP2"]]
+			metadata_df = download_from_github("metadata.tsv")
+			metadata_df = pd.read_csv(metadata_df, sep = "\t")
+			umap_df = pd.merge(umap_df, metadata_df, how="left", on="sample")
 			continuous_variable_to_plot = label_to_value[selected_metadata]
 			colorbar_title = label_to_value[selected_metadata]
-			hover_template = "Sample: %{{customdata[0]}}<br>Group: %{{customdata[1]}}<br>{}: %{{customdata[2]}}<br>Source: %{{customdata[3]}}<br>Library prep strategy: %{{customdata[4]}}<extra></extra>".format(label_to_value[selected_metadata])
-		
-		#fill nan with NA and remove Pfizer and UCB from source names
+
+		#rename columns
+		umap_df = umap_df.rename(columns=label_to_value)
+
+		#hovertemplate
+		hover_template = ""
+		i = 0
+		columns_to_keep = []
+		for column in umap_df.columns:
+			if column not in ["UMAP1", "UMAP2", "raw_counts", "kraken2", "control", "counts"]:
+				columns_to_keep.append(column)
+				hover_template += "{key}: %{{customdata[{i}]}}<br>".format(key=column.replace("_", " ").capitalize(), i=i)
+				i += 1
+		hover_template += "<extra></extra>"
+
+		#fill nan with NA
 		umap_df[continuous_variable_to_plot] = umap_df[continuous_variable_to_plot].fillna("NA")
-		umap_df["Source"] = umap_df["Source"].str.replace("_UCB", "").str.replace("_Pfizer", "")
 		
 		#select only NA values
 		na_df = umap_df.loc[umap_df[continuous_variable_to_plot] == "NA"]
-		custom_data = na_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library prep strategy"]]
+		custom_data = na_df[columns_to_keep]
+		custom_data = custom_data.replace(np.nan, "NA")
 		
 		#add discrete trace for NA values
-		umap_continuous_fig.add_trace(go.Scatter(x=na_df["UMAP1"], y=na_df["UMAP2"], marker_color=na_color, marker_size=4, customdata=custom_data, mode="markers", showlegend=False, hovertemplate=hover_template, name=metadata, visible=True))
+		umap_continuous_fig.add_trace(go.Scatter(x=na_df["UMAP1"], y=na_df["UMAP2"], marker_color=na_color, marker_size=4, customdata=custom_data, mode="markers", showlegend=False, hovertemplate=hover_template, visible=True))
 		
 		#select only not NA
 		umap_df = umap_df.loc[umap_df[continuous_variable_to_plot] != "NA"]
-		custom_data = umap_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library prep strategy"]]
+		custom_data = umap_df[columns_to_keep]
+		custom_data = custom_data.replace(np.nan, "NA")
 		marker_color = umap_df[continuous_variable_to_plot]
 		#add continuous trace
 		umap_continuous_fig.add_trace(go.Scatter(x=umap_df["UMAP1"], y=umap_df["UMAP2"], marker_color=marker_color, marker_colorscale=colorscale, marker_showscale=True, marker_opacity=1, marker_size=4, marker_colorbar_title=colorbar_title, marker_colorbar_title_side="right", marker_colorbar_title_font_size=14, mode="markers", customdata=custom_data, hovertemplate=hover_template, showlegend=False, visible=True))
@@ -2055,11 +2126,11 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 
 		#create figure from tsv
 		umap_metadata_fig = go.Figure()
-		if metadata in ["age", "age_at_diagnosis"]:
+		if str(metadata_df.dtypes[metadata]) == "object":
+			umap_metadata_fig = plot_umap_discrete(umap_dataset, metadata, show_legend_switch, umap_metadata_fig)
+		else:
 			samples_to_keep = "all"
 			umap_metadata_fig = plot_umap_continuous(umap_dataset, expression_dataset, gene_species, samples_to_keep, metadata, "blues", "metadata", umap_metadata_fig)
-		else:
-			umap_metadata_fig = plot_umap_discrete(umap_dataset, metadata, show_legend_switch, umap_metadata_fig)
 
 		#apply legend trace visibility
 		for i in range(0, len(legend_fig["data"])):
@@ -2220,12 +2291,12 @@ def plot_umaps(umap_dataset, metadata, expression_dataset, gene_species, zoom_me
 	config_umap_expression["toImageButtonOptions"]["filename"] = "TaMMA_umap_{umap_metadata}_colored_by_{gene_species}_{expression_abundance}".format(umap_metadata = umap_dataset, gene_species = gene_species, expression_abundance = "expression" if expression_dataset == "human" else "abundance")
 
 	#div styles
-	if metadata in ["age", "age_at_diagnosis"]:
-		umap_metadata_div_style = {"width": "50%", "height": div_height, "display": "inline-block"}
-		umap_expression_div_style = {"width": "50%", "height": div_height, "display": "inline-block"}
-	else:
+	if str(metadata_df.dtypes[metadata]) == "object":
 		umap_metadata_div_style = {"width": "46.5%", "height": div_height, "display": "inline-block"}
 		umap_expression_div_style = {"width": "53.5%", "height": div_height, "display": "inline-block"}
+	else:
+		umap_metadata_div_style = {"width": "50%", "height": div_height, "display": "inline-block"}
+		umap_expression_div_style = {"width": "50%", "height": div_height, "display": "inline-block"}
 
 	return umap_metadata_fig, umap_expression_fig, config_umap_metadata, config_umap_expression, umap_metadata_div_style, umap_expression_div_style
 
@@ -2249,7 +2320,6 @@ def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, group_
 
 	#labels
 	if expression_dataset != "human":
-		expression_dataset = expression_dataset.split("_")[0]
 		expression_or_abundance = "abundance"
 	else:
 		expression_or_abundance = "expression"
@@ -2257,34 +2327,39 @@ def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, group_
 	#general config for boxplots
 	config_boxplots = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 450, "height": 400, "scale": 5}}
 
+	#open metadata
+	metadata_df = download_from_github("metadata.tsv")
+	metadata_df = pd.read_csv(metadata_df, sep = "\t")
+	
+	#filter metadata by the conditions in the legend only if not grouped
+	if group_switch is False:
+		legend_features = []
+		for trace in legend_fig["data"]:
+			legend_features.append(trace["name"])
+		metadata_df[metadata_field] = [i.replace("_", " ") for i in metadata_df[metadata_field]]
+		metadata_df = metadata_df[metadata_df[metadata_field].isin(legend_features)]
+
 	#continuous metadata variable means empty plot
-	if metadata_field in ["age", "age_at_diagnosis"]:
-		box_fig = go.Figure(go.Box(x=None, y=None, showlegend=False))
-		box_fig.update_layout(title_text=None, yaxis_title="Log2 {}".format(expression_or_abundance), xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", height=400)
-		config_boxplots["toImageButtonOptions"]["filename"] = "TaMMA_empty_boxplots.png"
+	if str(metadata_df.dtypes[metadata_field]) != "object":
+		raise PreventUpdate
 	#discrete metadata variables means filled plot
 	else:
 		#in case of dropdown changes must plot again
 		if trigger_id in ["expression_dataset_dropdown.value", "gene_species_dropdown.value", "metadata_dropdown.value", "group_by_group_boxplots_switch.on", "tissue_checkboxes.value"] or box_fig is None or trigger_id == "update_legend_button.n_clicks" and len(box_fig["data"]) != len(legend_fig["data"]):
 			counts = download_from_github("data/" + expression_dataset + "/counts/" + gene + ".tsv")
 			counts = pd.read_csv(counts, sep = "\t")
-			#open metadata and select only the desired column
-			metadata_df = download_from_github("metadata.tsv")
-			metadata_df = pd.read_csv(metadata_df, sep = "\t")
+
 			#merge and compute log2 and replace inf with 0
 			metadata_df = metadata_df.merge(counts, how="left", on="sample")
 			metadata_df["Log2 counts"] = np.log2(metadata_df["counts"])
 			metadata_df["Log2 counts"].replace(to_replace = -np.inf, value = 0, inplace=True)
 			metadata_df[metadata_field] = metadata_df[metadata_field].fillna("NA")
-			metadata_df[metadata_field] = [i.replace("_", " ") for i in metadata_df[metadata_field]]
 
 			#group switch parameters
 			if metadata_field == "condition" and group_switch is True or trigger_id == "tissue_checkboxes.value":
 				#traces will be group and on the x axis we plot tissues
 				metadata_field = "group"
 				x = "tissue"
-				#filter tissues for selected checkboxes 
-			#filter tissues for selected checkboxes 
 				#filter tissues for selected checkboxes 
 				metadata_df = metadata_df[metadata_df[x].isin(checkbox_value)]
 				#sort by tissue and remove "_"
@@ -2317,7 +2392,7 @@ def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, group_
 					y_values = filtered_metadata["Log2 counts"]
 					x_values = filtered_metadata[x]
 				hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library prep strategy: " + filtered_metadata["Library prep strategy"]
-				marker_color = get_palette(metadata, i)
+				marker_color = get_color(metadata, i)
 				box_fig.add_trace(go.Box(y=y_values, x=x_values, name = metadata, marker_color = marker_color, boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text"))
 				i += 1
 			box_fig.update_traces(marker_size=4, showlegend=showlegend)
@@ -3373,6 +3448,35 @@ def populate_evidence_old(validation):
 		tamma_body.append(tamma_markdown_caudovirales)
 		tamma_body.append(dcc.Graph(figure=caudovirales_box_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "virome_ibd_caudovirales.png"}}))
 		tamma_body.append(dcc.Graph(figure=herpes_hepadna_box_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "virome_ibd_herpes_hepadna.png"}}))
+	elif validation == "epithelium_proangiogenic_factors_ibd":
+		#markdown
+		literature_markdown = dcc.Markdown(
+			"""
+			Recent experimental evidence indeed implicates a crucial function of epithelial  barrier dysfunctions in the onset and perpetuation of IBD. This is reflected by increased barrier permeability due to the loss of expression of tight junctions, and alterations in the mucins-formed mucus layer acting as a protective film on the epithelial barrier. ((Martini et al., 2017)[https://pubmed.ncbi.nlm.nih.gov/28560287/]; (Schulz-Kuhnt et al., 2021)[https://www.frontiersin.org/articles/10.3389/fmed.2021.656745/full]).
+			It is widely accepted and well described that IBD pathogenesis is featured by increased angiogenesis ((Danese, 2011)[https://pubmed.ncbi.nlm.nih.gov/21212253/]; (Alkim et al., 2015)[https://www.hindawi.com/journals/iji/2015/970890/]).
+			"""
+		)
+
+		literature_markdown = dcc.Markdown(
+			"""
+			Coming soon ...
+			"""
+		)
+
+		#append to body
+		literature_body.append(literature_markdown)
+		tamma_body.append(literature_markdown)
+
+	elif validation == "mirnas_ibd":
+		literature_markdown = dcc.Markdown(
+			"""
+			Coming soon ...
+			"""
+		)
+
+		#append to body
+		literature_body.append(literature_markdown)
+		tamma_body.append(literature_markdown)
 	else:
 		hidden = True
 
@@ -3407,131 +3511,163 @@ def populate_evidence_new(validation):
 
 	evidence_body = []
 
-	if validation == "archaeome_in_ibd":
-		
-		first_markdown = dcc.Markdown(
-			"""
-			The investigation of gut archaeome composition is at its very beginning ((Aldars-García et al., 2021)[https://www.mdpi.com/2076-2607/9/5/977]).
-			"""
-		)
-		for file in ["data/human/mds/umap.tsv", "data/archaea_species/mds/umap.tsv"]:
-
-			#open tsv
-			umap_df = download_from_github(file)
-			umap_df = pd.read_csv(umap_df, sep = "\t")
-
-			#prepare df
-			selected_metadata = "tissue"
-			umap_df = umap_df.sort_values(by=[selected_metadata])
-			umap_df[selected_metadata] = umap_df[selected_metadata].fillna("NA")
-			umap_df[selected_metadata] = [i.replace("_", " ") for i in umap_df[selected_metadata]]
-			umap_df = umap_df[umap_df["condition"].isin(["Colon", "Ileum"])]
-			umap_df = umap_df.rename(columns=label_to_value)
-
-			#plot
-			i = 1
-			umap_discrete_fig = go.Figure()
-			metadata_fields_ordered = umap_df[label_to_value[selected_metadata]].unique().tolist()
-			metadata_fields_ordered.sort()
-			hover_template = "Sample: %{{customdata[0]}}<br>Group: %{{customdata[1]}}<br>{}: %{{customdata[2]}}<br>Source: %{{customdata[3]}}<br>Library prep strategy: %{{customdata[4]}}<extra></extra>".format(label_to_value[selected_metadata])
-			for metadata in metadata_fields_ordered:
-				filtered_umap_df = umap_df[umap_df[label_to_value[selected_metadata]] == metadata]
-				custom_data = filtered_umap_df[["Sample", "Group", label_to_value[selected_metadata], "Source", "Library prep strategy"]]
-				marker_color = get_palette(metadata, i)
-				umap_discrete_fig.add_trace(go.Scatter(x=filtered_umap_df["UMAP1"], y=filtered_umap_df["UMAP2"], marker_opacity = 1, marker_color = marker_color, marker_size = 4, customdata = custom_data, mode="markers", legendgroup = metadata, showlegend = True, hovertemplate = hover_template, name=metadata))
-				i += 4
-
-			#update layout
-			umap_discrete_fig.update_layout(xaxis_title_text = "UMAP1", yaxis_title_text = "UMAP2", height=250, title_x=0.5, title_font_size=14, legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_xanchor="center", legend_x=0.5, legend_yanchor="top", legend_y=-0.15, legend_itemsizing="constant", legend_tracegroupgap = 0.05, legend_title_side="top", legend_itemclick=False, legend_itemdoubleclick=False, xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", margin=dict(t=60, b=0, l=10, r=10))
-
-			evidence_body.append(html.Div(dcc.Graph(figure=umap_discrete_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "bacteriome_ibd_violins.png"}}), style={"width": "50%", "display": "inline-block"}))
-		
-		second_markdown = dcc.Markdown(
-			"""
-			In TaMMA, colonic and ileal samples are widely intermixed within the human UMAP suggesting extreme similarity between the two transcriptomes. On the contrary, when the same samples were plotted within the archaeal UMAP two different groups are clearly distinguishable, one mainly including ileal samples, the other including colonic samples. This indicates that the upper gastrointestinal part (ileum) may extensively differ from the terminal intestine in terms of archaeome composition.
-			"""
-		)
-
-		#MA-plot
-
-		for contrasts in [["Colon_CD-vs-Ileum_CD", "Colon_UC-vs-Ileum_UC", "Colon_Control-vs-Ileum_Control"], ["Ileum_CD-vs-Ileum_Control", "Ileum_UC-vs-Ileum_Control"], ["Colon_CD-vs-Ileum_Control", "Colon_UC-vs-Colon_Control"]]:
-			if contrasts == ["Ileum_CD-vs-Ileum_Control", "Ileum_UC-vs-Ileum_Control"]:
-				markdown = """Moreover, differences occur also when the differential arechaeome composition was analyzed among conditions. Specifically, _Nitrosophaerales_, _Haloferacales_, _Natrialbales_, and _Thermococcales_ were among the most abundant archaea orders in CD ileum, whereas the most abundant orders in UC ileum were _Methanococcales_, _Methanobacteriales_, _Methanosarcinales_, _Methanomicrobiales_, evidencing the differences between the two diseases in the ileal part."""
-			elif contrasts == ["Ileum_CD-vs-Ileum_Control", "Ileum_UC-vs-Ileum_Control"]:
-				markdown = """Interestingly, _Thermococcales_ was also found higher in CD colons where it was the sole archaeal order to be statistically significant. Different from CD samples, UC colons feature higher abundance of _Candidatus Nitrosocaldales_ and _Nitrosophaerales_, while also harboring decreased _Methanosarcinales_. Overall, from these novel insights we can conclude that each intestinal tract may display differential abundances of archaea not only featuring the specific gut tract, but also the specific disease conditions."""
-			else:
-				markdown = """TODO"""
-			
-			markdown = dcc.Markdown(markdown)
-			
-			for contrast in contrasts:
-				xaxis_title = "Log2 average abundance"
-				dataset = "archaea_order"
-				gene_or_species = dataset.split("_")[1]
-				expression_or_abundance = gene_or_species + " abundance"
-				gene_or_species = gene_or_species.capitalize()
-
-				table = download_from_github("data/archaea_order/dge/{contrast}.diffexp.tsv".format(contrast=contrast))
-				table = pd.read_csv(table, sep = "\t")
-				table["Gene"] = table["Gene"].fillna("NA")
-				#log2 base mean
-				table["log2_baseMean"] = np.log2(table["baseMean"])
-				#clean gene/species name
-				table["Gene"] = [i.replace("_", " ").replace("[", "").replace("]", "") for i in table["Gene"]]
-
-				#find DEGs
-				fdr = 0.1
-				table.loc[(table["padj"] <= fdr) & (table["log2FoldChange"] > 0), "DEG"] = "Up"
-				table.loc[(table["padj"] <= fdr) & (table["log2FoldChange"] < 0), "DEG"] = "Down"
-				table.loc[table["DEG"].isnull(), "DEG"] = "no_DEG"
-
-				#replace nan values with NA
-				table = table.fillna(value={"padj": "NA"})
-
-				#count DEGs
-				up = table[table["DEG"] == "Up"]
-				up = len(up["Gene"])
-				down = table[table["DEG"] == "Down"]
-				down = len(down["Gene"])
-
-				#colors for discrete sequence
-				colors = ["#636363", "#D7301F", "#045A8D"]
-				#rename column if not human
-				table = table.rename(columns={"Gene": gene_or_species})
-
-				#plot
-				ma_plot_fig = go.Figure()
-				i = 0
-				for deg_status in ["no_DEG", "Up", "Down", "selected_gene"]:
-					filtered_table = table[table["DEG"] == deg_status]
-					custom_data = filtered_table[[gene_or_species, "padj"]]
-					hover_template = "Log2 average expression: %{x}<br>Log2 fold change: %{y}<br>" + gene_or_species + ": %{customdata[0]}<br>Padj: %{customdata[1]}<extra></extra>"
-					ma_plot_fig.add_trace(go.Scattergl(x=filtered_table["log2_baseMean"], y=filtered_table["log2FoldChange"], marker_opacity = 1, marker_color = colors[i], marker_symbol = 2, marker_size = 5, customdata = custom_data, mode="markers", hovertemplate = hover_template))
-					#special marker for selected gene
-					if deg_status == "selected_gene":
-						ma_plot_fig["data"][i]["marker"] = {"color": "#D9D9D9", "size": 9, "symbol": 2, "line": {"color": "#525252", "width": 2}}
-					i += 1
-
-				#title and y = 0 line
-				ma_plot_fig.update_layout(title={"text": "Differential {} FDR<".format(expression_or_abundance) + "{:.0e}".format(fdr) + "<br>" + contrast.replace("_", " ").replace("-", " ").replace("Control", "Control"), "xref": "paper", "x": 0.5, "font_size": 14}, xaxis_automargin=True, xaxis_title=xaxis_title, yaxis_automargin=True, yaxis_title="Log2 fold change", font_family="Arial", height=359, margin=dict(t=50, b=0, l=5, r=130), showlegend = False)
-				#line at y=0
-				ma_plot_fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=0, line=dict(color="black", width=3), xref="paper", layer="below")
-
-				#define annotations
-				up_genes_annotation = [dict(text = str(up) + " higher in<br>" + contrast.split("-vs-")[0].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.98, showarrow=False, font=dict(size=14, color="#DE2D26", family="Arial"))]
-				down_genes_annotation = [dict(text = str(down) + " higher in<br>" + contrast.split("-vs-")[1].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.02, showarrow=False, font=dict(size=14, color="#045A8D", family="Arial"))]
-				show_gene_annotaton = [dict(text = "Show gene stats", align="center", xref="paper", yref="paper", x=1.4, y=1, showarrow=False, font_size=12)]
-				#selected_gene_annotation = [dict(x=ma_plot_fig["data"][3]["x"][0], y=ma_plot_fig["data"][3]["y"][0], xref="x", yref="y", text=ma_plot_fig["data"][3]["customdata"][0][0] + "<br>Log2 avg expr: " +  str(round(selected_gene_log2_base_mean, 1)) + "<br>Log2 FC: " +  str(round(selected_gene_log2fc, 1)) + "<br>FDR: " + selected_gene_fdr, showarrow=True, font=dict(family="Arial", size=12, color="#252525"), align="center", arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="#525252", ax=50, ay=50, bordercolor="#525252", borderwidth=2, borderpad=4, bgcolor="#D9D9D9", opacity=0.9)]
-
-				#add default annotations
-				ma_plot_fig["layout"]["annotations"] = up_genes_annotation + down_genes_annotation + show_gene_annotaton #+ selected_gene_annotation
-
-				#config
-				config_ma_plot = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 450, "height": 350, "scale": 5}, "plotGlPixelRatio": 5000}
-				config_ma_plot["toImageButtonOptions"]["filename"] = "TaMMA_maplot_with_{contrast}".format(contrast = contrast)
-
+	if validation in ["archaeome_ibd", "mycome_ibd"]:
+		hidden = False
 	else:
 		hidden = True
+
+	
+	# if validation == "archaeome_ibd":
+	# 	markdown = dcc.Markdown(
+	# 		"""
+	# 		The investigation of gut archaeome composition is at its very beginning ((Aldars-García et al., 2021)[https://www.mdpi.com/2076-2607/9/5/977]).
+	# 		"""
+	# 	)
+	# 	evidence_body.append(markdown)
+
+	# 	"""
+	# 	for file in ["data/human/mds/umap.tsv", "data/archaea_species/mds/umap.tsv"]:
+
+	# 		#open tsv
+	# 		umap_df = download_from_github(file)
+	# 		umap_df = pd.read_csv(umap_df, sep = "\t")
+	# 		print(umap_df.columns)
+
+	# 		#prepare df
+	# 		selected_metadata = "tissue"
+	# 		umap_df[selected_metadata] = umap_df[selected_metadata].fillna("NA")
+	# 		umap_df[selected_metadata] = [i.replace("_", " ") for i in umap_df[selected_metadata]]
+	# 		umap_df = umap_df[umap_df["tissue"].isin(["Colon", "Ileum"])]
+	# 		umap_df = umap_df.sort_values(by=[selected_metadata])
+	# 		umap_df = umap_df.rename(columns=label_to_value)
+
+	# 		#plot
+	# 		i = 1
+	# 		umap_discrete_fig = go.Figure()
+	# 		metadata_fields_ordered = umap_df[label_to_value[selected_metadata]].unique().tolist()
+	# 		metadata_fields_ordered.sort()
+	# 		hover_template = ""
+	# 		i = 0
+	# 		columns_to_keep = []
+	# 		for column in umap_df.columns:
+	# 			if column not in ["UMAP1", "UMAP2", "raw_counts", "kraken2", "control"]:
+	# 				columns_to_keep.append(column)
+	# 				hover_template += "{key}: %{{customdata[{i}]}}<br>".format(key=column.replace("_", " ").capitalize(), i=i)
+	# 				i += 1
+	# 		hover_template += "<extra></extra>"
+	# 		for metadata in metadata_fields_ordered:
+	# 			filtered_umap_df = umap_df[umap_df[label_to_value[selected_metadata]] == metadata]
+	# 			custom_data = filtered_umap_df[columns_to_keep]
+	# 			marker_color = get_color(metadata, i)
+	# 			umap_discrete_fig.add_trace(go.Scatter(x=filtered_umap_df["UMAP1"], y=filtered_umap_df["UMAP2"], marker_opacity = 1, marker_color = marker_color, marker_size = 4, customdata = custom_data, mode="markers", legendgroup = metadata, showlegend = True, hovertemplate = hover_template, name=metadata))
+	# 			i += 4
+
+	# 		#update layout
+	# 		umap_discrete_fig.update_layout(xaxis_title_text = "UMAP1", yaxis_title_text = "UMAP2", height=250, title_x=0.5, title_font_size=14, legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_xanchor="center", legend_x=0.5, legend_yanchor="top", legend_y=-0.15, legend_itemsizing="constant", legend_tracegroupgap = 0.05, legend_title_side="top", legend_itemclick=False, legend_itemdoubleclick=False, xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", margin=dict(t=60, b=0, l=10, r=10))
+
+	# 		evidence_body.append(html.Div(dcc.Graph(figure=umap_discrete_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "bacteriome_ibd_violins.png"}}), style={"width": "50%", "display": "inline-block"}))
+	# 	"""
+
+	# 	markdown = dcc.Markdown(
+	# 		"""
+	# 		In TaMMA, colonic and ileal samples are widely intermixed within the human UMAP suggesting extreme similarity between the two transcriptomes. On the contrary, when the same samples were plotted within the archaeal UMAP two different groups are clearly distinguishable, one mainly including ileal samples, the other including colonic samples. This indicates that the upper gastrointestinal part (ileum) may extensively differ from the terminal intestine in terms of archaeome composition.
+	# 		"""
+	# 	)
+	# 	evidence_body.append(markdown)
+		
+
+	# 	#MA-plot
+
+	# 	for contrasts in [["Ileum_CD-vs-Colon_CD", "Colon_UC-vs-Ileum_UC", "Colon_Control-vs-Ileum_Control"], ["Ileum_CD-vs-Ileum_Control", "Ileum_UC-vs-Ileum_Control"], ["Colon_CD-vs-Ileum_Control", "Colon_UC-vs-Colon_Control"]]:
+	# 		if contrasts == ["Ileum_CD-vs-Ileum_Control", "Ileum_UC-vs-Ileum_Control"]:
+	# 			markdown = """Moreover, differences occur also when the differential arechaeome composition was analyzed among conditions. Specifically, _Nitrosophaerales_, _Haloferacales_, _Natrialbales_, and _Thermococcales_ were among the most abundant archaea orders in CD ileum, whereas the most abundant orders in UC ileum were _Methanococcales_, _Methanobacteriales_, _Methanosarcinales_, _Methanomicrobiales_, evidencing the differences between the two diseases in the ileal part."""
+	# 			fig = go.Figure()
+	# 			fig = make_subplots(rows=1, cols=2, specs=[[{}, {}]], subplot_titles=("TODO", "TODO"))
+	# 		elif contrasts == ["Ileum_CD-vs-Ileum_Control", "Ileum_UC-vs-Ileum_Control"]:
+	# 			markdown = """Interestingly, _Thermococcales_ was also found higher in CD colons where it was the sole archaeal order to be statistically significant. Different from CD samples, UC colons feature higher abundance of _Candidatus Nitrosocaldales_ and _Nitrosophaerales_, while also harboring decreased _Methanosarcinales_. Overall, from these novel insights we can conclude that each intestinal tract may display differential abundances of archaea not only featuring the specific gut tract, but also the specific disease conditions."""
+	# 			fig = go.Figure()
+	# 			fig = make_subplots(rows=1, cols=2, specs=[[{}, {}]], subplot_titles=("TODO", "TODO"))
+	# 		else:
+	# 			markdown = """TODO"""
+	# 			fig = go.Figure()
+	# 			fig = make_subplots(rows=1, cols=3, specs=[[{}, {}, {}]], subplot_titles=("TODO", "TODO", "TODO"))
+			
+	# 		markdown = dcc.Markdown(markdown)
+			
+	# 		col_number = 0
+	# 		for contrast in contrasts:
+	# 			xaxis_title = "Log2 average abundance"
+	# 			dataset = "archaea_order"
+	# 			gene_or_species = dataset.split("_")[1]
+	# 			expression_or_abundance = gene_or_species + " abundance"
+	# 			gene_or_species = gene_or_species.capitalize()
+
+	# 			table = download_from_github("data/archaea_order/dge/{contrast}.diffexp.tsv".format(contrast=contrast))
+	# 			table = pd.read_csv(table, sep = "\t")
+	# 			table["Gene"] = table["Gene"].fillna("NA")
+	# 			#log2 base mean
+	# 			table["log2_baseMean"] = np.log2(table["baseMean"])
+	# 			#clean gene/species name
+	# 			table["Gene"] = [i.replace("_", " ").replace("[", "").replace("]", "") for i in table["Gene"]]
+
+	# 			#find DEGs
+	# 			fdr = 0.1
+	# 			table.loc[(table["padj"] <= fdr) & (table["log2FoldChange"] > 0), "DEG"] = "Up"
+	# 			table.loc[(table["padj"] <= fdr) & (table["log2FoldChange"] < 0), "DEG"] = "Down"
+	# 			table.loc[table["DEG"].isnull(), "DEG"] = "no_DEG"
+
+	# 			#replace nan values with NA
+	# 			table = table.fillna(value={"padj": "NA"})
+
+	# 			#count DEGs
+	# 			up = table[table["DEG"] == "Up"]
+	# 			up = len(up["Gene"])
+	# 			down = table[table["DEG"] == "Down"]
+	# 			down = len(down["Gene"])
+
+	# 			#colors for discrete sequence
+	# 			colors = ["#636363", "#D7301F", "#045A8D"]
+	# 			#rename column if not human
+	# 			table = table.rename(columns={"Gene": gene_or_species})
+
+	# 			#plot
+	# 			ma_plot_fig = go.Figure()
+	# 			i = 0
+	# 			for deg_status in ["no_DEG", "Up", "Down"]:
+	# 				filtered_table = table[table["DEG"] == deg_status]
+	# 				custom_data = filtered_table[[gene_or_species, "padj"]]
+	# 				hover_template = "Log2 average expression: %{x}<br>Log2 fold change: %{y}<br>" + gene_or_species + ": %{customdata[0]}<br>Padj: %{customdata[1]}<extra></extra>"
+	# 				ma_plot_fig.add_trace(go.Scattergl(x=filtered_table["log2_baseMean"], y=filtered_table["log2FoldChange"], marker_opacity = 1, marker_color = colors[i], marker_symbol = 2, marker_size = 5, customdata = custom_data, mode="markers", hovertemplate = hover_template))
+	# 				#special marker for selected gene
+	# 				if deg_status == "selected_gene":
+	# 					ma_plot_fig["data"][i]["marker"] = {"color": "#D9D9D9", "size": 9, "symbol": 2, "line": {"color": "#525252", "width": 2}}
+	# 				i += 1
+
+	# 			#title and y = 0 line
+	# 			#ma_plot_fig.update_layout(title={"text": "Differential {} FDR<".format(expression_or_abundance) + "{:.0e}".format(fdr) + "<br>" + contrast.replace("_", " ").replace("-", " ").replace("Control", "Control"), "xref": "paper", "x": 0.5, "font_size": 14}, xaxis_automargin=True, xaxis_title=xaxis_title, yaxis_automargin=True, yaxis_title="Log2 fold change", font_family="Arial", height=359, margin=dict(t=50, b=0, l=5, r=130), showlegend = False)
+	# 			#line at y=0
+	# 			ma_plot_fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=0, line=dict(color="black", width=3), xref="paper", layer="below")
+
+	# 			#define annotations
+	# 			up_genes_annotation = [dict(text = str(up) + " higher in<br>" + contrast.split("-vs-")[0].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.98, showarrow=False, font=dict(size=14, color="#DE2D26", family="Arial"))]
+	# 			down_genes_annotation = [dict(text = str(down) + " higher in<br>" + contrast.split("-vs-")[1].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.02, showarrow=False, font=dict(size=14, color="#045A8D", family="Arial"))]
+	# 			#show_gene_annotaton = [dict(text = "Show gene stats", align="center", xref="paper", yref="paper", x=1.4, y=1, showarrow=False, font_size=12)]
+	# 			#selected_gene_annotation = [dict(x=ma_plot_fig["data"][3]["x"][0], y=ma_plot_fig["data"][3]["y"][0], xref="x", yref="y", text=ma_plot_fig["data"][3]["customdata"][0][0] + "<br>Log2 avg expr: " +  str(round(selected_gene_log2_base_mean, 1)) + "<br>Log2 FC: " +  str(round(selected_gene_log2fc, 1)) + "<br>FDR: " + selected_gene_fdr, showarrow=True, font=dict(family="Arial", size=12, color="#252525"), align="center", arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="#525252", ax=50, ay=50, bordercolor="#525252", borderwidth=2, borderpad=4, bgcolor="#D9D9D9", opacity=0.9)]
+
+	# 			#add default annotations
+	# 			#ma_plot_fig["layout"]["annotations"] = up_genes_annotation + down_genes_annotation #+ show_gene_annotaton + selected_gene_annotation
+	# 			fig.add_traces(ma_plot_fig, rows=1, cols=col_number)
+	# 			col_number += 1
+
+	# 		#config
+	# 		config_ma_plot = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 450, "height": 350, "scale": 5}, "plotGlPixelRatio": 5000}
+	# 		config_ma_plot["toImageButtonOptions"]["filename"] = "TaMMA_maplot_with_{contrast}".format(contrast = contrast)
+	
+	evidence_body = dcc.Markdown(
+		"""
+		Coming soon...
+		"""
+	)
 
 	#append cards to div
 	div_children = html.Div([
