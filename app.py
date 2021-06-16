@@ -3361,7 +3361,8 @@ def populate_evidence_old(validation):
 		literature_markdown = dcc.Markdown(
 			"""
 			Even if at its infancy, the virome dysbiosis has been recently pointed out to feature the IBD pathogenesis, at both fecal and mucosal level ([Reyes et al., 2012](http://www.ncbi.nlm.nih.gov/pubmed/22864264); [Virgin, 2014](http://www.ncbi.nlm.nih.gov/pubmed/24679532); [Wang et al., 2015](https://pubmed.ncbi.nlm.nih.gov/25939040/); [Norman et al., 2015](https://pubmed.ncbi.nlm.nih.gov/25619688/); [Aggarwala et al., 2017](http://www.ncbi.nlm.nih.gov/pubmed/29026445); [Mirzaei and Maurice, 2017](http://www.ncbi.nlm.nih.gov/pubmed/28461690); [Guerin et al., 2018](http://www.ncbi.nlm.nih.gov/pubmed/30449316); [Zuo et al., 2019](https://pubmed.ncbi.nlm.nih.gov/30842211/); [Fernandes et al., 2019](https://pubmed.ncbi.nlm.nih.gov/30169455/); [Ungaro et al., 2019](https://pubmed.ncbi.nlm.nih.gov/30252582/); [Ungaro et al., 2019](https://pubmed.ncbi.nlm.nih.gov/31662858/)).
-			Of note, CMV infection is associated with complicating UC and its presence is correlated with increased colectomy and mortality rates in UC patients ([Nguyen et al., 2011](https://pubmed.ncbi.nlm.nih.gov/21731826/)).
+			
+			Of note, CMV infection is associated with increased colectomy and mortality rates in UC patients ([Nguyen et al., 2011](https://pubmed.ncbi.nlm.nih.gov/21731826/)).
 			"""
 		)
 
@@ -3393,7 +3394,7 @@ def populate_evidence_old(validation):
 		#plot
 		caudovirales_box_fig = go.Figure()
 		caudovirales_box_fig = make_subplots(rows=1, cols=3, specs=[[{}, {}, {}]], y_title="Relative abundance")
-		specific_colors = {"CD": "#F8766D", "Control": "#7CAE00", "PIBD": "#00BFC4", "UC": "#C77CFF"}
+		specific_colors = {"CD": "#F8666D", "Control": "#00BA38", "PIBD": "#00BFC4", "UC": "#619CFF"}
 		showlegend = True
 		working_col = 1
 		for tissue in tissues:
@@ -3449,7 +3450,7 @@ def populate_evidence_old(validation):
 
 		## Betaherpesvirus ##
 		betaherpesvirus_markdown = dcc.Markdown(
-			"""
+			"""		
 			Being the CMV a genus belonging to the _Herpesvirales_ order, _Herpesviridae_ family, and encompassing several beta herpesviruses species, we here show the differential abundances of the _human beta herpesviruses_ between both UC and CD tissues and the control specimens. Notably, _Human beta herpesvirus 5_ is highly abundant in UC and CD colons, as well as in CD ileum. Moreover, despite the small sample size for rectal metatranscriptomics, the higher abundance for this virus was evident in UC rectum. The _Human beta herpesviruses 6B_ and _7_ were not detected, unless in a few samples. These data indicate that high levels of the CMV genus-belonging _beta herpesvirus 5_ is associated with intestinal inflammation.
 			"""
 		)
@@ -3490,7 +3491,7 @@ def populate_evidence_old(validation):
 				if metadata != "PIBD":
 					filtered_metadata = metadata_df[metadata_df[metadata_field] == metadata]
 					hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library prep strategy: " + filtered_metadata["Library prep strategy"]
-					betaherpesvirus_box_fig.add_trace(go.Box(x=filtered_metadata[x], y=filtered_metadata["Log2 abundance"], name=metadata, marker_color=colors[i], boxpoints="all", hovertext=hovertext_labels, hoverinfo="y+text", legendgroup=metadata, showlegend=showlegend, offsetgroup=metadata), row=1, col=working_col)
+					betaherpesvirus_box_fig.add_trace(go.Box(x=filtered_metadata[x], y=filtered_metadata["Log2 abundance"], name=metadata, marker_color=specific_colors[i], boxpoints="all", hovertext=hovertext_labels, hoverinfo="y+text", legendgroup=metadata, showlegend=showlegend, offsetgroup=metadata), row=1, col=working_col)
 					i += 1
 
 			working_col += 1
@@ -3773,7 +3774,7 @@ def populate_evidence_old(validation):
 		#append to body
 		literature_body.append(literature_markdown)
 		tamma_body.append(tamma_markdown)
-		tamma_body.append(dcc.Graph(figure=box_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "epithelium_proangiogenic_factors_ibd_go.png"}}))
+		tamma_body.append(dcc.Graph(figure=box_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "mirnas_in_ibd.png"}}))
 	else:
 		hidden = True
 
@@ -3814,157 +3815,222 @@ def populate_evidence_new(validation):
 		hidden = True
 
 	
-	# if validation == "archaeome_ibd":
-	# 	markdown = dcc.Markdown(
-	# 		"""
-	# 		The investigation of gut archaeome composition is at its very beginning ((Aldars-García et al., 2021)[https://www.mdpi.com/2076-2607/9/5/977]).
-	# 		"""
-	# 	)
-	# 	evidence_body.append(markdown)
-
-	# 	"""
-	# 	for file in ["data/human/mds/umap.tsv", "data/archaea_species/mds/umap.tsv"]:
-
-	# 		#open tsv
-	# 		umap_df = download_from_github(file)
-	# 		umap_df = pd.read_csv(umap_df, sep = "\t")
-	# 		print(umap_df.columns)
-
-	# 		#prepare df
-	# 		selected_metadata = "tissue"
-	# 		umap_df[selected_metadata] = umap_df[selected_metadata].fillna("NA")
-	# 		umap_df[selected_metadata] = [i.replace("_", " ") for i in umap_df[selected_metadata]]
-	# 		umap_df = umap_df[umap_df["tissue"].isin(["Colon", "Ileum"])]
-	# 		umap_df = umap_df.sort_values(by=[selected_metadata])
-	# 		umap_df = umap_df.rename(columns=label_to_value)
-
-	# 		#plot
-	# 		i = 1
-	# 		umap_discrete_fig = go.Figure()
-	# 		metadata_fields_ordered = umap_df[label_to_value[selected_metadata]].unique().tolist()
-	# 		metadata_fields_ordered.sort()
-	# 		hover_template = ""
-	# 		i = 0
-	# 		columns_to_keep = []
-	# 		for column in umap_df.columns:
-	# 			if column not in ["UMAP1", "UMAP2", "raw_counts", "kraken2", "control"]:
-	# 				columns_to_keep.append(column)
-	# 				hover_template += "{key}: %{{customdata[{i}]}}<br>".format(key=column.replace("_", " ").capitalize(), i=i)
-	# 				i += 1
-	# 		hover_template += "<extra></extra>"
-	# 		for metadata in metadata_fields_ordered:
-	# 			filtered_umap_df = umap_df[umap_df[label_to_value[selected_metadata]] == metadata]
-	# 			custom_data = filtered_umap_df[columns_to_keep]
-	# 			marker_color = get_color(metadata, i)
-	# 			umap_discrete_fig.add_trace(go.Scatter(x=filtered_umap_df["UMAP1"], y=filtered_umap_df["UMAP2"], marker_opacity = 1, marker_color = marker_color, marker_size = 4, customdata = custom_data, mode="markers", legendgroup = metadata, showlegend = True, hovertemplate = hover_template, name=metadata))
-	# 			i += 4
-
-	# 		#update layout
-	# 		umap_discrete_fig.update_layout(xaxis_title_text = "UMAP1", yaxis_title_text = "UMAP2", height=250, title_x=0.5, title_font_size=14, legend_title_text=selected_metadata.capitalize().replace("_", " "), legend_orientation="h", legend_xanchor="center", legend_x=0.5, legend_yanchor="top", legend_y=-0.15, legend_itemsizing="constant", legend_tracegroupgap = 0.05, legend_title_side="top", legend_itemclick=False, legend_itemdoubleclick=False, xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", margin=dict(t=60, b=0, l=10, r=10))
-
-	# 		evidence_body.append(html.Div(dcc.Graph(figure=umap_discrete_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "bacteriome_ibd_violins.png"}}), style={"width": "50%", "display": "inline-block"}))
-	# 	"""
-
-	# 	markdown = dcc.Markdown(
-	# 		"""
-	# 		In TaMMA, colonic and ileal samples are widely intermixed within the human UMAP suggesting extreme similarity between the two transcriptomes. On the contrary, when the same samples were plotted within the archaeal UMAP two different groups are clearly distinguishable, one mainly including ileal samples, the other including colonic samples. This indicates that the upper gastrointestinal part (ileum) may extensively differ from the terminal intestine in terms of archaeome composition.
-	# 		"""
-	# 	)
-	# 	evidence_body.append(markdown)
+	if validation == "archaeome_ibd":
 		
-
-	# 	#MA-plot
-
-	# 	for contrasts in [["Ileum_CD-vs-Colon_CD", "Colon_UC-vs-Ileum_UC", "Colon_Control-vs-Ileum_Control"], ["Ileum_CD-vs-Ileum_Control", "Ileum_UC-vs-Ileum_Control"], ["Colon_CD-vs-Ileum_Control", "Colon_UC-vs-Colon_Control"]]:
-	# 		if contrasts == ["Ileum_CD-vs-Ileum_Control", "Ileum_UC-vs-Ileum_Control"]:
-	# 			markdown = """Moreover, differences occur also when the differential arechaeome composition was analyzed among conditions. Specifically, _Nitrosophaerales_, _Haloferacales_, _Natrialbales_, and _Thermococcales_ were among the most abundant archaea orders in CD ileum, whereas the most abundant orders in UC ileum were _Methanococcales_, _Methanobacteriales_, _Methanosarcinales_, _Methanomicrobiales_, evidencing the differences between the two diseases in the ileal part."""
-	# 			fig = go.Figure()
-	# 			fig = make_subplots(rows=1, cols=2, specs=[[{}, {}]], subplot_titles=("TODO", "TODO"))
-	# 		elif contrasts == ["Ileum_CD-vs-Ileum_Control", "Ileum_UC-vs-Ileum_Control"]:
-	# 			markdown = """Interestingly, _Thermococcales_ was also found higher in CD colons where it was the sole archaeal order to be statistically significant. Different from CD samples, UC colons feature higher abundance of _Candidatus Nitrosocaldales_ and _Nitrosophaerales_, while also harboring decreased _Methanosarcinales_. Overall, from these novel insights we can conclude that each intestinal tract may display differential abundances of archaea not only featuring the specific gut tract, but also the specific disease conditions."""
-	# 			fig = go.Figure()
-	# 			fig = make_subplots(rows=1, cols=2, specs=[[{}, {}]], subplot_titles=("TODO", "TODO"))
-	# 		else:
-	# 			markdown = """TODO"""
-	# 			fig = go.Figure()
-	# 			fig = make_subplots(rows=1, cols=3, specs=[[{}, {}, {}]], subplot_titles=("TODO", "TODO", "TODO"))
+		## UMAP ##
+		markdown = dcc.Markdown(
+			"""
+			The investigation of gut archaeome composition is at its very beginning ([Aldars-García et al., 2021](https://www.mdpi.com/2076-2607/9/5/977)). 
 			
-	# 		markdown = dcc.Markdown(markdown)
+			In TaMMA, colonic and ileal samples are widely intermixed within the human UMAP suggesting extreme similarity between the two transcriptomes. On the contrary, when the same samples were plotted within the archaeal UMAP two different groups are clearly distinguishable, one mainly including ileal samples, the other including both colonic and ileal samples.
+			"""
+		)
+		evidence_body.append(markdown)
+		fig = go.Figure()
+		fig = make_subplots(rows=1, cols=2, specs=[[{}, {}]])
+		col = 1
+		showlegend = True
+		for file in ["data/human/mds/umap.tsv", "data/archaea_species/mds/umap.tsv"]:
+
+			#open tsv
+			umap_df = download_from_github(file)
+			umap_df = pd.read_csv(umap_df, sep = "\t")
+
+			#prepare df
+			selected_metadata = "tissue"
+			umap_df = umap_df.fillna("NA")
+			umap_df = umap_df.replace("_", " ", regex=True)
+			umap_df[selected_metadata] = [i.replace("_", " ") for i in umap_df[selected_metadata]]
+			umap_df = umap_df[umap_df["tissue"].isin(["Colon", "Ileum"])]
+			umap_df = umap_df.sort_values(by=[selected_metadata])
+			umap_df = umap_df.rename(columns=label_to_value)
+
+			#plot
+			i = 1
+			metadata_fields_ordered = umap_df[label_to_value[selected_metadata]].unique().tolist()
+			metadata_fields_ordered.sort()
+			hover_template = ""
+			i = 0
+			columns_to_keep = []
+			for column in umap_df.columns:
+				if column not in ["UMAP1", "UMAP2", "raw_counts", "kraken2", "control"]:
+					columns_to_keep.append(column)
+					hover_template += "{key}: %{{customdata[{i}]}}<br>".format(key=column.replace("_", " ").capitalize(), i=i)
+					i += 1
+			hover_template += "<extra></extra>"
+			i = 1
+			for metadata in metadata_fields_ordered:
+				filtered_umap_df = umap_df[umap_df[label_to_value[selected_metadata]] == metadata]
+				custom_data = filtered_umap_df[columns_to_keep]
+				marker_color = get_color(metadata, i)
+				fig.add_trace(go.Scatter(x=filtered_umap_df["UMAP1"], y=filtered_umap_df["UMAP2"], marker_opacity = 1, marker_color = marker_color, marker_size = 4, customdata = custom_data, mode="markers", legendgroup = metadata, showlegend = showlegend, hovertemplate = hover_template, name=metadata), row=1, col=col)
+				i += 4
+			col += 1
+			if showlegend:
+				showlegend = False
+
+		#update layout
+		fig.update_layout(height=400, xaxis_title_text="UMAP1", yaxis_title_text="UMAP2", xaxis2_title_text="UMAP1", yaxis2_title_text="UMAP2", title_text="Sample dispersion within the human and archaeal transcriptome multidimensional scaling colored by tissue", title_x=0.5, title_y=0.98, title_font_size=14, legend_orientation="h", legend_xanchor="center", legend_x=0.5, legend_yanchor="top", legend_y=1.1, legend_itemsizing="constant", legend_tracegroupgap = 0.05, legend_title_side="top", xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", margin=dict(t=60, b=0, l=10, r=10))
+
+		evidence_body.append(html.Div(dcc.Graph(figure=fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "new_archaeal_evidence_umap.png"}})))
+
+		## MA-plots ##
+		for contrasts in [["Colon_Control-vs-Ileum_Control", "Ileum_CD-vs-Colon_CD", "Colon_UC-vs-Ileum_UC"], ["Ileum_CD-vs-Ileum_Control", "Ileum_UC-vs-Ileum_Control"], ["Colon_CD-vs-Colon_Control", "Colon_UC-vs-Colon_Control"]]:
+			if contrasts == ["Ileum_CD-vs-Ileum_Control", "Ileum_UC-vs-Ileum_Control"]:
+				markdown = """
+				Moreover, differences occur also when the differential arechaeome composition was analyzed between conditions. Specifically, _Nitrosophaerales_, _Haloferacales_, _Natrialbales_, and _Thermococcales_ were among the most abundant archaea orders in CD ileum, whereas the most abundant orders in UC ileum were _Methanococcales_, _Methanobacteriales_, _Methanosarcinales_, _Methanomicrobiales_, evidencing the differences between the two diseases in the ileal part. 
+				"""
+			elif contrasts == ["Colon_CD-vs-Colon_Control", "Colon_UC-vs-Colon_Control"]:
+				markdown = """Interestingly, _Methanomicrobiales_ was also found higher in UC colons where it was the sole archaeal order to be statistically significant, while no differences were observed in colons from CD patients.
+				Overall, from these novel insights we can conclude that each intestinal tract may display differential abundances of archaea not only featuring the specific gut tract, but also the specific disease conditions.
+				"""
+			else:
+				markdown = """
+					This was also evident when looking at the differences between the two tissues, where most of the species found to be differentially abundant in colon are so irrespectively of the disease. This indicates that the upper gastrointestinal part (ileum) may extensively differ from the terminal intestine in terms of archaeome composition.
+				"""
 			
-	# 		col_number = 0
-	# 		for contrast in contrasts:
-	# 			xaxis_title = "Log2 average abundance"
-	# 			dataset = "archaea_order"
-	# 			gene_or_species = dataset.split("_")[1]
-	# 			expression_or_abundance = gene_or_species + " abundance"
-	# 			gene_or_species = gene_or_species.capitalize()
+			evidence_body.append(dcc.Markdown(markdown))
+			evidence_body.append(html.Div(children=["Differential archaea order abundance FDR<0.1"], style={"font-size": "14px"}))
 
-	# 			table = download_from_github("data/archaea_order/dge/{contrast}.diffexp.tsv".format(contrast=contrast))
-	# 			table = pd.read_csv(table, sep = "\t")
-	# 			table["Gene"] = table["Gene"].fillna("NA")
-	# 			#log2 base mean
-	# 			table["log2_baseMean"] = np.log2(table["baseMean"])
-	# 			#clean gene/species name
-	# 			table["Gene"] = [i.replace("_", " ").replace("[", "").replace("]", "") for i in table["Gene"]]
+			for contrast in contrasts:
+				xaxis_title = "Log2 average abundance"
+				dataset = "archaea_order"
+				gene_or_species = dataset.split("_")[1]
+				gene_or_species = gene_or_species.capitalize()
 
-	# 			#find DEGs
-	# 			fdr = 0.1
-	# 			table.loc[(table["padj"] <= fdr) & (table["log2FoldChange"] > 0), "DEG"] = "Up"
-	# 			table.loc[(table["padj"] <= fdr) & (table["log2FoldChange"] < 0), "DEG"] = "Down"
-	# 			table.loc[table["DEG"].isnull(), "DEG"] = "no_DEG"
+				table = download_from_github("data/archaea_order/dge/{contrast}.diffexp.tsv".format(contrast=contrast))
+				table = pd.read_csv(table, sep = "\t")
+				table["Gene"] = table["Gene"].fillna("NA")
+				#log2 base mean
+				table["log2_baseMean"] = np.log2(table["baseMean"])
+				#clean gene/species name
+				table["Gene"] = [i.replace("_", " ").replace("[", "").replace("]", "") for i in table["Gene"]]
 
-	# 			#replace nan values with NA
-	# 			table = table.fillna(value={"padj": "NA"})
+				#find DEGs
+				fdr = 0.1
+				table.loc[(table["padj"] <= fdr) & (table["log2FoldChange"] > 0), "DEG"] = "Up"
+				table.loc[(table["padj"] <= fdr) & (table["log2FoldChange"] < 0), "DEG"] = "Down"
+				table.loc[table["DEG"].isnull(), "DEG"] = "no_DEG"
 
-	# 			#count DEGs
-	# 			up = table[table["DEG"] == "Up"]
-	# 			up = len(up["Gene"])
-	# 			down = table[table["DEG"] == "Down"]
-	# 			down = len(down["Gene"])
+				#replace nan values with NA
+				table = table.fillna(value={"padj": "NA"})
 
-	# 			#colors for discrete sequence
-	# 			colors = ["#636363", "#D7301F", "#045A8D"]
-	# 			#rename column if not human
-	# 			table = table.rename(columns={"Gene": gene_or_species})
+				#count DEGs
+				up_table = table[table["DEG"] == "Up"]
+				up = len(up_table["Gene"])
+				down_table = table[table["DEG"] == "Down"]
+				down = len(down_table["Gene"])
 
-	# 			#plot
-	# 			ma_plot_fig = go.Figure()
-	# 			i = 0
-	# 			for deg_status in ["no_DEG", "Up", "Down"]:
-	# 				filtered_table = table[table["DEG"] == deg_status]
-	# 				custom_data = filtered_table[[gene_or_species, "padj"]]
-	# 				hover_template = "Log2 average expression: %{x}<br>Log2 fold change: %{y}<br>" + gene_or_species + ": %{customdata[0]}<br>Padj: %{customdata[1]}<extra></extra>"
-	# 				ma_plot_fig.add_trace(go.Scattergl(x=filtered_table["log2_baseMean"], y=filtered_table["log2FoldChange"], marker_opacity = 1, marker_color = colors[i], marker_symbol = 2, marker_size = 5, customdata = custom_data, mode="markers", hovertemplate = hover_template))
-	# 				#special marker for selected gene
-	# 				if deg_status == "selected_gene":
-	# 					ma_plot_fig["data"][i]["marker"] = {"color": "#D9D9D9", "size": 9, "symbol": 2, "line": {"color": "#525252", "width": 2}}
-	# 				i += 1
+				#colors for discrete sequence
+				colors = ["#636363", "#D7301F", "#045A8D"]
+				#rename column if not human
+				table = table.rename(columns={"Gene": gene_or_species})
 
-	# 			#title and y = 0 line
-	# 			#ma_plot_fig.update_layout(title={"text": "Differential {} FDR<".format(expression_or_abundance) + "{:.0e}".format(fdr) + "<br>" + contrast.replace("_", " ").replace("-", " ").replace("Control", "Control"), "xref": "paper", "x": 0.5, "font_size": 14}, xaxis_automargin=True, xaxis_title=xaxis_title, yaxis_automargin=True, yaxis_title="Log2 fold change", font_family="Arial", height=359, margin=dict(t=50, b=0, l=5, r=130), showlegend = False)
-	# 			#line at y=0
-	# 			ma_plot_fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=0, line=dict(color="black", width=3), xref="paper", layer="below")
+				#plot
+				ma_plot_fig = go.Figure()
+				i = 0
+				for deg_status in ["no_DEG", "Up", "Down"]:
+					filtered_table = table[table["DEG"] == deg_status]
+					custom_data = filtered_table[[gene_or_species, "padj"]]
+					hover_template = "Log2 average expression: %{x}<br>Log2 fold change: %{y}<br>" + gene_or_species + ": %{customdata[0]}<br>Padj: %{customdata[1]}<extra></extra>"
+					ma_plot_fig.add_trace(go.Scattergl(x=filtered_table["log2_baseMean"], y=filtered_table["log2FoldChange"], marker_opacity = 1, marker_color = colors[i], marker_symbol = 2, marker_size = 5, customdata = custom_data, mode="markers", hovertemplate = hover_template))
+					#special marker for selected gene
+					if deg_status == "selected_gene":
+						ma_plot_fig["data"][i]["marker"] = {"color": "#D9D9D9", "size": 9, "symbol": 2, "line": {"color": "#525252", "width": 2}}
+					i += 1
 
-	# 			#define annotations
-	# 			up_genes_annotation = [dict(text = str(up) + " higher in<br>" + contrast.split("-vs-")[0].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.98, showarrow=False, font=dict(size=14, color="#DE2D26", family="Arial"))]
-	# 			down_genes_annotation = [dict(text = str(down) + " higher in<br>" + contrast.split("-vs-")[1].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.02, showarrow=False, font=dict(size=14, color="#045A8D", family="Arial"))]
-	# 			#show_gene_annotaton = [dict(text = "Show gene stats", align="center", xref="paper", yref="paper", x=1.4, y=1, showarrow=False, font_size=12)]
-	# 			#selected_gene_annotation = [dict(x=ma_plot_fig["data"][3]["x"][0], y=ma_plot_fig["data"][3]["y"][0], xref="x", yref="y", text=ma_plot_fig["data"][3]["customdata"][0][0] + "<br>Log2 avg expr: " +  str(round(selected_gene_log2_base_mean, 1)) + "<br>Log2 FC: " +  str(round(selected_gene_log2fc, 1)) + "<br>FDR: " + selected_gene_fdr, showarrow=True, font=dict(family="Arial", size=12, color="#252525"), align="center", arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="#525252", ax=50, ay=50, bordercolor="#525252", borderwidth=2, borderpad=4, bgcolor="#D9D9D9", opacity=0.9)]
+				#layout
+				ma_plot_fig.update_layout(title={"text": contrast.replace("_", " ").replace("-", " "), "xref": "paper", "x": 0.5, "font_size": 14}, xaxis_automargin=True, xaxis_title=xaxis_title, yaxis_automargin=True, yaxis_title="Log2 fold change", font_family="Arial", height=359, width=250, margin=dict(t=50, b=0, l=5, r=0), showlegend = False)
+				#line at y=0
+				ma_plot_fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=0, line=dict(color="black", width=3), xref="paper", layer="below")
 
-	# 			#add default annotations
-	# 			#ma_plot_fig["layout"]["annotations"] = up_genes_annotation + down_genes_annotation #+ show_gene_annotaton + selected_gene_annotation
-	# 			fig.add_traces(ma_plot_fig, rows=1, cols=col_number)
-	# 			col_number += 1
+				#define annotations for numbers of up and down
+				up_genes_annotation = [dict(text = str(up) + " higher in<br>" + contrast.split("-vs-")[0].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.98, showarrow=False, font=dict(size=14, color="#DE2D26", family="Arial"))]
+				down_genes_annotation = [dict(text = str(down) + " higher in<br>" + contrast.split("-vs-")[1].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.02, showarrow=False, font=dict(size=14, color="#045A8D", family="Arial"))]
 
-	# 		#config
-	# 		config_ma_plot = {"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 450, "height": 350, "scale": 5}, "plotGlPixelRatio": 5000}
-	# 		config_ma_plot["toImageButtonOptions"]["filename"] = "TaMMA_maplot_with_{contrast}".format(contrast = contrast)
-	
-	evidence_body = dcc.Markdown(
-		"""
-		Coming soon...
-		"""
-	)
+				#add default annotations
+				ma_plot_fig["layout"]["annotations"] = up_genes_annotation + down_genes_annotation
+
+				evidence_body.append(html.Div(dcc.Graph(figure=ma_plot_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "width": 450, "height": 350, "scale": 5, "filename": "TaMMA_archaeome_new_evidence_maplot_with_{contrast}".format(contrast = contrast)}, "plotGlPixelRatio": 5000}), style={"width": "33%", "display": "inline-block"}))
+	elif validation == "mycome_ibd":
+
+		## MA-plots ##
+		for contrasts in [["Ileum_CD-vs-Ileum_Control", "Ileum_UC-vs-Ileum_Control"], ["Colon_CD-vs-Colon_Control", "Colon_UC-vs-Colon_Control"]]:
+			if contrasts == ["Ileum_CD-vs-Ileum_Control", "Ileum_UC-vs-Ileum_Control"]:
+				markdown = """
+				Few studies elucidated the mycobiome composition in small sample-sized IBD patient cohorts, mainly on stools and exploiting other technologies, such as 18S rDNA sequencing and PCR ([Elaheh Mahmoudi et a., 2021](https://pubmed.ncbi.nlm.nih.gov/33964975/)).
+				
+				In TaMMA, CD and UC ileums are both featuring increased abundance of _Glomerellales_, _Tremellales_, and _Hypocreales_ while also featuring decreased abundance of _Schizosaccharomycetales_. Some orders were instead differentially abundant in the two conditions. _Saccharomycetales_, _Ustilaginales_, _Malasseziales_, _Eurotiales_, _Mycosphaerellales_, and _Magnaporthales_ were found to be differentially abundant exclusively in UC ileum, while _Saccharomycetales_, _Ustilaginales_, and _Sordariales_ were dysregulated only in CD ileums.
+				"""
+			elif contrasts == ["Colon_CD-vs-Colon_Control", "Colon_UC-vs-Colon_Control"]:
+				markdown = """
+				Interestingly, different from ileums, very few orders were found to be differentially abundant in colons, perhaps resembling the different immune competence of the two tissues ([Mann et al., 2016](https://gut.bmj.com/content/65/2/256)).
+				In conclusion, the mycobiome composition is gut tract- and disease-specific, opening additional horizons for IBD-associated microbiota diversity.
+				"""
+			
+			evidence_body.append(dcc.Markdown(markdown))
+			evidence_body.append(html.Div(children=["Differential archaea order abundance FDR<0.1"], style={"font-size": "14px"}))
+
+			for contrast in contrasts:
+				xaxis_title = "Log2 average abundance"
+				dataset = "eukaryota_order"
+				gene_or_species = dataset.split("_")[1]
+				gene_or_species = gene_or_species.capitalize()
+
+				table = download_from_github("data/eukaryota_order/dge/{contrast}.diffexp.tsv".format(contrast=contrast))
+				table = pd.read_csv(table, sep = "\t")
+				table["Gene"] = table["Gene"].fillna("NA")
+				#log2 base mean
+				table["log2_baseMean"] = np.log2(table["baseMean"])
+				#clean gene/species name
+				table["Gene"] = [i.replace("_", " ").replace("[", "").replace("]", "") for i in table["Gene"]]
+
+				#find DEGs
+				fdr = 0.1
+				table.loc[(table["padj"] <= fdr) & (table["log2FoldChange"] > 0), "DEG"] = "Up"
+				table.loc[(table["padj"] <= fdr) & (table["log2FoldChange"] < 0), "DEG"] = "Down"
+				table.loc[table["DEG"].isnull(), "DEG"] = "no_DEG"
+
+				#replace nan values with NA
+				table = table.fillna(value={"padj": "NA"})
+
+				#count DEGs
+				up_table = table[table["DEG"] == "Up"]
+				up = len(up_table["Gene"])
+				down_table = table[table["DEG"] == "Down"]
+				down = len(down_table["Gene"])
+
+				#colors for discrete sequence
+				colors = ["#636363", "#D7301F", "#045A8D"]
+				#rename column if not human
+				table = table.rename(columns={"Gene": gene_or_species})
+
+				#plot
+				ma_plot_fig = go.Figure()
+				i = 0
+				for deg_status in ["no_DEG", "Up", "Down"]:
+					filtered_table = table[table["DEG"] == deg_status]
+					custom_data = filtered_table[[gene_or_species, "padj"]]
+					hover_template = "Log2 average expression: %{x}<br>Log2 fold change: %{y}<br>" + gene_or_species + ": %{customdata[0]}<br>Padj: %{customdata[1]}<extra></extra>"
+					ma_plot_fig.add_trace(go.Scattergl(x=filtered_table["log2_baseMean"], y=filtered_table["log2FoldChange"], marker_opacity = 1, marker_color = colors[i], marker_symbol = 2, marker_size = 5, customdata = custom_data, mode="markers", hovertemplate = hover_template))
+					#special marker for selected gene
+					if deg_status == "selected_gene":
+						ma_plot_fig["data"][i]["marker"] = {"color": "#D9D9D9", "size": 9, "symbol": 2, "line": {"color": "#525252", "width": 2}}
+					i += 1
+
+				#layout
+				ma_plot_fig.update_layout(title={"text": contrast.replace("_", " ").replace("-", " "), "xref": "paper", "x": 0.5, "font_size": 14}, xaxis_automargin=True, xaxis_title=xaxis_title, yaxis_automargin=True, yaxis_title="Log2 fold change", font_family="Arial", height=359, width=250, margin=dict(t=50, b=0, l=5, r=0), showlegend = False)
+				#line at y=0
+				ma_plot_fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=0, line=dict(color="black", width=3), xref="paper", layer="below")
+
+				#define annotations for numbers of up and down
+				up_genes_annotation = [dict(text = str(up) + " higher in<br>" + contrast.split("-vs-")[0].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.98, showarrow=False, font=dict(size=14, color="#DE2D26", family="Arial"))]
+				down_genes_annotation = [dict(text = str(down) + " higher in<br>" + contrast.split("-vs-")[1].replace("_", " "), align="right", xref="paper", yref="paper", x=0.98, y=0.02, showarrow=False, font=dict(size=14, color="#045A8D", family="Arial"))]
+
+				#add default annotations
+				ma_plot_fig["layout"]["annotations"] = up_genes_annotation + down_genes_annotation
+
+				evidence_body.append(html.Div(dcc.Graph(figure=ma_plot_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "width": 450, "height": 350, "scale": 5, "filename": "TaMMA_archaeome_new_evidence_maplot_with_{contrast}".format(contrast = contrast)}, "plotGlPixelRatio": 5000}), style={"width": "33%", "display": "inline-block"}))
 
 	#append cards to div
 	div_children = html.Div([
