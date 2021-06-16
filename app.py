@@ -3360,7 +3360,8 @@ def populate_evidence_old(validation):
 		#markdown
 		literature_markdown = dcc.Markdown(
 			"""
-			Evidence from the literature: even if at its infancy, the virome dysbiosis has been recently pointed out to feature the IBD pathogenesis, at both fecal and mucosal level ([Reyes et al., 2012](http://www.ncbi.nlm.nih.gov/pubmed/22864264); [Virgin, 2014](http://www.ncbi.nlm.nih.gov/pubmed/24679532); [Wang et al., 2015](https://pubmed.ncbi.nlm.nih.gov/25939040/); [Norman et al., 2015](https://pubmed.ncbi.nlm.nih.gov/25619688/); [Aggarwala et al., 2017](http://www.ncbi.nlm.nih.gov/pubmed/29026445); [Mirzaei and Maurice, 2017](http://www.ncbi.nlm.nih.gov/pubmed/28461690); [Guerin et al., 2018](http://www.ncbi.nlm.nih.gov/pubmed/30449316); [Zuo et al., 2019](https://pubmed.ncbi.nlm.nih.gov/30842211/); [Fernandes et al., 2019](https://pubmed.ncbi.nlm.nih.gov/30169455/); [Ungaro et al., 2019](https://pubmed.ncbi.nlm.nih.gov/30252582/); [Ungaro et al., 2019](https://pubmed.ncbi.nlm.nih.gov/31662858/)).
+			Even if at its infancy, the virome dysbiosis has been recently pointed out to feature the IBD pathogenesis, at both fecal and mucosal level ([Reyes et al., 2012](http://www.ncbi.nlm.nih.gov/pubmed/22864264); [Virgin, 2014](http://www.ncbi.nlm.nih.gov/pubmed/24679532); [Wang et al., 2015](https://pubmed.ncbi.nlm.nih.gov/25939040/); [Norman et al., 2015](https://pubmed.ncbi.nlm.nih.gov/25619688/); [Aggarwala et al., 2017](http://www.ncbi.nlm.nih.gov/pubmed/29026445); [Mirzaei and Maurice, 2017](http://www.ncbi.nlm.nih.gov/pubmed/28461690); [Guerin et al., 2018](http://www.ncbi.nlm.nih.gov/pubmed/30449316); [Zuo et al., 2019](https://pubmed.ncbi.nlm.nih.gov/30842211/); [Fernandes et al., 2019](https://pubmed.ncbi.nlm.nih.gov/30169455/); [Ungaro et al., 2019](https://pubmed.ncbi.nlm.nih.gov/30252582/); [Ungaro et al., 2019](https://pubmed.ncbi.nlm.nih.gov/31662858/)).
+			Of note, CMV infection is associated with complicating UC and its presence is correlated with increased colectomy and mortality rates in UC patients ([Nguyen et al., 2011](https://pubmed.ncbi.nlm.nih.gov/21731826/)).
 			"""
 		)
 
@@ -3385,7 +3386,8 @@ def populate_evidence_old(validation):
 		df = df.merge(metadata, how="inner", on="sample")
 		
 		#define tissues
-		tissues = ["Colon", "Ileum", "Stools"]
+		tissues = ["Colon", "Ileum", "Stool associated"]
+		df["tissue"] = df["tissue"].str.replace("_", " ")
 		df = df[df["tissue"].isin(tissues)]
 
 		#plot
@@ -3445,9 +3447,67 @@ def populate_evidence_old(validation):
 		herpes_hepadna_box_fig.update_traces(marker_size=4)
 		herpes_hepadna_box_fig.update_layout(font_family="Arial", margin_r=10, boxmode="group", legend_orientation="h", legend_y=1.25, legend_xanchor="center", legend_x=0.47, margin_t=80)
 
+		## Betaherpesvirus ##
+		betaherpesvirus_markdown = dcc.Markdown(
+			"""
+			Being the CMV a genus belonging to the _Herpesvirales_ order, _Herpesviridae_ family, and encompassing several beta herpesviruses species, we here show the differential abundances of the _human beta herpesviruses_ between both UC and CD tissues and the control specimens. Notably, _Human beta herpesvirus 5_ is highly abundant in UC and CD colons, as well as in CD ileum. Moreover, despite the small sample size for rectal metatranscriptomics, the higher abundance for this virus was evident in UC rectum. The _Human beta herpesviruses 6B_ and _7_ were not detected, unless in a few samples. These data indicate that high levels of the CMV genus-belonging _beta herpesvirus 5_ is associated with intestinal inflammation.
+			"""
+		)
+
+		#plot
+		betaherpesvirus_box_fig = go.Figure()
+		betaherpesvirus_box_fig = make_subplots(rows=1, cols=3, specs=[[{}, {}, {}]], y_title="Log2 abundance")
+		grouped_boxplots = True
+		metadata_field = "group"
+		metadata_df_original = download_from_github("metadata.tsv")
+		metadata_df_original = pd.read_csv(metadata_df_original, sep = "\t")
+		tissues = metadata_df_original[metadata_field].unique().tolist()
+		x = "tissue"
+		boxmode = "group"
+		showlegend=True
+		margin_t = 110
+		selected_genes_species = ["Human_betaherpesvirus_5", "Human_betaherpesvirus_6B", "Human_betaherpesvirus_7"]
+
+		#loop 1 plot per gene
+		working_col = 1
+		for gene in selected_genes_species:
+			#open counts
+			counts = download_from_github("data/viruses_species/counts/" + gene + ".tsv")
+			counts = pd.read_csv(counts, sep = "\t")
+			#merge and compute log2 and replace inf with 0
+			metadata_df = metadata_df_original.merge(counts, how="left", on="sample")
+			metadata_df["Log2 abundance"] = np.log2(metadata_df["counts"])
+			metadata_df["Log2 abundance"].replace(to_replace = -np.inf, value = 0, inplace=True)
+			#clean metadata field column
+			metadata_df[metadata_field] = [i.replace("_", " ") for i in metadata_df[metadata_field]]
+			metadata_df[x] = [i.replace("_", " ") for i in metadata_df[x]]
+
+			#plot
+			metadata_fields_ordered = metadata_df[metadata_field].unique().tolist()
+			metadata_fields_ordered.sort()
+			i = 0
+			for metadata in metadata_fields_ordered:
+				if metadata != "PIBD":
+					filtered_metadata = metadata_df[metadata_df[metadata_field] == metadata]
+					hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library prep strategy: " + filtered_metadata["Library prep strategy"]
+					betaherpesvirus_box_fig.add_trace(go.Box(x=filtered_metadata[x], y=filtered_metadata["Log2 abundance"], name=metadata, marker_color=colors[i], boxpoints="all", hovertext=hovertext_labels, hoverinfo="y+text", legendgroup=metadata, showlegend=showlegend, offsetgroup=metadata), row=1, col=working_col)
+					i += 1
+
+			working_col += 1
+			#just one legend for trece showed is enough
+			if showlegend is True:
+				showlegend = False
+
+		#update traces layout
+		betaherpesvirus_box_fig.update_traces(marker_size=4)
+		betaherpesvirus_box_fig.update_layout(title_text = "Human beta herpesviruses", title_x = 0.5, title_y = 0.89, font_family="Arial", margin_r=10, boxmode="group", legend_orientation="h", legend_y=1.25, legend_xanchor="center", legend_x=0.47, margin_t=80)
+
+		#populate body
 		tamma_body.append(tamma_markdown_caudovirales)
 		tamma_body.append(dcc.Graph(figure=caudovirales_box_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "virome_ibd_caudovirales.png"}}))
 		tamma_body.append(dcc.Graph(figure=herpes_hepadna_box_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "virome_ibd_herpes_hepadna.png"}}))
+		tamma_body.append(betaherpesvirus_markdown)
+		tamma_body.append(dcc.Graph(figure=betaherpesvirus_box_fig, config={"modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "hoverClosestGl2d", "hoverClosestPie", "toggleHover", "sendDataToCloud", "toggleSpikelines", "resetViewMapbox", "hoverClosestCartesian", "hoverCompareCartesian"], "toImageButtonOptions": {"format": "png", "scale": 20, "filename": "virome_ibd_herpes_hepadna.png"}}))
 	elif validation == "epithelium_proangiogenic_factors_ibd":
 		#markdown
 		literature_markdown = dcc.Markdown(
