@@ -3412,7 +3412,7 @@ def populate_evidence_old(validation):
 
 		#update traces layout
 		caudovirales_box_fig.update_traces(marker_size=4)
-		caudovirales_box_fig.update_layout(title_text = "Caudovirales", title_x = 0.5, title_y = 0.89, font_family="Arial", margin_r=10, boxmode="group", legend_orientation="h", legend_y=1.25, legend_xanchor="center", legend_x=0.47, margin_t=80)
+		caudovirales_box_fig.update_layout(title_text = "Caudovirales", title_x = 0.5, title_y = 0.89, font_family="Arial", margin_r=10, boxmode="group", legend_orientation="h", legend_y=1.25, legend_xanchor="center", legend_x=0.47, margin_t=80, height=450)
 		
 		## herpesviridae and hepadnaviridae ##
 
@@ -3446,7 +3446,7 @@ def populate_evidence_old(validation):
 
 		#update traces and layout
 		herpes_hepadna_box_fig.update_traces(marker_size=4)
-		herpes_hepadna_box_fig.update_layout(font_family="Arial", margin_r=10, boxmode="group", legend_orientation="h", legend_y=1.25, legend_xanchor="center", legend_x=0.47, margin_t=80)
+		herpes_hepadna_box_fig.update_layout(font_family="Arial", margin_r=10, boxmode="group", legend_orientation="h", legend_y=1.25, legend_xanchor="center", legend_x=0.47, margin_t=80, height=450)
 
 		## Betaherpesvirus ##
 		betaherpesvirus_markdown = dcc.Markdown(
@@ -3501,7 +3501,7 @@ def populate_evidence_old(validation):
 
 		#update traces layout
 		betaherpesvirus_box_fig.update_traces(marker_size=4)
-		betaherpesvirus_box_fig.update_layout(title_text = "Human beta herpesviruses", title_x = 0.5, title_y = 0.89, font_family="Arial", margin_r=10, boxmode="group", legend_orientation="h", legend_y=1.25, legend_xanchor="center", legend_x=0.47, margin_t=80)
+		betaherpesvirus_box_fig.update_layout(title_text = "Human beta herpesviruses", title_x = 0.5, title_y = 0.89, font_family="Arial", margin_r=10, boxmode="group", legend_orientation="h", legend_y=1.25, legend_xanchor="center", legend_x=0.47, margin_t=80, height=450)
 
 		#populate body
 		tamma_body.append(tamma_markdown_caudovirales)
