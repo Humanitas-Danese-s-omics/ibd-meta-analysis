@@ -1816,11 +1816,15 @@ def legend(selected_metadata, contrast_switch, contrast, update_legend, dataset,
 	def rebuild_legend_fig_from_tsv(dataset, selected_metadata):
 		#open tsv
 		if dataset == "human":
-			metadata = download_from_github("data/" + dataset + "/mds/umap.tsv")
+			metadata_umap = download_from_github("data/" + dataset + "/mds/umap.tsv")
 		else:
-			metadata = download_from_github("data/" + dataset + "_species/mds/umap.tsv")
+			metadata_umap = download_from_github("data/" + dataset + "_species/mds/umap.tsv")
+		metadata_umap = pd.read_csv(metadata_umap, sep = "\t")
+		metadata_umap = metadata_umap[["sample"]]
+		metadata = download_from_github("metadata.tsv")
 		metadata = pd.read_csv(metadata, sep = "\t")
-
+		metadata = pd.merge(metadata_umap, metadata, how="left", on="sample")
+		
 		#prepare df
 		if str(metadata.dtypes[selected_metadata]) == "object":
 			metadata[selected_metadata] = metadata[selected_metadata].fillna("NA")
@@ -2330,85 +2334,83 @@ def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, group_
 	#open metadata
 	metadata_df = download_from_github("metadata.tsv")
 	metadata_df = pd.read_csv(metadata_df, sep = "\t")
+	#continuous metadata variable means no plot update
+	if str(metadata_df.dtypes[metadata_field]) != "object":
+		raise PreventUpdate
+	metadata_df[metadata_field] = metadata_df[metadata_field].fillna("NA")
 	
 	#filter metadata by the conditions in the legend only if not grouped
-	if group_switch is False:
+	if group_switch is False and legend_fig is not None:
 		legend_features = []
 		for trace in legend_fig["data"]:
 			legend_features.append(trace["name"])
 		metadata_df[metadata_field] = [i.replace("_", " ") for i in metadata_df[metadata_field]]
 		metadata_df = metadata_df[metadata_df[metadata_field].isin(legend_features)]
 
-	#continuous metadata variable means empty plot
-	if str(metadata_df.dtypes[metadata_field]) != "object":
-		raise PreventUpdate
-	#discrete metadata variables means filled plot
-	else:
-		#in case of dropdown changes must plot again
-		if trigger_id in ["expression_dataset_dropdown.value", "gene_species_dropdown.value", "metadata_dropdown.value", "group_by_group_boxplots_switch.on", "tissue_checkboxes.value"] or box_fig is None or trigger_id == "update_legend_button.n_clicks" and len(box_fig["data"]) != len(legend_fig["data"]):
-			counts = download_from_github("data/" + expression_dataset + "/counts/" + gene + ".tsv")
-			counts = pd.read_csv(counts, sep = "\t")
+	#in case of dropdown changes must plot again
+	if trigger_id in ["expression_dataset_dropdown.value", "gene_species_dropdown.value", "metadata_dropdown.value", "group_by_group_boxplots_switch.on", "tissue_checkboxes.value"] or box_fig is None or trigger_id == "update_legend_button.n_clicks" and len(box_fig["data"]) != len(legend_fig["data"]):
+		counts = download_from_github("data/" + expression_dataset + "/counts/" + gene + ".tsv")
+		counts = pd.read_csv(counts, sep = "\t")
 
-			#merge and compute log2 and replace inf with 0
-			metadata_df = metadata_df.merge(counts, how="left", on="sample")
-			metadata_df["Log2 counts"] = np.log2(metadata_df["counts"])
-			metadata_df["Log2 counts"].replace(to_replace = -np.inf, value = 0, inplace=True)
-			metadata_df[metadata_field] = metadata_df[metadata_field].fillna("NA")
+		#merge and compute log2 and replace inf with 0
+		metadata_df = metadata_df.merge(counts, how="left", on="sample")
+		metadata_df["Log2 counts"] = np.log2(metadata_df["counts"])
+		metadata_df["Log2 counts"].replace(to_replace = -np.inf, value = 0, inplace=True)
 
-			#group switch parameters
-			if metadata_field == "condition" and group_switch is True or trigger_id == "tissue_checkboxes.value":
-				#traces will be group and on the x axis we plot tissues
-				metadata_field = "group"
-				x = "tissue"
-				#filter tissues for selected checkboxes 
-				metadata_df = metadata_df[metadata_df[x].isin(checkbox_value)]
-				#sort by tissue and remove "_"
-				metadata_df = metadata_df.sort_values(by=[x])
-				metadata_df[x] = [tissue.replace("_", " ") for tissue in metadata_df[x]]
-				#other parameters
-				boxmode = "group"
-				showlegend = True
-				top_margin = 60
-				title_text = gene.replace("_", " ").replace("[", "").replace("]", "") + " {} profiles per ".format(expression_or_abundance) + "tissue, colored by group"
+		#group switch parameters
+		if metadata_field == "condition" and group_switch is True or trigger_id == "tissue_checkboxes.value":
+			#traces will be group and on the x axis we plot tissues
+			metadata_field = "group"
+			x = "tissue"
+			#filter tissues for selected checkboxes 
+			metadata_df = metadata_df[metadata_df[x].isin(checkbox_value)]
+			#sort by tissue and remove "_"
+			metadata_df = metadata_df.sort_values(by=[x])
+			metadata_df[x] = [tissue.replace("_", " ") for tissue in metadata_df[x]]
+			#other parameters
+			boxmode = "group"
+			showlegend = True
+			top_margin = 60
+			title_text = gene.replace("_", " ").replace("[", "").replace("]", "") + " {} profiles per ".format(expression_or_abundance) + "tissue, colored by group"
+		else:
+			x = metadata_field
+			boxmode = "overlay"
+			showlegend = False
+			top_margin = 30
+			title_text = gene.replace("_", " ").replace("[", "").replace("]", "") + " {} profiles per ".format(expression_or_abundance) + metadata_field.replace("_", " ")
+
+		#create figure
+		box_fig = go.Figure()
+		i = 0
+		metadata_fields_ordered = metadata_df[metadata_field].unique().tolist()
+		metadata_fields_ordered.sort()
+		for metadata in metadata_fields_ordered:
+			filtered_metadata = metadata_df[metadata_df[metadata_field] == metadata]
+			#do not plot values for NA
+			if metadata == "NA":
+				y_values = None
+				x_values = None
 			else:
-				x = metadata_field
-				boxmode = "overlay"
-				showlegend = False
-				top_margin = 30
-				title_text = gene.replace("_", " ").replace("[", "").replace("]", "") + " {} profiles per ".format(expression_or_abundance) + metadata_field.replace("_", " ")
+				y_values = filtered_metadata["Log2 counts"]
+				x_values = filtered_metadata[x]
+			hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library prep strategy: " + filtered_metadata["Library prep strategy"]
+			marker_color = get_color(metadata, i)
+			box_fig.add_trace(go.Box(y=y_values, x=x_values, name = metadata, marker_color = marker_color, boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text"))
+			i += 1
+		box_fig.update_traces(marker_size=4, showlegend=showlegend)
+		box_fig.update_layout(title = {"text": title_text, "x": 0.5, "font_size": 14, "y": 0.99}, legend_title_text = None, yaxis_title = "Log2 {}".format(expression_or_abundance), xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", height=400, margin=dict(t=top_margin, b=30, l=5, r=10), boxmode=boxmode, legend_orientation="h", legend_yanchor="bottom", legend_y=1.02, legend_xanchor="center", legend_x=0.45)
 
-			#create figure
-			box_fig = go.Figure()
-			i = 0
-			metadata_fields_ordered = metadata_df[metadata_field].unique().tolist()
-			metadata_fields_ordered.sort()
-			for metadata in metadata_fields_ordered:
-				filtered_metadata = metadata_df[metadata_df[metadata_field] == metadata]
-				#do not plot values for NA
-				if metadata == "NA":
-					y_values = None
-					x_values = None
-				else:
-					y_values = filtered_metadata["Log2 counts"]
-					x_values = filtered_metadata[x]
-				hovertext_labels = "Sample: " + filtered_metadata["sample"] + "<br>Group: " + filtered_metadata["group"] + "<br>Tissue: " + filtered_metadata["tissue"] + "<br>Source: " + filtered_metadata["source"] + "<br>Library prep strategy: " + filtered_metadata["Library prep strategy"]
-				marker_color = get_color(metadata, i)
-				box_fig.add_trace(go.Box(y=y_values, x=x_values, name = metadata, marker_color = marker_color, boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text"))
-				i += 1
-			box_fig.update_traces(marker_size=4, showlegend=showlegend)
-			box_fig.update_layout(title = {"text": title_text, "x": 0.5, "font_size": 14, "y": 0.99}, legend_title_text = None, yaxis_title = "Log2 {}".format(expression_or_abundance), xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", height=400, margin=dict(t=top_margin, b=30, l=5, r=10), boxmode=boxmode, legend_orientation="h", legend_yanchor="bottom", legend_y=1.02, legend_xanchor="center", legend_x=0.45)
+		#define visible status
+		for trace in box_fig["data"]:
+			trace["visible"] = True
 
-			#define visible status
-			for trace in box_fig["data"]:
-				trace["visible"] = True
+	#syncronyze legend status with umap metadata
+	if legend_fig is not None and group_switch is False:
+		for i in range(0, len(legend_fig["data"])):
+			box_fig["data"][i]["visible"] = legend_fig["data"][i]["visible"]
 
-		#syncronyze legend status with umap metadata
-		if legend_fig is not None and group_switch is False:
-			for i in range(0, len(legend_fig["data"])):
-				box_fig["data"][i]["visible"] = legend_fig["data"][i]["visible"]
-
-		#plot name when saving
-		config_boxplots["toImageButtonOptions"]["filename"] = "TaMMA_boxplots_with_{gene_species}_{expression_or_abundance}_colored_by_{metadata}".format(gene_species = gene, expression_or_abundance = expression_or_abundance, metadata = metadata_field)
+	#plot name when saving
+	config_boxplots["toImageButtonOptions"]["filename"] = "TaMMA_boxplots_with_{gene_species}_{expression_or_abundance}_colored_by_{metadata}".format(gene_species = gene, expression_or_abundance = expression_or_abundance, metadata = metadata_field)
 
 	#box_fig["layout"]["paper_bgcolor"] = "#BCBDDC"
 
@@ -3457,7 +3459,7 @@ def populate_evidence_old(validation):
 
 		#plot
 		betaherpesvirus_box_fig = go.Figure()
-		betaherpesvirus_box_fig = make_subplots(rows=1, cols=3, specs=[[{}, {}, {}]], y_title="Log2 abundance")
+		betaherpesvirus_box_fig = make_subplots(rows=1, cols=3, specs=[[{}, {}, {}]], y_title="Log2 abundance", column_titles=["Human betaherpesvirus 5", "Human betaherpesvirus 6B", "Human betaherpesvirus 7"])
 		grouped_boxplots = True
 		metadata_field = "group"
 		metadata_df_original = download_from_github("metadata.tsv")
@@ -3501,7 +3503,7 @@ def populate_evidence_old(validation):
 
 		#update traces layout
 		betaherpesvirus_box_fig.update_traces(marker_size=4)
-		betaherpesvirus_box_fig.update_layout(title_text = "Human beta herpesviruses", title_x = 0.5, title_y = 0.89, font_family="Arial", margin_r=10, boxmode="group", legend_orientation="h", legend_y=1.25, legend_xanchor="center", legend_x=0.47, margin_t=80, height=450)
+		betaherpesvirus_box_fig.update_layout(font_family="Arial", margin_r=10, boxmode="group", legend_orientation="h", legend_y=1.25, legend_xanchor="center", legend_x=0.47, margin_t=80, height=450)
 
 		#populate body
 		tamma_body.append(tamma_markdown_caudovirales)
