@@ -523,6 +523,7 @@ app.layout = html.Div([
 									
 									Click the ___UMAP legend___ to choose which group you want to display.  
 									Click the ___Comparison only___ button to display only the samples from the two comparisons.
+									Click the ___Multiple genes visualization___ button to display up to 10 simultaneous plots.
 									""")
 								],
 								target="info_multiboxplots",
