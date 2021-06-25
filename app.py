@@ -311,7 +311,7 @@ app.layout = html.Div([
 								
 								Click the ___legend___ to choose which group you want to display.  
 								Click the ___UMAP dataset___ dropdown to change multidimensional scaling.  
-								Click the ___Metadata___ dropdown to change sample colors.  
+								Click the ___Color by___ dropdown to change sample colors.  
 								Click the ___Comparison only___ button to display only the samples from the two comparisons.
 
 								Click the ___Show legend___ button to display the legend under the plot as well.
@@ -380,8 +380,8 @@ app.layout = html.Div([
 								Click on the ___Comparison___ dropdown to change the results.
 								Click on the ___FDR___ dropdown to change visualization in accordance with the stringency.
 
-								Click on the ___Show gene stats___ to display its statistics.  
-								Click inside the plot to change the statistics of interest.
+								Click on the ___Show gene stats___ button to display its statistics.  
+								Click a dot inside the plot to change the gene/species/family/order of interest.
 								""")
 							],
 							target="info_ma_plot",
@@ -408,7 +408,7 @@ app.layout = html.Div([
 								Box plots showing gene/species/family/order expression/abundance in the different groups.
 								
 								Click the ___UMAP legend___ to choose which group you want to display.  
-								Click the ___Comparison only___ button to display only the samples from the two comparisons.
+								Click the ___Comparison only___ button to display only the samples from the two conditions in comparison.
 								""")
 							],
 							target="info_boxplots",
@@ -464,13 +464,13 @@ app.layout = html.Div([
 							dbc.Tooltip(
 								children=[dcc.Markdown(
 									"""
-									Balloon plot showing top 15 up and top 15 down differentially enriched gene ontology biological processes between the two conditions (differential gene expression FDR<1e-10), unless filtered otherwise.
+									Balloon plot showing top 15 up and top 15 down differentially enriched gene ontology biological processes between the two conditions in the selected comparison (differential gene expression FDR<1e-10), unless filtered otherwise.
 
 									Click on the ___Comparison___ dropdown to change the results.
 									""")
 								],
 								target="info_go_plot",
-								style={"font-family": "arial", "font-size": 14}
+								style={"font-family": "arial", "font-size": 14, "width": 800}
 							),
 						], style={"width": "15%", "display": "inline-block", "vertical-align": "middle", "textAlign": "right",}),
 						
