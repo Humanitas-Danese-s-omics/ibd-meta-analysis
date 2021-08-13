@@ -760,6 +760,10 @@ app.layout = html.Div([
 							dcc.Dropdown(id="multi_gene_dge_table_selection_dropdown", multi=True, placeholder="", style={"textAlign": "left", "font-size": "12px"})
 						], style={"width": "25%", "display": "inline-block", "font-size": "12px", "vertical-align": "middle"}),
 
+						#gene priorization switch
+						html.Div([
+							daq.BooleanSwitch(id = "gene_priorization_switch", on = False, color = "#33A02C", label = "Gene priorization")
+						], style={"width": "16%", "display": "inline-block", "vertical-align": "middle"}),
 						#filtered dge table
 						html.Div(id="filtered_dge_table_div", children=[
 							html.Br(),
@@ -821,7 +825,8 @@ app.layout = html.Div([
 										}
 									],
 									style_data_conditional=[],
-									style_as_list_view=True
+									style_as_list_view=True,
+									merge_duplicate_headers=True
 								)
 							)
 						], style={"width": "100%", "font-family": "arial"}),
@@ -1014,7 +1019,6 @@ app.layout = html.Div([
 				html.A("Luca Massimino", href="https://scholar.google.com/citations?user=zkPRE9oAAAAJ&hl=en", target="_blank"), ", ",
 				html.A("Luigi Antonio Lamparelli", href="https://scholar.google.com/citations?hl=en&user=D4JB6sQAAAAJ", target="_blank"), ", ",
 				html.A("Federica Ungaro", href="https://scholar.google.com/citations?user=CYfM7wsAAAAJ&hl=en", target="_blank"), ", ",
-				html.A("Stefania Vetrano", href="https://www.hunimed.eu/member/stefania-vetrano/", target="_blank"), ", ",
 				html.A("Silvio Danese", href="https://scholar.google.com/citations?hl=en&user=2ia1nGUAAAAJ", target="_blank"), "  -  ",
 				html.A("Manual", href="https://ibd-tamma.readthedocs.io/", target="_blank"), "  -  ",
 				html.A("Report a bug", href="https://github.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data/issues", target="_blank"), "  -  ",
@@ -1062,7 +1066,7 @@ def serach_go(search_value, df):
 	return processes_to_keep
 
 #dge table rendering
-def dge_table_operations(table, dataset, fdr):
+def dge_table_operations(table, dataset, fdr, gene_priorization_switch):
 	#define dataset specific variables and link
 	if dataset == "human":
 		base_mean_label = "Average expression"
@@ -1085,25 +1089,92 @@ def dge_table_operations(table, dataset, fdr):
 	table["id"] = table[gene_column_name]
 	table = table.rename(columns={"log2FoldChange": "log2 FC", "lfcSE": "log2 FC SE", "pvalue": "P-value", "padj": "FDR", "baseMean": base_mean_label})
 	table = table.sort_values(by=["FDR"])
+
+	#define columns
+	if gene_priorization_switch:
+		
+		#keep degs
+		table = table[table["FDR"] < fdr]
+
+		#build df from data
+		opentarget_df = download_from_github("manual/opentargets.tsv")
+		#opentarget_df = "/home/llamparelli/HD8TB_1_epigenomics/meta_analysis_ibd_transcriptomics/opentargets_pipeline/2021-08-13/opentargets.tsv"
+		df = pd.read_csv(opentarget_df, sep="\t")
+		table = pd.merge(table, df, on="Gene ID")
+		table = table.fillna("")
+		#filter df for genes without drugs
+		table = table[table["drugs"] != ""]
+		
+		#link for drugs
+		all_markdown_drugs = []
+		for drugs_for_gene in table["drugs"]:
+			drugs = drugs_for_gene.split(", ")
+			markdown_drugs = []
+			for drug in drugs:
+				drug_name = re.match(r"(.+)\s\((\w+)\)", drug).group(1)
+				drug_id = re.match(r"(.+)\((\w+)\)", drug).group(2)
+				markdown_drug = "[{drug_name}](https://platform.opentargets.org/drug/{drug_id})".format(drug_name = drug_name.capitalize(), drug_id = drug_id)
+				markdown_drugs.append(markdown_drug)
+			markdown_drugs = ", ".join(markdown_drugs)
+			all_markdown_drugs.append(markdown_drugs)
+		table["drugs"] = all_markdown_drugs
+
+		#all the other fields will have the same structure for forming the link using the ensembl gene ID
+		for column in ["IBD_drugs", "QTL_in_tissues", "expression_in_tissue", "protein_expression_in_tissue_cell_types", "protein_expression_in_cell_compartment", "GWAS"]:
+			if column == "GWAS":
+				url = "https://genetics.opentargets.org/gene/"
+			else:
+				url = "https://platform.opentargets.org/target/"
+			table[column] = "[" + table[column] + "](" + url + table["Gene ID"] + ")" #if table[column] != "" else ""
+			table.loc[table[column] == "[]({url}{gene_id})".format(url = url, gene_id = table["Gene ID"]), column] = ""
+
+		#sort values according to these columns
+		table = table.sort_values(["drugs_count", "IBD_drugs_count", "GWAS_count"], ascending = (False, False, False))
+
+		#define columns
+		columns = [
+			{"name": gene_column_name, "id": gene_column_name},
+			{"name": "Gene ID", "id":"Gene ID"},
+			{"name": "log2 FC", "id":"log2 FC", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
+			{"name": "FDR", "id": "FDR", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
+			{"name": "External resources", "id": "External resources", "type": "text", "presentation": "markdown"},
+			{"name": "Drugs", "id": "drugs_count", "type": "numeric"},
+			{"name": "Drugs", "id": "drugs", "type": "text", "presentation": "markdown"},
+			{"name": "IBD drugs", "id": "IBD_drugs_count", "type": "numeric"},
+			{"name": "IBD drugs", "id": "IBD_drugs", "type": "text", "presentation": "markdown"},
+			{"name": "Tissue eQTL", "id": "QTL_in_tissues_count", "type": "numeric"},
+			{"name": "Tissue eQTL", "id": "QTL_in_tissues", "type": "text", "presentation": "markdown"},
+			{"name": "Expression in tissues", "id": "expression_in_tissue_count", "type": "numeric"},
+			{"name": "Expression in tissues", "id": "expression_in_tissue", "type": "text", "presentation": "markdown"},
+			{"name": "Expression in cell types", "id": "protein_expression_in_tissue_cell_types_count", "type": "numeric"},
+			{"name": "Expression in cell types", "id": "protein_expression_in_tissue_cell_types", "type": "text", "presentation": "markdown"},
+			{"name": "Expression in cell compartments", "id": "protein_expression_in_cell_compartment_count", "type": "numeric"},
+			{"name": "Expression in cell compartments", "id": "protein_expression_in_cell_compartment", "type": "text", "presentation": "markdown"},
+			{"name": "IBD GWAS", "id": "GWAS_count", "type": "numeric"},
+			{"name": "IBD GWAS", "id": "GWAS", "type": "text", "presentation": "markdown"},
+		]
+		#raise PreventUpdate
+
+	else:
+		columns = [
+			{"name": gene_column_name, "id": gene_column_name}, 
+			{"name": "Gene ID", "id":"Gene ID"},
+			{"name": base_mean_label, "id": base_mean_label, "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
+			{"name": "log2 FC", "id":"log2 FC", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
+			{"name": "log2 FC SE", "id":"log2 FC SE", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
+			{"name": "P-value", "id":"P-value", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
+			{"name": "FDR", "id":"FDR", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
+			{"name": "External resources", "id":"External resources", "type": "text", "presentation": "markdown"}
+			]
+		#Gene ID column not useful for metatransciptomics data
+		if dataset != "human":
+			del columns[1]
+
+	#fill NA
 	table["FDR"] = table["FDR"].fillna("NA")
 
 	#define data
 	data = table.to_dict("records")
-
-	#define columns
-	columns = [
-		{"name": gene_column_name, "id": gene_column_name}, 
-		{"name": "Gene ID", "id":"Gene ID"},
-		{"name": base_mean_label, "id": base_mean_label, "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
-		{"name": "log2 FC", "id":"log2 FC", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
-		{"name": "log2 FC SE", "id":"log2 FC SE", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
-		{"name": "P-value", "id":"P-value", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
-		{"name": "FDR", "id":"FDR", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
-		{"name": "External resources", "id":"External resources", "type": "text", "presentation": "markdown"}
-		]
-	#Gene ID column not useful for metatransciptomics data
-	if dataset != "human":
-		del columns[1]
 
 	#color rows by pvalue and up and down log2FC
 	style_data_conditional = [
@@ -1308,9 +1379,10 @@ def download_partial_go_table(n_clicks, contrast, search_value):
 	Input("multi_gene_dge_table_selection_dropdown", "value"),
 	Input("contrast_dropdown", "value"),
 	Input("expression_dataset_dropdown", "value"),
-	Input("stringency_dropdown", "value")
+	Input("stringency_dropdown", "value"),
+	Input("gene_priorization_switch", "on")
 )
-def get_filtered_dge_table(dropdown_values, contrast, dataset, fdr):
+def get_filtered_dge_table(dropdown_values, contrast, dataset, fdr, gene_priorization_switch):
 	ctx = dash.callback_context
 	trigger_id = ctx.triggered[0]["prop_id"]
 	
@@ -1331,7 +1403,7 @@ def get_filtered_dge_table(dropdown_values, contrast, dataset, fdr):
 			dropdown_values = [value.replace("_", " ").replace("[", "").replace("]", "") for value in dropdown_values]
 		table = table[table["Gene"].isin(dropdown_values)]
 
-		columns, data, style_data_conditional = dge_table_operations(table, dataset, fdr)
+		columns, data, style_data_conditional = dge_table_operations(table, dataset, fdr, gene_priorization_switch)
 
 	return columns, data, style_data_conditional, hidden_div
 
@@ -1342,14 +1414,15 @@ def get_filtered_dge_table(dropdown_values, contrast, dataset, fdr):
 	Output("dge_table", "style_data_conditional"),
 	Input("contrast_dropdown", "value"),
 	Input("expression_dataset_dropdown", "value"),
-	Input("stringency_dropdown", "value")
+	Input("stringency_dropdown", "value"),
+	Input("gene_priorization_switch", "on")
 )
-def display_dge_table(contrast, dataset, fdr):
+def display_dge_table(contrast, dataset, fdr, gene_priorization_switch):
 	#open tsv
 	table = download_from_github("data/" + dataset + "/dge/" + contrast + ".diffexp.tsv")
 	table = pd.read_csv(table, sep = "\t")
 	
-	columns, data, style_data_conditional = dge_table_operations(table, dataset, fdr)
+	columns, data, style_data_conditional = dge_table_operations(table, dataset, fdr, gene_priorization_switch)
 
 	return columns, data, style_data_conditional
 
@@ -1624,6 +1697,35 @@ def abilitate_switch(metadata):
 def show_checkboxes_boxplots(on):
 	value = tissues
 	return not on, value
+
+#disable gene priorization switch
+@app.callback(
+	Output("gene_priorization_switch", "on"),
+	Output("gene_priorization_switch", "disabled"),
+	Input("expression_dataset_dropdown", "value")
+)
+def disable_switch_if_not_human(expression_dataset):
+	if expression_dataset != "human":
+		disabled = True	
+	else:
+		disabled = False
+	on = False
+
+	return on, disabled
+
+@app.callback(
+	Output("multi_gene_dge_table_selection_dropdown", "disabled"),
+	Output("multi_gene_dge_table_selection_dropdown", "value"),
+	Input("gene_priorization_switch", "on")
+)
+def disable_dropdown_if_gene_priorization_is_true(gene_priorization_switch):
+	if gene_priorization_switch:
+		disabled = True
+	else:
+		disabled = False
+	value = []
+
+	return disabled, value
 
 #show checkboxes multiboxplots
 @app.callback(
