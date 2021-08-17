@@ -1129,7 +1129,7 @@ def dge_table_operations(table, dataset, fdr, gene_priorization_switch):
 			table.loc[table[column] == "[]({url}{gene_id})".format(url = url, gene_id = table["Gene ID"]), column] = ""
 
 		#sort values according to these columns
-		table = table.sort_values(["drugs_count", "IBD_drugs_count", "GWAS_count"], ascending = (False, False, False))
+		table = table.sort_values(["IBD_drugs_count", "GWAS_count", "drugs_count"], ascending = (False, False, False))
 
 		#define columns
 		columns = [
