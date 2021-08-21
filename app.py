@@ -170,6 +170,7 @@ app.index_string = '''
 	<html>
 		<head>
 			<!-- Global site tag (gtag.js) - Google Analytics --><script async src="https://www.googletagmanager.com/gtag/js?id=G-HL81GG80X2"></script><script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-HL81GG80X2'); </script>
+			<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2280852393527019" crossorigin="anonymous"></script>
 		{%metas%}
         <title>{%title%}</title>
         {%favicon%}
@@ -1105,16 +1106,39 @@ def dge_table_operations(table, dataset, fdr, gene_priorization_switch):
 		#filter df for genes without drugs
 		table = table[table["drugs"] != ""]
 		
+		#capitalize tissue and cell types
+		capitalized_tissues_fields = []
+		for field in table["expression_in_tissue"]:
+			tissues = field.split(", ")
+			capitalized_tissues = []
+			for tissue in tissues:
+				if tissue.capitalize() not in capitalized_tissues:
+					capitalized_tissues.append(tissue.capitalize())
+			capitalized_tissues_fields.append(", ".join(capitalized_tissues))
+		table["expression_in_tissue"] = capitalized_tissues_fields
+
+		capitalized_cell_types_fields = []
+		for field in table["protein_expression_in_tissue_cell_types"]:
+			cell_types = field.split(", ")
+			capitalized_cell_types = []
+			for cell_type in cell_types:
+				if cell_type.capitalize() not in capitalized_cell_types:
+					capitalized_cell_types.append(cell_type.capitalize())
+			capitalized_cell_types_fields.append(", ".join(capitalized_cell_types))
+		table["protein_expression_in_tissue_cell_types"] = capitalized_cell_types_fields
+
 		#link for drugs
 		all_markdown_drugs = []
 		for drugs_for_gene in table["drugs"]:
 			drugs = drugs_for_gene.split(", ")
 			markdown_drugs = []
+			unique_drugs = []
 			for drug in drugs:
 				drug_name = re.match(r"(.+)\s\((\w+)\)", drug).group(1)
 				drug_id = re.match(r"(.+)\((\w+)\)", drug).group(2)
-				markdown_drug = "[{drug_name}](https://platform.opentargets.org/drug/{drug_id})".format(drug_name = drug_name.capitalize(), drug_id = drug_id)
-				markdown_drugs.append(markdown_drug)
+				if drug_name not in unique_drugs:
+					markdown_drug = "[{drug_name}](https://platform.opentargets.org/drug/{drug_id})".format(drug_name = drug_name.capitalize(), drug_id = drug_id)
+					markdown_drugs.append(markdown_drug)
 			markdown_drugs = ", ".join(markdown_drugs)
 			all_markdown_drugs.append(markdown_drugs)
 		table["drugs"] = all_markdown_drugs
