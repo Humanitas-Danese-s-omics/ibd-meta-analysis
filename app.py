@@ -808,7 +808,7 @@ app.layout = html.Div([
 								children=dash_table.DataTable(
 									id="dge_table",
 									style_cell={
-										"whiteSpace": "normal",
+										"whiteSpace": "pre-line",
 										"height": "auto",
 										"fontSize": 12, 
 										"font-family": "arial",
@@ -823,7 +823,47 @@ app.layout = html.Div([
 										{
 											"if": {"column_id": "External resources"},
 											"width": "12%"
-										}
+										},
+										{
+											"if": {"column_id": "QTL_in_tissues"},
+											"textAlign": "left",
+											"width": "5%"
+										},
+										{
+											"if": {"column_id": "FDR"},
+											"textAlign": "left",
+											"width": "5%"
+										},
+										{
+											"if": {"column_id": "IBD_drugs"},
+											"textAlign": "left",
+											"width": "3.5%",
+										},
+										{
+											"if": {"column_id": "drugs"},
+											"textAlign": "left",
+											"width": "5%",
+										},
+										{
+											"if": {"column_id": "expression_in_tissue"},
+											"textAlign": "left",
+											"width": "25%",
+										},
+										{
+											"if": {"column_id": "protein_expression_in_tissue_cell_types"},
+											"textAlign": "left",
+											"width": "4%",
+										},
+										{
+											"if": {"column_id": "GWAS"},
+											"textAlign": "left",
+											"width": "3.5%"
+										},
+										{
+											"if": {"column_id": "protein_expression_in_cell_compartment"},
+											"textAlign": "left",
+											"width": "4%"
+										},
 									],
 									style_data_conditional=[],
 									style_as_list_view=True,
@@ -1025,7 +1065,8 @@ app.layout = html.Div([
 				html.A("Report a bug", href="https://github.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data/issues", target="_blank"), "  -  ",
 				html.A("Suggestions", href="https://github.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data/issues", target="_blank"), "  -  ",
 				html.A("Data", href="https://github.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data", target="_blank"),  "  -  ",
-				html.A("NGS dark matter", href="https://dataverse.harvard.edu/dataverse/tamma-dark-matter", target="_blank")
+				html.A("NGS dark matter", href="https://dataverse.harvard.edu/dataverse/tamma-dark-matter", target="_blank"),  "  -  ",
+				html.A("How to cite us", href="https://www.nature.com/articles/s43588-021-00114-y", target="_blank")
 			]),
 			html.Br()
 		])
@@ -1098,62 +1139,15 @@ def dge_table_operations(table, dataset, fdr, gene_priorization_switch):
 		table = table[table["FDR"] < fdr]
 
 		#build df from data
-		opentarget_df = download_from_github("manual/opentargets.tsv")
-		#opentarget_df = "/home/llamparelli/HD8TB_1_epigenomics/meta_analysis_ibd_transcriptomics/opentargets_pipeline/2021-08-13/opentargets.tsv"
+		#opentarget_df = download_from_github("manual/opentargets.tsv")
+		opentarget_df = "/home/llamparelli/HD8TB_1_epigenomics/meta_analysis_ibd_transcriptomics/opentargets_pipeline/2021-08-24/opentargets.tsv"
 		df = pd.read_csv(opentarget_df, sep="\t")
 		table = pd.merge(table, df, on="Gene ID")
-		table = table.fillna("")
-		#filter df for genes without drugs
-		table = table[table["drugs"] != ""]
-		
-		#capitalize tissue and cell types
-		capitalized_tissues_fields = []
-		for field in table["expression_in_tissue"]:
-			tissues = field.split(", ")
-			capitalized_tissues = []
-			for tissue in tissues:
-				if tissue.capitalize() not in capitalized_tissues:
-					capitalized_tissues.append(tissue.capitalize())
-			capitalized_tissues_fields.append(", ".join(capitalized_tissues))
-		table["expression_in_tissue"] = capitalized_tissues_fields
-
-		capitalized_cell_types_fields = []
-		for field in table["protein_expression_in_tissue_cell_types"]:
-			cell_types = field.split(", ")
-			capitalized_cell_types = []
-			for cell_type in cell_types:
-				if cell_type.capitalize() not in capitalized_cell_types:
-					capitalized_cell_types.append(cell_type.capitalize())
-			capitalized_cell_types_fields.append(", ".join(capitalized_cell_types))
-		table["protein_expression_in_tissue_cell_types"] = capitalized_cell_types_fields
-
-		#link for drugs
-		all_markdown_drugs = []
-		for drugs_for_gene in table["drugs"]:
-			drugs = drugs_for_gene.split(", ")
-			markdown_drugs = []
-			unique_drugs = []
-			for drug in drugs:
-				drug_name = re.match(r"(.+)\s\((\w+)\)", drug).group(1)
-				drug_id = re.match(r"(.+)\((\w+)\)", drug).group(2)
-				if drug_name not in unique_drugs:
-					markdown_drug = "[{drug_name}](https://platform.opentargets.org/drug/{drug_id})".format(drug_name = drug_name.capitalize(), drug_id = drug_id)
-					markdown_drugs.append(markdown_drug)
-			markdown_drugs = ", ".join(markdown_drugs)
-			all_markdown_drugs.append(markdown_drugs)
-		table["drugs"] = all_markdown_drugs
-
-		#all the other fields will have the same structure for forming the link using the ensembl gene ID
-		for column in ["IBD_drugs", "QTL_in_tissues", "expression_in_tissue", "protein_expression_in_tissue_cell_types", "protein_expression_in_cell_compartment", "GWAS"]:
-			if column == "GWAS":
-				url = "https://genetics.opentargets.org/gene/"
-			else:
-				url = "https://platform.opentargets.org/target/"
-			table[column] = "[" + table[column] + "](" + url + table["Gene ID"] + ")" #if table[column] != "" else ""
-			table.loc[table[column] == "[]({url}{gene_id})".format(url = url, gene_id = table["Gene ID"]), column] = ""
+		table.loc[table["log2 FC"] >= 0, "DEG"] = 1
+		table.loc[table["log2 FC"] < 0, "DEG"] = 0
 
 		#sort values according to these columns
-		table = table.sort_values(["IBD_drugs_count", "GWAS_count", "drugs_count"], ascending = (False, False, False))
+		table = table.sort_values(["DEG", "drugs_count", "GWAS_count", "IBD_drugs_count"], ascending = (False, False, False, False))
 
 		#define columns
 		columns = [
@@ -1161,11 +1155,13 @@ def dge_table_operations(table, dataset, fdr, gene_priorization_switch):
 			{"name": "Gene ID", "id":"Gene ID"},
 			{"name": "log2 FC", "id":"log2 FC", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
 			{"name": "FDR", "id": "FDR", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
-			{"name": "External resources", "id": "External resources", "type": "text", "presentation": "markdown"},
+			#{"name": "External resources", "id": "External resources", "type": "text", "presentation": "markdown"},
 			{"name": "Drugs", "id": "drugs_count", "type": "numeric"},
 			{"name": "Drugs", "id": "drugs", "type": "text", "presentation": "markdown"},
 			{"name": "IBD drugs", "id": "IBD_drugs_count", "type": "numeric"},
 			{"name": "IBD drugs", "id": "IBD_drugs", "type": "text", "presentation": "markdown"},
+			{"name": "IBD GWAS", "id": "GWAS_count", "type": "numeric"},
+			{"name": "IBD GWAS", "id": "GWAS", "type": "text", "presentation": "markdown"},
 			{"name": "Tissue eQTL", "id": "QTL_in_tissues_count", "type": "numeric"},
 			{"name": "Tissue eQTL", "id": "QTL_in_tissues", "type": "text", "presentation": "markdown"},
 			{"name": "Expression in tissues", "id": "expression_in_tissue_count", "type": "numeric"},
@@ -1173,11 +1169,8 @@ def dge_table_operations(table, dataset, fdr, gene_priorization_switch):
 			{"name": "Expression in cell types", "id": "protein_expression_in_tissue_cell_types_count", "type": "numeric"},
 			{"name": "Expression in cell types", "id": "protein_expression_in_tissue_cell_types", "type": "text", "presentation": "markdown"},
 			{"name": "Expression in cell compartments", "id": "protein_expression_in_cell_compartment_count", "type": "numeric"},
-			{"name": "Expression in cell compartments", "id": "protein_expression_in_cell_compartment", "type": "text", "presentation": "markdown"},
-			{"name": "IBD GWAS", "id": "GWAS_count", "type": "numeric"},
-			{"name": "IBD GWAS", "id": "GWAS", "type": "text", "presentation": "markdown"},
+			{"name": "Expression in cell compartments", "id": "protein_expression_in_cell_compartment", "type": "text", "presentation": "markdown"}
 		]
-		#raise PreventUpdate
 
 	else:
 		columns = [
@@ -1195,7 +1188,8 @@ def dge_table_operations(table, dataset, fdr, gene_priorization_switch):
 			del columns[1]
 
 	#fill NA
-	table["FDR"] = table["FDR"].fillna("NA")
+	#table["FDR"] = table["FDR"].fillna("NA")
+	table = table.fillna("NA")
 
 	#define data
 	data = table.to_dict("records")
