@@ -1019,7 +1019,8 @@ app.layout = html.Div([
 				html.A("Report a bug", href="https://github.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data/issues", target="_blank"), "  -  ",
 				html.A("Suggestions", href="https://github.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data/issues", target="_blank"), "  -  ",
 				html.A("Data", href="https://github.com/Humanitas-Danese-s-omics/ibd-meta-analysis-data", target="_blank"),  "  -  ",
-				html.A("NGS dark matter", href="https://dataverse.harvard.edu/dataverse/tamma-dark-matter", target="_blank")
+				html.A("NGS dark matter", href="https://dataverse.harvard.edu/dataverse/tamma-dark-matter", target="_blank"),  "  -  ",
+				html.A("How to cite us", href="https://www.nature.com/articles/s43588-021-00114-y", target="_blank")
 			]),
 			html.Br()
 		])
