@@ -1139,8 +1139,8 @@ def dge_table_operations(table, dataset, fdr, gene_priorization_switch):
 		table = table[table["FDR"] < fdr]
 
 		#build df from data
-		#opentarget_df = download_from_github("manual/opentargets.tsv")
-		opentarget_df = "/home/llamparelli/HD8TB_1_epigenomics/meta_analysis_ibd_transcriptomics/opentargets_pipeline/2021-08-24/opentargets.tsv"
+		opentarget_df = download_from_github("manual/opentargets.tsv")
+		#opentarget_df = "/home/llamparelli/HD8TB_1_epigenomics/meta_analysis_ibd_transcriptomics/opentargets_pipeline/2021-08-24/opentargets.tsv"
 		df = pd.read_csv(opentarget_df, sep="\t")
 		table = pd.merge(table, df, on="Gene ID")
 		table.loc[table["log2 FC"] >= 0, "DEG"] = 1
