@@ -710,16 +710,8 @@ app.layout = html.Div([
 						html.Div([
 							html.Img(src="assets/info.png", alt="info", id="info_dge_table", style={"width": 20, "height": 20}),
 							dbc.Tooltip(
-								children=[dcc.Markdown(
-									"""
-									Table showing the differential gene/species/family/order expression/abundance between the two conditions, unless filtered otherwise.
-
-									Click on headers to reorder the table.
-
-									Click on a row will highlight the feature in the MA plot.
-									Click on an icon in the last column to open external resources.
-									""")
-								],
+								id="dge_table_tooltip",
+								children=[],
 								target="info_dge_table",
 								style={"font-family": "arial", "font-size": 14}
 							),
@@ -763,7 +755,7 @@ app.layout = html.Div([
 
 						#gene priorization switch
 						html.Div([
-							daq.BooleanSwitch(id = "gene_priorization_switch", on = False, color = "#33A02C", label = "Gene priorization")
+							daq.BooleanSwitch(id = "target_prioritization_switch", on = False, color = "#33A02C", label = "Target prioritization")
 						], style={"width": "16%", "display": "inline-block", "vertical-align": "middle"}),
 						#filtered dge table
 						html.Div(id="filtered_dge_table_div", children=[
@@ -790,10 +782,36 @@ app.layout = html.Div([
 										{
 											"if": {"column_id": "External resources"},
 											"width": "12%"
+										},
+										{
+											"if": {"column_id": "expression_in_tissue_cell_types"},
+											"textAlign": "left",
+											"width": "45%",
+										},
+										{
+											"if": {"column_id": "FDR"},
+											"textAlign": "left",
+											"width": "4%",
+										},
+										{
+											"if": {"column_id": "total_drugs"},
+											"textAlign": "left",
+											"width": "2.5%",
+										},
+										{
+											"if": {"column_id": "IBD_drugs"},
+											"textAlign": "left",
+											"width": "3.5%",
+										},
+										{
+											"if": {"column_id": "GWAS"},
+											"textAlign": "left",
+											"width": "3.5%",
 										}
 									],
 									style_data_conditional=[],
-									style_as_list_view=True
+									style_as_list_view=True,
+									merge_duplicate_headers=True
 								)
 							)
 						], style={"width": "100%", "font-family": "arial"}, hidden=True),
@@ -815,7 +833,6 @@ app.layout = html.Div([
 										"textAlign": "center"
 									},
 									page_size=25,
-									sort_action="native",
 									style_header={
 										"textAlign": "center"
 									},
@@ -825,14 +842,19 @@ app.layout = html.Div([
 											"width": "12%"
 										},
 										{
-											"if": {"column_id": "QTL_in_tissues"},
+											"if": {"column_id": "expression_in_tissue_cell_types"},
 											"textAlign": "left",
-											"width": "5%"
+											"width": "45%",
 										},
 										{
 											"if": {"column_id": "FDR"},
 											"textAlign": "left",
-											"width": "5%"
+											"width": "4%",
+										},
+										{
+											"if": {"column_id": "total_drugs"},
+											"textAlign": "left",
+											"width": "2.5%",
 										},
 										{
 											"if": {"column_id": "IBD_drugs"},
@@ -840,30 +862,10 @@ app.layout = html.Div([
 											"width": "3.5%",
 										},
 										{
-											"if": {"column_id": "drugs"},
-											"textAlign": "left",
-											"width": "5%",
-										},
-										{
-											"if": {"column_id": "expression_in_tissue"},
-											"textAlign": "left",
-											"width": "25%",
-										},
-										{
-											"if": {"column_id": "protein_expression_in_tissue_cell_types"},
-											"textAlign": "left",
-											"width": "4%",
-										},
-										{
 											"if": {"column_id": "GWAS"},
 											"textAlign": "left",
-											"width": "3.5%"
-										},
-										{
-											"if": {"column_id": "protein_expression_in_cell_compartment"},
-											"textAlign": "left",
-											"width": "4%"
-										},
+											"width": "3.5%",
+										}
 									],
 									style_data_conditional=[],
 									style_as_list_view=True,
@@ -1108,7 +1110,7 @@ def serach_go(search_value, df):
 	return processes_to_keep
 
 #dge table rendering
-def dge_table_operations(table, dataset, fdr, gene_priorization_switch):
+def dge_table_operations(table, dataset, fdr, target_prioritization_switch):
 	#define dataset specific variables and link
 	if dataset == "human":
 		base_mean_label = "Average expression"
@@ -1133,21 +1135,24 @@ def dge_table_operations(table, dataset, fdr, gene_priorization_switch):
 	table = table.sort_values(by=["FDR"])
 
 	#define columns
-	if gene_priorization_switch:
+	if target_prioritization_switch:
 		
 		#keep degs
 		table = table[table["FDR"] < fdr]
 
 		#build df from data
 		opentarget_df = download_from_github("manual/opentargets.tsv")
-		#opentarget_df = "/home/llamparelli/HD8TB_1_epigenomics/meta_analysis_ibd_transcriptomics/opentargets_pipeline/2021-08-24/opentargets.tsv"
 		df = pd.read_csv(opentarget_df, sep="\t")
 		table = pd.merge(table, df, on="Gene ID")
-		table.loc[table["log2 FC"] >= 0, "DEG"] = 1
-		table.loc[table["log2 FC"] < 0, "DEG"] = 0
+
+		#log2fc prioritization
+		table.loc[table["log2 FC"] >= 1, "DEG"] = 4
+		table.loc[(table["log2 FC"] > 0) & (table["log2 FC"] <1), "DEG"] = 3
+		table.loc[(table["log2 FC"] < 0) & (table["log2 FC"] >-1), "DEG"] = 2
+		table.loc[table["log2 FC"] <= -1, "DEG"] = 1
 
 		#sort values according to these columns
-		table = table.sort_values(["DEG", "drugs_count", "GWAS_count", "IBD_drugs_count"], ascending = (False, False, False, False))
+		table = table.sort_values(["DEG", "GWAS_count", "drugs_count", "IBD_drugs_count"], ascending = (False, False, False, False))
 
 		#define columns
 		columns = [
@@ -1157,6 +1162,7 @@ def dge_table_operations(table, dataset, fdr, gene_priorization_switch):
 			{"name": "FDR", "id": "FDR", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
 			#{"name": "External resources", "id": "External resources", "type": "text", "presentation": "markdown"},
 			{"name": "Drugs", "id": "drugs_count", "type": "numeric"},
+			{"name": "Drugs", "id": "total_drugs"},
 			{"name": "Drugs", "id": "drugs", "type": "text", "presentation": "markdown"},
 			{"name": "IBD drugs", "id": "IBD_drugs_count", "type": "numeric"},
 			{"name": "IBD drugs", "id": "IBD_drugs", "type": "text", "presentation": "markdown"},
@@ -1164,17 +1170,15 @@ def dge_table_operations(table, dataset, fdr, gene_priorization_switch):
 			{"name": "IBD GWAS", "id": "GWAS", "type": "text", "presentation": "markdown"},
 			{"name": "Tissue eQTL", "id": "QTL_in_tissues_count", "type": "numeric"},
 			{"name": "Tissue eQTL", "id": "QTL_in_tissues", "type": "text", "presentation": "markdown"},
-			{"name": "Expression in tissues", "id": "expression_in_tissue_count", "type": "numeric"},
-			{"name": "Expression in tissues", "id": "expression_in_tissue", "type": "text", "presentation": "markdown"},
-			{"name": "Expression in cell types", "id": "protein_expression_in_tissue_cell_types_count", "type": "numeric"},
-			{"name": "Expression in cell types", "id": "protein_expression_in_tissue_cell_types", "type": "text", "presentation": "markdown"},
-			{"name": "Expression in cell compartments", "id": "protein_expression_in_cell_compartment_count", "type": "numeric"},
-			{"name": "Expression in cell compartments", "id": "protein_expression_in_cell_compartment", "type": "text", "presentation": "markdown"}
+			{"name": "Protein Expression in cell types", "id": "expression_in_tissue_cell_types_count", "type": "numeric"},
+			{"name": "Protein Expression in cell types", "id": "expression_in_tissue_cell_types", "type": "text", "presentation": "markdown"},
+			{"name": "Protein Expression in cell compartments", "id": "protein_expression_in_cell_compartment_count", "type": "numeric"},
+			{"name": "Protein Expression in cell compartments", "id": "protein_expression_in_cell_compartment", "type": "text", "presentation": "markdown"}
 		]
 
 	else:
 		columns = [
-			{"name": gene_column_name, "id": gene_column_name}, 
+			{"name": gene_column_name, "id": gene_column_name},
 			{"name": "Gene ID", "id":"Gene ID"},
 			{"name": base_mean_label, "id": base_mean_label, "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
 			{"name": "log2 FC", "id":"log2 FC", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
@@ -1188,7 +1192,6 @@ def dge_table_operations(table, dataset, fdr, gene_priorization_switch):
 			del columns[1]
 
 	#fill NA
-	#table["FDR"] = table["FDR"].fillna("NA")
 	table = table.fillna("NA")
 
 	#define data
@@ -1237,9 +1240,11 @@ def get_color(metadata, i):
 	Output("download_diffexp", "download"),
 	Input("download_diffexp_button", "n_clicks"),
 	Input("expression_dataset_dropdown", "value"),
-	Input("contrast_dropdown", "value")
+	Input("contrast_dropdown", "value"),
+	Input("stringency_dropdown", "value"),
+	Input("target_prioritization_switch", "on")
 )
-def downlaod_diffexp_table(button_click, dataset, contrast):
+def downlaod_diffexp_table(button_click, dataset, contrast, fdr, target_prioritization_switch):
 
 	#download from GitHub
 	df = download_from_github("data/" + dataset + "/dge/" + contrast + ".diffexp.tsv")
@@ -1260,7 +1265,37 @@ def downlaod_diffexp_table(button_click, dataset, contrast):
 
 	#data carpentry and links
 	df = df.rename(columns={"Geneid": "Gene ID", "log2FoldChange": "log2 FC", "lfcSE": "log2 FC SE", "pvalue": "P-value", "padj": "FDR", "baseMean": base_mean_label})
-	df = df.sort_values(by=["FDR"])
+	
+	#target prioritization
+	if target_prioritization_switch:
+		
+		#keep degs and remove useless columns
+		df = df[df["FDR"] < fdr]
+		df = df[["Gene", "Gene ID", "log2 FC", "FDR"]]
+
+		#build df from data
+		opentarget_df = download_from_github("manual/opentargets_raw.tsv")
+		opentarget_df = pd.read_csv(opentarget_df, sep="\t")
+		df = pd.merge(df, opentarget_df, on="Gene ID")
+
+		#give priority by log2FC
+		df.loc[df["log2 FC"] >= 1, "priority"] = 4
+		df.loc[(df["log2 FC"] > 0) & (df["log2 FC"] <1), "priority"] = 3
+		df.loc[(df["log2 FC"] < 0) & (df["log2 FC"] >-1), "priority"] = 2
+		df.loc[df["log2 FC"] <= -1, "priority"] = 1
+
+		#sort values according to these columns
+		df = df.sort_values(["priority", "drugs_count", "GWAS_count", "IBD_drugs_count"], ascending = (False, False, False, False))
+		df = df.drop("priority", axis=1)
+
+		#rename opentargets columns
+		df = df.rename(columns={"drugs_count": "Drugs with recommendation", "total_drugs": "Drug count", "drugs": "Drugs", "IBD_drugs_count": "IBD drug count", "IBD_drugs": "IBD drug count by disease", "QTL_in_tissues_count": "QTL in tissues count", "QTL_in_tissues": "QTL in tissue by disease", "expression_in_tissue_cell_types_count": "Expression in tissue cell type count", "expression_in_tissue_cell_types": "Expression in tissue cell type", "protein_expression_in_cell_compartment_count": "Protein expression in cell compartment count", "protein_expression_in_cell_compartment": "Protein expression in cell compartment", "GWAS_count": "GWAS count"})
+
+		file_name = "DGE_{}_{}_target_prioritization.xls".format(dataset, contrast)
+
+	else:
+		df = df.sort_values(by=["FDR"])
+		file_name = "DGE_{}_{}.xls".format(dataset, contrast)
 
 	#remove a geneid in non human dge
 	if dataset != "human":
@@ -1269,7 +1304,6 @@ def downlaod_diffexp_table(button_click, dataset, contrast):
 	#create a downloadable tsv file forced to excel by extension
 	link = df.to_csv(index=False, encoding="utf-8", sep="\t")
 	link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
-	file_name = "DGE_{}_{}.xls".format(dataset, contrast)
 
 	return link, file_name
 
@@ -1282,8 +1316,10 @@ def downlaod_diffexp_table(button_click, dataset, contrast):
 	Input("expression_dataset_dropdown", "value"),
 	Input("contrast_dropdown", "value"),
 	Input("multi_gene_dge_table_selection_dropdown", "value"),
+	Input("stringency_dropdown", "value"),
+	Input("target_prioritization_switch", "on")
 )
-def downlaod_diffexp_table_partial(button_click, dataset, contrast, dropdown_values):
+def downlaod_diffexp_table_partial(button_click, dataset, contrast, dropdown_values, fdr, target_prioritization_switch):
 	ctx = dash.callback_context
 	trigger_id = ctx.triggered[0]["prop_id"]
 	
@@ -1316,7 +1352,37 @@ def downlaod_diffexp_table_partial(button_click, dataset, contrast, dropdown_val
 
 		#data carpentry and links
 		df = df.rename(columns={"Geneid": "Gene ID", "log2FoldChange": "log2 FC", "lfcSE": "log2 FC SE", "pvalue": "P-value", "padj": "FDR", "baseMean": base_mean_label})
-		df = df.sort_values(by=["FDR"])
+		
+		#target prioritization
+		if target_prioritization_switch:
+			
+			#keep degs and remove useless columns
+			df = df[df["FDR"] < fdr]
+			df = df[["Gene", "Gene ID", "log2 FC", "FDR"]]
+
+			#build df from data
+			opentarget_df = download_from_github("manual/opentargets_raw.tsv")
+			opentarget_df = pd.read_csv(opentarget_df, sep="\t")
+			df = pd.merge(df, opentarget_df, on="Gene ID")
+
+			#give priority by log2FC
+			df.loc[df["log2 FC"] >= 1, "priority"] = 4
+			df.loc[(df["log2 FC"] > 0) & (df["log2 FC"] <1), "priority"] = 3
+			df.loc[(df["log2 FC"] < 0) & (df["log2 FC"] >-1), "priority"] = 2
+			df.loc[df["log2 FC"] <= -1, "priority"] = 1
+
+			#sort values according to these columns
+			df = df.sort_values(["priority", "drugs_count", "GWAS_count", "IBD_drugs_count"], ascending = (False, False, False, False))
+			df = df.drop("priority", axis=1)
+
+			#rename opentargets columns
+			df = df.rename(columns={"drugs_count": "Drugs with recommendation", "total_drugs": "Drug count", "drugs": "Drugs", "IBD_drugs_count": "IBD drug count", "IBD_drugs": "IBD drug count by disease", "QTL_in_tissues_count": "QTL in tissues count", "QTL_in_tissues": "QTL in tissue by disease", "expression_in_tissue_cell_types_count": "Expression in tissue cell type count", "expression_in_tissue_cell_types": "Expression in tissue cell type", "protein_expression_in_cell_compartment_count": "Protein expression in cell compartment count", "protein_expression_in_cell_compartment": "Protein expression in cell compartment", "GWAS_count": "GWAS count"})
+
+			file_name = "DGE_{}_{}_target_prioritization_filtered.xls".format(dataset, contrast)
+
+		else:
+			df = df.sort_values(by=["FDR"])
+			file_name = "DGE_{}_{}_filtered.xls".format(dataset, contrast)
 
 		#remove a geneid in non human dge
 		if dataset != "human":
@@ -1325,7 +1391,6 @@ def downlaod_diffexp_table_partial(button_click, dataset, contrast, dropdown_val
 		#create a downloadable tsv file forced to excel by extension
 		link = df.to_csv(index=False, encoding="utf-8", sep="\t")
 		link = "data:text/tsv;charset=utf-8," + urllib.parse.quote(link)
-		file_name = "DGE_{}_{}_filtered.xls".format(dataset, contrast)
 
 	return link, file_name, disabled_status
 
@@ -1394,13 +1459,14 @@ def download_partial_go_table(n_clicks, contrast, search_value):
 	Output("dge_table_filtered", "data"),
 	Output("dge_table_filtered", "style_data_conditional"),
 	Output("filtered_dge_table_div", "hidden"),
+	Output("dge_table_filtered", "sort_action"),
 	Input("multi_gene_dge_table_selection_dropdown", "value"),
 	Input("contrast_dropdown", "value"),
 	Input("expression_dataset_dropdown", "value"),
 	Input("stringency_dropdown", "value"),
-	Input("gene_priorization_switch", "on")
+	Input("target_prioritization_switch", "on")
 )
-def get_filtered_dge_table(dropdown_values, contrast, dataset, fdr, gene_priorization_switch):
+def get_filtered_dge_table(dropdown_values, contrast, dataset, fdr, target_prioritization_switch):
 	ctx = dash.callback_context
 	trigger_id = ctx.triggered[0]["prop_id"]
 	
@@ -1421,28 +1487,41 @@ def get_filtered_dge_table(dropdown_values, contrast, dataset, fdr, gene_prioriz
 			dropdown_values = [value.replace("_", " ").replace("[", "").replace("]", "") for value in dropdown_values]
 		table = table[table["Gene"].isin(dropdown_values)]
 
-		columns, data, style_data_conditional = dge_table_operations(table, dataset, fdr, gene_priorization_switch)
+		columns, data, style_data_conditional = dge_table_operations(table, dataset, fdr, target_prioritization_switch)
 
-	return columns, data, style_data_conditional, hidden_div
+	#table sorting
+	if target_prioritization_switch:
+		sort_action = "none"
+	else:
+		sort_action = "native"
+
+	return columns, data, style_data_conditional, hidden_div, sort_action
 
 #dge table full
 @app.callback(
 	Output("dge_table", "columns"),
 	Output("dge_table", "data"),
 	Output("dge_table", "style_data_conditional"),
+	Output("dge_table", "sort_action"),
 	Input("contrast_dropdown", "value"),
 	Input("expression_dataset_dropdown", "value"),
 	Input("stringency_dropdown", "value"),
-	Input("gene_priorization_switch", "on")
+	Input("target_prioritization_switch", "on")
 )
-def display_dge_table(contrast, dataset, fdr, gene_priorization_switch):
+def display_dge_table(contrast, dataset, fdr, target_prioritization_switch):
 	#open tsv
 	table = download_from_github("data/" + dataset + "/dge/" + contrast + ".diffexp.tsv")
 	table = pd.read_csv(table, sep = "\t")
 	
-	columns, data, style_data_conditional = dge_table_operations(table, dataset, fdr, gene_priorization_switch)
+	columns, data, style_data_conditional = dge_table_operations(table, dataset, fdr, target_prioritization_switch)
+	
+	#table sorting
+	if target_prioritization_switch:
+		sort_action = "none"
+	else:
+		sort_action = "native"
 
-	return columns, data, style_data_conditional
+	return columns, data, style_data_conditional, sort_action
 
 #go table
 @app.callback(
@@ -1486,8 +1565,6 @@ def display_go_table(contrast, search_value):
 	Output("gene_species_dropdown", "value"),
 	Output("gene_species_multi_boxplots_dropdown", "options"),
 	Output("gene_species_multi_boxplots_dropdown", "placeholder"),
-	Output("multi_gene_dge_table_selection_dropdown", "options"),
-	Output("multi_gene_dge_table_selection_dropdown", "placeholder"),
 	Output("stringency_dropdown", "value"),
 	#inputs
 	Input("expression_dataset_dropdown", "value"),
@@ -1525,12 +1602,10 @@ def find_genes_or_species(dataset, selected_point_ma_plot, active_cell_full, act
 		label = "Host gene"
 		stringency = 0.0000000001
 		placeholder_multiboxplots_dropdown = "Select host genes"
-		placeholder_multidropdown_dge_table = "Type here to search host genes"
 	elif dataset != "human":
 		label = dataset.split("_")[1]
 		label = label.capitalize()
 		stringency = 0.1
-		placeholder_multidropdown_dge_table = "Type here to search {}".format(dataset.replace("_", " ").replace("order", "orders").replace("family", "families"))
 		if label == "Species":
 			placeholder_multiboxplots_dropdown = "Select " + dataset.replace("_", " ")
 		if label == "Order":
@@ -1561,7 +1636,85 @@ def find_genes_or_species(dataset, selected_point_ma_plot, active_cell_full, act
 			options = [{"label": i.replace("_", " ").replace("[", "").replace("]", ""), "value": i} for i in species]
 			value = species[0]
 
-	return label, options, value, options, placeholder_multiboxplots_dropdown, options, placeholder_multidropdown_dge_table, stringency
+	return label, options, value, options, placeholder_multiboxplots_dropdown, stringency
+
+#dge tooltip
+@app.callback(
+	Output("dge_table_tooltip", "children"),
+	Input("target_prioritization_switch", "on")
+)
+def define_dge_table_tooltip(target_prioritization_switch):
+	if target_prioritization_switch:
+		children = dcc.Markdown("""
+			Table showing the differential gene expression between the two conditions upon target prioritization, unless filtered otherwise.
+			Targets were prioritized by: 1) being overexpressed, 2) having FDA-approved drugs targeting them, 3) harboring genetic variations associated with IBD, and 4) having FDA-approved drugs already under investigation or in use in IBD.
+
+			Click on a gene to highlight the feature in the MA plot.
+		""")
+	else:
+		children = dcc.Markdown("""
+			Table showing the differential gene/species/family/order expression/abundance between the two conditions, unless filtered otherwise.
+
+			Click on headers to reorder the table.
+
+			Click on a gene/species/family/order to highlight the feature in the MA plot.
+			Click on an icon in the last column to open external resources.
+		""")
+	return children
+
+#dge tagle genes multidropdown
+@app.callback(
+	Output("multi_gene_dge_table_selection_dropdown", "options"),
+	Output("multi_gene_dge_table_selection_dropdown", "placeholder"),
+	Output("multi_gene_dge_table_selection_dropdown", "value"),
+	Input("expression_dataset_dropdown", "value"),
+	Input("stringency_dropdown", "value"),
+	Input("contrast_dropdown", "value"),
+	Input("target_prioritization_switch", "on"),
+	State("multi_gene_dge_table_selection_dropdown", "value")
+)
+def get_dge_table_multidropdown_options(dataset, fdr, contrast, target_prioritization_switch, old_selected_genes):
+	#define contexts
+	ctx = dash.callback_context
+	trigger_id = ctx.triggered[0]["prop_id"]
+
+	value = []
+	if trigger_id == "expression_dataset_dropdown.value":
+		if dataset == "human":
+			genes = download_from_github("manual/genes_list.tsv")
+			genes = pd.read_csv(genes, sep = "\t", header=None, names=["genes"])
+			genes = genes["genes"].dropna().tolist()
+			options = [{"label": i, "value": i} for i in genes]
+		else:
+			species = download_from_github("manual/{}_list.tsv".format(dataset))
+			species = pd.read_csv(species, sep = "\t", header=None, names=["species"])
+			species = species["species"].dropna().tolist()
+			options = [{"label": i.replace("_", " ").replace("[", "").replace("]", ""), "value": i} for i in species]
+	
+	elif trigger_id in ["target_prioritization_switch.on", "stringency_dropdown.value", "contrast_dropdown.value"]:
+		if target_prioritization_switch:
+			genes = download_from_github("data/" + dataset + "/dge/" + contrast + ".diffexp.tsv")
+			genes = pd.read_csv(genes, sep = "\t")
+			genes = genes[genes["padj"] < fdr]
+			genes = genes["Gene"].dropna().tolist()
+			options = [{"label": i.replace("_", " ").replace("[", "").replace("]", ""), "value": i} for i in genes]
+			if old_selected_genes is not None:
+				for gene in old_selected_genes:
+					if gene in genes:
+						value.append(gene)
+		else:
+			genes = download_from_github("manual/genes_list.tsv")
+			genes = pd.read_csv(genes, sep = "\t", header=None, names=["genes"])
+			genes = genes["genes"].dropna().tolist()
+			options = [{"label": i, "value": i} for i in genes]
+			value = old_selected_genes
+
+	if dataset == "human":
+		placeholder_multidropdown_dge_table = "Type here to search host genes"
+	else:
+		placeholder_multidropdown_dge_table = "Type here to search {}".format(dataset.replace("_", " ").replace("order", "orders").replace("family", "families"))
+
+	return options, placeholder_multidropdown_dge_table, value
 
 #comparison filter callback
 @app.callback(
@@ -1716,10 +1869,10 @@ def show_checkboxes_boxplots(on):
 	value = tissues
 	return not on, value
 
-#disable gene priorization switch
+#disable target prioritization switch
 @app.callback(
-	Output("gene_priorization_switch", "on"),
-	Output("gene_priorization_switch", "disabled"),
+	Output("target_prioritization_switch", "on"),
+	Output("target_prioritization_switch", "disabled"),
 	Input("expression_dataset_dropdown", "value")
 )
 def disable_switch_if_not_human(expression_dataset):
@@ -1730,20 +1883,6 @@ def disable_switch_if_not_human(expression_dataset):
 	on = False
 
 	return on, disabled
-
-@app.callback(
-	Output("multi_gene_dge_table_selection_dropdown", "disabled"),
-	Output("multi_gene_dge_table_selection_dropdown", "value"),
-	Input("gene_priorization_switch", "on")
-)
-def disable_dropdown_if_gene_priorization_is_true(gene_priorization_switch):
-	if gene_priorization_switch:
-		disabled = True
-	else:
-		disabled = False
-	value = []
-
-	return disabled, value
 
 #show checkboxes multiboxplots
 @app.callback(
@@ -2519,7 +2658,7 @@ def plot_boxplots(expression_dataset, gene, metadata_field, update_plots, group_
 			box_fig.add_trace(go.Box(y=y_values, x=x_values, name = metadata, marker_color = marker_color, boxpoints = "all", hovertext = hovertext_labels, hoverinfo = "y+text"))
 			i += 1
 		box_fig.update_traces(marker_size=4, showlegend=showlegend)
-		box_fig.update_layout(title = {"text": title_text, "x": 0.5, "font_size": 14, "y": 0.99}, legend_title_text = None, yaxis_title = "Log2 {}".format(expression_or_abundance), xaxis_automargin=True, yaxis_automargin=True, font_family="Arial", height=400, margin=dict(t=top_margin, b=30, l=5, r=10), boxmode=boxmode, legend_orientation="h", legend_yanchor="bottom", legend_y=1.02, legend_xanchor="center", legend_x=0.45)
+		box_fig.update_layout(title = {"text": title_text, "x": 0.5, "font_size": 14, "y": 0.99}, legend_title_text = None, yaxis_title = "Log2 {}".format(expression_or_abundance), xaxis_automargin=True, xaxis_categoryorder="category ascending", yaxis_automargin=True, font_family="Arial", height=400, margin=dict(t=top_margin, b=30, l=5, r=10), boxmode=boxmode, legend_orientation="h", legend_yanchor="bottom", legend_y=1.02, legend_xanchor="center", legend_x=0.45)
 
 		#define visible status
 		for trace in box_fig["data"]:
@@ -3048,7 +3187,7 @@ def plot_multiboxplots(n_clicks_general, n_clicks_multiboxplots, metadata_field,
 				else:
 					title_text = "{} abundance profiles per ".format(expression_dataset.replace("_", " ").replace("viruses", "viral").capitalize()) + metadata_field.replace("_", " ")
 				#update layout
-				box_fig.update_layout(height=height_fig, title = {"text": title_text + extra_text, "x": 0.5, "y": 0.98, "font_size": 14}, font_family="Arial", margin_r=10, boxmode=boxmode, legend_orientation="h", legend_y=legend_y, legend_xanchor="center", legend_x=0.47, margin_t=margin_t)
+				box_fig.update_layout(height=height_fig, title = {"text": title_text + extra_text, "x": 0.5, "y": 0.98, "font_size": 14}, font_family="Arial", margin_r=10, boxmode=boxmode, legend_orientation="h", legend_y=legend_y, legend_xanchor="center", legend_x=0.47, margin_t=margin_t, xaxis_categoryorder="category ascending")
 
 				popover_status = False
 				hidden_status = False
