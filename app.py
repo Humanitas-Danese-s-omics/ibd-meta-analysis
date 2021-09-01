@@ -102,9 +102,9 @@ dataset_stats = pd.read_csv(dataset_stats, sep="\t")
 labels = download_from_github("manual/labels_list.tsv")
 labels = pd.read_csv(labels, sep = "\t", header=None, names=["labels"])
 labels["labels"] = labels["labels"].dropna()
-labels = labels["labels"].str.replace("_UCB", "").str.replace("_Pfizer", "").tolist()
+labels = labels["labels"].tolist()
 
-snakey_fig = go.Figure(data=[go.Sankey(
+sankey_fig = go.Figure(data=[go.Sankey(
 	node = dict(
 		pad = 15,
 		thickness = 20,
@@ -119,7 +119,7 @@ snakey_fig = go.Figure(data=[go.Sankey(
 		value = dataset_stats["n"]
 	)
 )])
-snakey_fig.update_layout(margin=dict(l=0, r=0, t=20, b=20))
+sankey_fig.update_layout(margin=dict(l=0, r=0, t=20, b=20))
 
 #metadata table data
 metadata_table = download_from_github("metadata.tsv")
@@ -618,7 +618,7 @@ app.layout = html.Div([
 
 				#statistics
 				html.Div([
-					dcc.Graph(id="snakey", figure=snakey_fig, config={"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 1000, "height": 400, "scale": 20, "filename": "TaMMA_snakey"}})
+					dcc.Graph(figure=sankey_fig, config={"modeBarButtonsToRemove": ["select2d", "lasso2d", "hoverClosestCartesian", "hoverCompareCartesian", "resetScale2d", "toggleSpikelines"], "toImageButtonOptions": {"format": "png", "width": 1000, "height": 400, "scale": 20, "filename": "TaMMA_sankey"}})
 				], style={"width": "100%", "display": "inline-block"}),
 				
 				html.Br(),
@@ -791,10 +791,10 @@ app.layout = html.Div([
 										{
 											"if": {"column_id": "FDR"},
 											"textAlign": "left",
-											"width": "4%",
+											"width": "4.5%",
 										},
 										{
-											"if": {"column_id": "total_drugs"},
+											"if": {"column_id": "total_drug_count"},
 											"textAlign": "left",
 											"width": "2.5%",
 										},
@@ -807,7 +807,12 @@ app.layout = html.Div([
 											"if": {"column_id": "GWAS"},
 											"textAlign": "left",
 											"width": "3.5%",
-										}
+										},
+										{
+											"if": {"column_id": "protein_expression_in_cell_compartment"},
+											"textAlign": "left",
+											"width": "8%",
+										},
 									],
 									style_data_conditional=[],
 									style_as_list_view=True,
@@ -849,10 +854,10 @@ app.layout = html.Div([
 										{
 											"if": {"column_id": "FDR"},
 											"textAlign": "left",
-											"width": "4%",
+											"width": "4.5%",
 										},
 										{
-											"if": {"column_id": "total_drugs"},
+											"if": {"column_id": "total_drug_count"},
 											"textAlign": "left",
 											"width": "2.5%",
 										},
@@ -865,7 +870,12 @@ app.layout = html.Div([
 											"if": {"column_id": "GWAS"},
 											"textAlign": "left",
 											"width": "3.5%",
-										}
+										},
+										{
+											"if": {"column_id": "protein_expression_in_cell_compartment"},
+											"textAlign": "left",
+											"width": "8%",
+										},
 									],
 									style_data_conditional=[],
 									style_as_list_view=True,
@@ -1132,51 +1142,58 @@ def dge_table_operations(table, dataset, fdr, target_prioritization_switch):
 	#data carpentry
 	table["id"] = table[gene_column_name]
 	table = table.rename(columns={"log2FoldChange": "log2 FC", "lfcSE": "log2 FC SE", "pvalue": "P-value", "padj": "FDR", "baseMean": base_mean_label})
-	table = table.sort_values(by=["FDR"])
 
 	#define columns
 	if target_prioritization_switch:
 		
-		#keep degs
+		#keep degs and remove useless columns
 		table = table[table["FDR"] < fdr]
+		table = table[["Gene", "Gene ID", "log2 FC", "FDR", "id"]]
 
 		#build df from data
 		opentarget_df = download_from_github("manual/opentargets.tsv")
-		df = pd.read_csv(opentarget_df, sep="\t")
-		table = pd.merge(table, df, on="Gene ID")
+		opentarget_df = pd.read_csv(opentarget_df, sep="\t")
+		table = pd.merge(table, opentarget_df, on="Gene ID")
 
-		#log2fc prioritization
-		table.loc[table["log2 FC"] >= 1, "DEG"] = 4
-		table.loc[(table["log2 FC"] > 0) & (table["log2 FC"] <1), "DEG"] = 3
-		table.loc[(table["log2 FC"] < 0) & (table["log2 FC"] >-1), "DEG"] = 2
-		table.loc[table["log2 FC"] <= -1, "DEG"] = 1
+		#priority for overexpression
+		table.loc[table["log2 FC"] >= 1, "DGE"] = 4
+		table.loc[(table["log2 FC"] > 0) & (table["log2 FC"] <1), "DGE"] = 3
+		table.loc[(table["log2 FC"] < 0) & (table["log2 FC"] >-1), "DGE"] = 2
+		table.loc[table["log2 FC"] <= -1, "DGE"] = 1
 
 		#sort values according to these columns
-		table = table.sort_values(["DEG", "GWAS_count", "drugs_count", "IBD_drugs_count"], ascending = (False, False, False, False))
-
+		table = table.sort_values(["DGE", "index"], ascending = (False, False))
+		table = table.reset_index(drop=True)
+		table = table.drop("DGE", axis=1)
+		table = table.drop("index", axis=1)
+		all_columns = list(table.columns)
+		table["Rank"] = [x + 1 for x in list(table.index)]
+		table = table[["Rank"] + all_columns]
+		
 		#define columns
 		columns = [
+			{"name": "Rank", "id": "Rank"},
 			{"name": gene_column_name, "id": gene_column_name},
 			{"name": "Gene ID", "id":"Gene ID"},
 			{"name": "log2 FC", "id":"log2 FC", "type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)},
 			{"name": "FDR", "id": "FDR", "type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_or_exponent)},
-			#{"name": "External resources", "id": "External resources", "type": "text", "presentation": "markdown"},
-			{"name": "Drugs", "id": "drugs_count", "type": "numeric"},
-			{"name": "Drugs", "id": "total_drugs"},
+			{"name": "Drugs", "id": "drug_count", "type": "numeric"},
+			{"name": "Drugs", "id": "total_drug_count"},
 			{"name": "Drugs", "id": "drugs", "type": "text", "presentation": "markdown"},
-			{"name": "IBD drugs", "id": "IBD_drugs_count", "type": "numeric"},
+			{"name": "IBD drugs", "id": "IBD_drug_count", "type": "numeric"},
 			{"name": "IBD drugs", "id": "IBD_drugs", "type": "text", "presentation": "markdown"},
 			{"name": "IBD GWAS", "id": "GWAS_count", "type": "numeric"},
 			{"name": "IBD GWAS", "id": "GWAS", "type": "text", "presentation": "markdown"},
 			{"name": "Tissue eQTL", "id": "QTL_in_tissues_count", "type": "numeric"},
 			{"name": "Tissue eQTL", "id": "QTL_in_tissues", "type": "text", "presentation": "markdown"},
-			{"name": "Protein Expression in cell types", "id": "expression_in_tissue_cell_types_count", "type": "numeric"},
-			{"name": "Protein Expression in cell types", "id": "expression_in_tissue_cell_types", "type": "text", "presentation": "markdown"},
-			{"name": "Protein Expression in cell compartments", "id": "protein_expression_in_cell_compartment_count", "type": "numeric"},
-			{"name": "Protein Expression in cell compartments", "id": "protein_expression_in_cell_compartment", "type": "text", "presentation": "markdown"}
+			{"name": "Protein expression in cell types", "id": "expression_in_tissue_cell_types_count", "type": "numeric"},
+			{"name": "Protein expression in cell types", "id": "expression_in_tissue_cell_types", "type": "text", "presentation": "markdown"},
+			{"name": "Protein expression in cell compartments", "id": "protein_expression_in_cell_compartment_count", "type": "numeric"},
+			{"name": "Protein expression in cell compartments", "id": "protein_expression_in_cell_compartment", "type": "text", "presentation": "markdown"}
 		]
 
 	else:
+		table = table.sort_values(by=["FDR"])
 		columns = [
 			{"name": gene_column_name, "id": gene_column_name},
 			{"name": "Gene ID", "id":"Gene ID"},
@@ -1193,9 +1210,6 @@ def dge_table_operations(table, dataset, fdr, target_prioritization_switch):
 
 	#fill NA
 	table = table.fillna("NA")
-
-	#define data
-	data = table.to_dict("records")
 
 	#color rows by pvalue and up and down log2FC
 	style_data_conditional = [
@@ -1219,7 +1233,65 @@ def dge_table_operations(table, dataset, fdr, target_prioritization_switch):
 		}
 	]
 
-	return columns, data, style_data_conditional
+	return columns, table, style_data_conditional
+
+#download excel operations
+def download_dge_table_operations(df, dataset, contrast, target_prioritization_switch, fdr, filtered_or_not):
+	#define dataset specific variables
+	if dataset == "human":
+		base_mean_label = "Average expression"
+		gene_column_name = "Gene"
+	else:
+		df["Gene"] = [x.replace("_", " ").replace("[", "").replace("]", "") for x in df["Gene"]]
+		base_mean_label = "Average abundance"
+		gene_column_name = dataset.split("_")[1].capitalize()
+		df = df.rename(columns={"Gene": gene_column_name})
+
+	#rename columns
+	df = df.rename(columns={"Geneid": "Gene ID", "log2FoldChange": "log2 FC", "lfcSE": "log2 FC SE", "pvalue": "P-value", "padj": "FDR", "baseMean": base_mean_label})
+	
+	#target prioritization
+	if target_prioritization_switch:
+		
+		#keep degs and remove useless columns
+		df = df[df["FDR"] < fdr]
+		df = df[["Gene", "Gene ID", "log2 FC", "FDR"]]
+
+		#build df from data
+		opentarget_df = download_from_github("manual/opentargets_raw.tsv")
+		opentarget_df = pd.read_csv(opentarget_df, sep="\t")
+		df = pd.merge(df, opentarget_df, on="Gene ID")
+
+		#priority for overexpression
+		df.loc[df["log2 FC"] >= 1, "DGE"] = 4
+		df.loc[(df["log2 FC"] > 0) & (df["log2 FC"] <1), "DGE"] = 3
+		df.loc[(df["log2 FC"] < 0) & (df["log2 FC"] >-1), "DGE"] = 2
+		df.loc[df["log2 FC"] <= -1, "DGE"] = 1
+
+		#sort values according to these columns
+		df = df.sort_values(["DGE", "index"], ascending = (False, False))
+		df = df.reset_index(drop=True)
+		df = df.drop("DGE", axis=1)
+		df = df.drop("index", axis=1)
+		all_columns = list(df.columns)
+		df["Rank"] = [x + 1 for x in list(df.index)]
+		df = df[["Rank"] + all_columns]
+
+		#rename opentargets columns
+		df = df.rename(columns={"drug_count": "Drugs with recommendation", "total_drug_count": "Drug count", "drugs": "Drugs", "IBD_drug_count": "IBD drug count", "IBD_drugs": "IBD drug count by disease", "QTL_in_tissues_count": "QTL in tissues count", "QTL_in_tissues": "QTL in tissue by disease", "expression_in_tissue_cell_types_count": "Protein expression in tissue cell type count", "expression_in_tissue_cell_types": "Protein expression in tissue cell type", "protein_expression_in_cell_compartment_count": "Protein expression in cell compartment count", "protein_expression_in_cell_compartment": "Protein expression in cell compartment", "GWAS_count": "GWAS count"})
+
+		file_name = "DGE_{}_{}_target_prioritization{}.xls".format(dataset, contrast, filtered_or_not)
+	#normal table
+	else:
+		#select columns and sort by FDR
+		df = df.sort_values(by=["FDR"])
+		if dataset == "human":
+			df = df[[gene_column_name, "Gene ID", "log2 FC", "log2 FC SE", "P-value", "FDR", base_mean_label]]
+		else:
+			df = df[[gene_column_name, "log2 FC", "log2 FC SE", "P-value", "FDR", base_mean_label]]
+		file_name = "DGE_{}_{}{}.xls".format(dataset, contrast, filtered_or_not)
+
+	return df, file_name
 
 #palette to use to get color
 def get_color(metadata, i):
@@ -1250,56 +1322,9 @@ def downlaod_diffexp_table(button_click, dataset, contrast, fdr, target_prioriti
 	df = download_from_github("data/" + dataset + "/dge/" + contrast + ".diffexp.tsv")
 	#read the downloaded content and make a pandas dataframe
 	df = pd.read_csv(df, sep="\t")
-	df = df[["Gene", "Geneid", "log2FoldChange", "lfcSE", "pvalue", "padj", "baseMean"]]
-
-	if dataset != "human":
-		df["Gene"] = [x.replace("_", " ").replace("[", "").replace("]", "") for x in df["Gene"]]
-
-	#define dataset specific variables
-	if dataset == "human":
-		base_mean_label = "Average expression"
-	else:
-		base_mean_label = "Average abundance"
-		gene_column_name = dataset.split("_")[1].capitalize()
-		df = df.rename(columns={"Gene": gene_column_name})
-
-	#data carpentry and links
-	df = df.rename(columns={"Geneid": "Gene ID", "log2FoldChange": "log2 FC", "lfcSE": "log2 FC SE", "pvalue": "P-value", "padj": "FDR", "baseMean": base_mean_label})
 	
-	#target prioritization
-	if target_prioritization_switch:
-		
-		#keep degs and remove useless columns
-		df = df[df["FDR"] < fdr]
-		df = df[["Gene", "Gene ID", "log2 FC", "FDR"]]
-
-		#build df from data
-		opentarget_df = download_from_github("manual/opentargets_raw.tsv")
-		opentarget_df = pd.read_csv(opentarget_df, sep="\t")
-		df = pd.merge(df, opentarget_df, on="Gene ID")
-
-		#give priority by log2FC
-		df.loc[df["log2 FC"] >= 1, "priority"] = 4
-		df.loc[(df["log2 FC"] > 0) & (df["log2 FC"] <1), "priority"] = 3
-		df.loc[(df["log2 FC"] < 0) & (df["log2 FC"] >-1), "priority"] = 2
-		df.loc[df["log2 FC"] <= -1, "priority"] = 1
-
-		#sort values according to these columns
-		df = df.sort_values(["priority", "drugs_count", "GWAS_count", "IBD_drugs_count"], ascending = (False, False, False, False))
-		df = df.drop("priority", axis=1)
-
-		#rename opentargets columns
-		df = df.rename(columns={"drugs_count": "Drugs with recommendation", "total_drugs": "Drug count", "drugs": "Drugs", "IBD_drugs_count": "IBD drug count", "IBD_drugs": "IBD drug count by disease", "QTL_in_tissues_count": "QTL in tissues count", "QTL_in_tissues": "QTL in tissue by disease", "expression_in_tissue_cell_types_count": "Expression in tissue cell type count", "expression_in_tissue_cell_types": "Expression in tissue cell type", "protein_expression_in_cell_compartment_count": "Protein expression in cell compartment count", "protein_expression_in_cell_compartment": "Protein expression in cell compartment", "GWAS_count": "GWAS count"})
-
-		file_name = "DGE_{}_{}_target_prioritization.xls".format(dataset, contrast)
-
-	else:
-		df = df.sort_values(by=["FDR"])
-		file_name = "DGE_{}_{}.xls".format(dataset, contrast)
-
-	#remove a geneid in non human dge
-	if dataset != "human":
-		df = df[[gene_column_name, "log2 FC", "log2 FC SE", "P-value", "FDR", base_mean_label]]
+	#execute function
+	df, file_name = download_dge_table_operations(df, dataset, contrast, target_prioritization_switch, fdr, "")
 
 	#create a downloadable tsv file forced to excel by extension
 	link = df.to_csv(index=False, encoding="utf-8", sep="\t")
@@ -1323,6 +1348,7 @@ def downlaod_diffexp_table_partial(button_click, dataset, contrast, dropdown_val
 	ctx = dash.callback_context
 	trigger_id = ctx.triggered[0]["prop_id"]
 	
+	#empty dropdown
 	if dropdown_values is None or dropdown_values == [] or trigger_id == "expression_dataset_dropdown.value":
 		link = ""
 		file_name = ""
@@ -1331,62 +1357,21 @@ def downlaod_diffexp_table_partial(button_click, dataset, contrast, dropdown_val
 	else:
 		disabled_status = False
 		#download from GitHub
-		url = "data/" + dataset + "/dge/" + contrast + ".diffexp.tsv"
-		#read the downloaded content and make a pandas dataframe
-		df = download_from_github(url)
+		df = download_from_github("data/" + dataset + "/dge/" + contrast + ".diffexp.tsv")
 		df = pd.read_csv(df, sep="\t")
 
-		#filter selected genes
-		if dataset != "human":
-			df["Gene"] = [x.replace("_", " ").replace("[", "").replace("]", "") for x in df["Gene"]]
-			dropdown_values = [value.replace("_", " ").replace("[", "").replace("]", "") for value in dropdown_values]
-		df = df[df["Gene"].isin(dropdown_values)]
+		#execute function
+		df, file_name = download_dge_table_operations(df, dataset, contrast, target_prioritization_switch, fdr, "_filtered")
 
-		#define dataset specific variables
-		if dataset == "human":
-			base_mean_label = "Average expression"
-		else:
-			base_mean_label = "Average abundance"
+		#remove a wrong chars in non human dge dropdown values
+		if dataset != "human":
 			gene_column_name = dataset.split("_")[1].capitalize()
-			df = df.rename(columns={"Gene": gene_column_name})
-
-		#data carpentry and links
-		df = df.rename(columns={"Geneid": "Gene ID", "log2FoldChange": "log2 FC", "lfcSE": "log2 FC SE", "pvalue": "P-value", "padj": "FDR", "baseMean": base_mean_label})
-		
-		#target prioritization
-		if target_prioritization_switch:
-			
-			#keep degs and remove useless columns
-			df = df[df["FDR"] < fdr]
-			df = df[["Gene", "Gene ID", "log2 FC", "FDR"]]
-
-			#build df from data
-			opentarget_df = download_from_github("manual/opentargets_raw.tsv")
-			opentarget_df = pd.read_csv(opentarget_df, sep="\t")
-			df = pd.merge(df, opentarget_df, on="Gene ID")
-
-			#give priority by log2FC
-			df.loc[df["log2 FC"] >= 1, "priority"] = 4
-			df.loc[(df["log2 FC"] > 0) & (df["log2 FC"] <1), "priority"] = 3
-			df.loc[(df["log2 FC"] < 0) & (df["log2 FC"] >-1), "priority"] = 2
-			df.loc[df["log2 FC"] <= -1, "priority"] = 1
-
-			#sort values according to these columns
-			df = df.sort_values(["priority", "drugs_count", "GWAS_count", "IBD_drugs_count"], ascending = (False, False, False, False))
-			df = df.drop("priority", axis=1)
-
-			#rename opentargets columns
-			df = df.rename(columns={"drugs_count": "Drugs with recommendation", "total_drugs": "Drug count", "drugs": "Drugs", "IBD_drugs_count": "IBD drug count", "IBD_drugs": "IBD drug count by disease", "QTL_in_tissues_count": "QTL in tissues count", "QTL_in_tissues": "QTL in tissue by disease", "expression_in_tissue_cell_types_count": "Expression in tissue cell type count", "expression_in_tissue_cell_types": "Expression in tissue cell type", "protein_expression_in_cell_compartment_count": "Protein expression in cell compartment count", "protein_expression_in_cell_compartment": "Protein expression in cell compartment", "GWAS_count": "GWAS count"})
-
-			file_name = "DGE_{}_{}_target_prioritization_filtered.xls".format(dataset, contrast)
-
+			dropdown_values = [value.replace("_", " ").replace("[", "").replace("]", "") for value in dropdown_values]
 		else:
-			df = df.sort_values(by=["FDR"])
-			file_name = "DGE_{}_{}_filtered.xls".format(dataset, contrast)
+			gene_column_name = "Gene"
 
-		#remove a geneid in non human dge
-		if dataset != "human":
-			df = df[[gene_column_name, "log2 FC", "log2 FC SE", "P-value", "FDR", base_mean_label]]
+		#filter selected genes
+		df = df[df[gene_column_name].isin(dropdown_values)]
 
 		#create a downloadable tsv file forced to excel by extension
 		link = df.to_csv(index=False, encoding="utf-8", sep="\t")
@@ -1481,13 +1466,20 @@ def get_filtered_dge_table(dropdown_values, contrast, dataset, fdr, target_prior
 		table = download_from_github("data/" + dataset + "/dge/" + contrast + ".diffexp.tsv")
 		table = pd.read_csv(table, sep = "\t")
 
+		columns, table, style_data_conditional = dge_table_operations(table, dataset, fdr, target_prioritization_switch)
+
 		#filter selected genes
 		if dataset != "human":
-			table["Gene"] = [x.replace("_", " ").replace("[", "").replace("]", "") for x in table["Gene"]]
+			gene_column_name = dataset.split("_")[1].capitalize()
+			table[gene_column_name] = [x.replace("_", " ").replace("[", "").replace("]", "") for x in table[gene_column_name]]
 			dropdown_values = [value.replace("_", " ").replace("[", "").replace("]", "") for value in dropdown_values]
-		table = table[table["Gene"].isin(dropdown_values)]
+		else:
+			gene_column_name = "Gene"
+		
+		table = table[table[gene_column_name].isin(dropdown_values)]
 
-		columns, data, style_data_conditional = dge_table_operations(table, dataset, fdr, target_prioritization_switch)
+		#define data
+		data = table.to_dict("records")
 
 	#table sorting
 	if target_prioritization_switch:
@@ -1508,13 +1500,16 @@ def get_filtered_dge_table(dropdown_values, contrast, dataset, fdr, target_prior
 	Input("stringency_dropdown", "value"),
 	Input("target_prioritization_switch", "on")
 )
-def display_dge_table(contrast, dataset, fdr, target_prioritization_switch):
+def get_dge_table(contrast, dataset, fdr, target_prioritization_switch):
 	#open tsv
 	table = download_from_github("data/" + dataset + "/dge/" + contrast + ".diffexp.tsv")
 	table = pd.read_csv(table, sep = "\t")
 	
-	columns, data, style_data_conditional = dge_table_operations(table, dataset, fdr, target_prioritization_switch)
+	columns, table, style_data_conditional = dge_table_operations(table, dataset, fdr, target_prioritization_switch)
 	
+	#define data
+	data = table.to_dict("records")
+
 	#table sorting
 	if target_prioritization_switch:
 		sort_action = "none"
@@ -1530,7 +1525,7 @@ def display_dge_table(contrast, dataset, fdr, target_prioritization_switch):
 	Input("contrast_dropdown", "value"),
 	Input("go_plot_filter_input", "value")
 )
-def display_go_table(contrast, search_value):
+def get_go_table(contrast, search_value):
 	go_df = download_from_github("data/human/padj_1e-10/" + contrast + ".merged_go.tsv")
 	go_df = pd.read_csv(go_df, sep="\t")
 	go_df = go_df[["DGE", "Genes", "Process~name", "num_of_Genes", "gene_group", "percentage%", "P-value"]]
@@ -1647,7 +1642,7 @@ def define_dge_table_tooltip(target_prioritization_switch):
 	if target_prioritization_switch:
 		children = dcc.Markdown("""
 			Table showing the differential gene expression between the two conditions upon target prioritization, unless filtered otherwise.
-			Targets were prioritized by: 1) being overexpressed, 2) having FDA-approved drugs targeting them, 3) harboring genetic variations associated with IBD, and 4) having FDA-approved drugs already under investigation or in use in IBD.
+			Targets were prioritized by: 1) being overexpressed, 2) harboring genetic variations associated with IBD, and 3) having FDA-approved drugs targeting them, with or without recommendations.
 
 			Click on a gene to highlight the feature in the MA plot.
 		""")
