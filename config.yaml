@@ -1,0 +1,28 @@
+header:
+  logo: "assets/logo.png"
+  text: "IBD TaMMA"
+stringecy: "padj_1e-10"
+github:
+  username: "daneseomics"
+  token: "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"
+  repo_name: "Humanitas-Danese-s-omics/ibd-meta-analysis-data"
+credentials:
+  username: "ungaro"
+  pass: "steam"
+sorted_conditions: False
+condition_list:
+  - Healthy_GFP
+  - Healthy_MFSD2A_GFP
+  - Healthy_shCTRL
+  - Healthy_shMFSD2A
+  - CRC_GFP
+  - CRC_MFSD2A_GFP
+  - CRC_shCTRL
+  - CRC_shMFSD2A
+add_external_resources_to_dge_table: True
+external_resources:
+  IBD exome browser:
+    icon: "assets/icon_ibd_exome.png"
+    link_root: https://ibd.broadinstitute.org/gene/
+    column_to_use: "Gene ID"
+opentargets: True

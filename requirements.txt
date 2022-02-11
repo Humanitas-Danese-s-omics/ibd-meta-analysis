@@ -1,10 +1,14 @@
-dash
+dash==2.0.0
 gunicorn
 pandas
 numpy
+dash_auth
 dash_daq
 plotly
 dash_extensions
 openpyxl
 dash_bootstrap_components
-requests
+PyGithub
+PyYAML
+scipy
+sklearn
