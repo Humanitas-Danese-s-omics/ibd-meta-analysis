@@ -16,6 +16,11 @@ server = app.server
 from layout import layout
 app.layout = layout
 
+#pass
+credentials_dict = {config["credentials"]["username"]: config["credentials"]["pass"]}
+VALID_USERNAME_PASSWORD_PAIRS = credentials_dict
+auth = dash_auth.BasicAuth(app, VALID_USERNAME_PASSWORD_PAIRS)
+
 #callbacks
 from callbacks import define_callbacks
 define_callbacks(app)
