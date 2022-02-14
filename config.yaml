@@ -6,8 +6,7 @@ github:
   private_repo: False
   repo_name: "Humanitas-Danese-s-omics/ibd-meta-analysis-data"
 credentials:
-  username: "ungaro"
-  pass: "steam"
+  use_credentials: False
 sorted_conditions: False
 condition_list:
   - Healthy_GFP
