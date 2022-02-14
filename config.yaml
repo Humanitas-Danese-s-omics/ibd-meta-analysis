@@ -3,8 +3,7 @@ header:
   text: "IBD TaMMA"
 stringecy: "padj_1e-10"
 github:
-  username: "daneseomics"
-  token: "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"
+  private_repo: False
   repo_name: "Humanitas-Danese-s-omics/ibd-meta-analysis-data"
 credentials:
   username: "ungaro"

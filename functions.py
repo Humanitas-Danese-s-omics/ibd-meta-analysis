@@ -31,17 +31,22 @@ config = open("config.yaml")
 config = yaml.load(config, Loader=yaml.FullLoader)
 
 #data
-github_username = config["github"]["username"]
-github_token = config["github"]["token"]
+if config["github"]["private_repo"]:
+	github_username = config["github"]["username"]
+	github_token = config["github"]["token"]
 github_repo_name = config["github"]["repo_name"]
 github_raw_link = "https://raw.githubusercontent.com/" + github_repo_name + "/master/"
 
 #session for file download
 github_session = requests.Session()
-github_session.auth = (github_username, github_token)
+if config["github"]["private_repo"]:
+	github_session.auth = (github_username, github_token)
 
 #session for content
-session = Github(github_token)
+if config["github"]["private_repo"]:
+	session = Github(github_token)
+else:
+	session = Github(github_token)
 repo = session.get_repo(github_repo_name, lazy=False)
 
 #function for downloading files from GitHub
