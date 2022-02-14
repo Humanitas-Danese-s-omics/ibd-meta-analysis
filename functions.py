@@ -46,7 +46,7 @@ if config["github"]["private_repo"]:
 if config["github"]["private_repo"]:
 	session = Github(github_token)
 else:
-	session = Github(github_token)
+	session = Github()
 repo = session.get_repo(github_repo_name, lazy=False)
 
 #function for downloading files from GitHub
